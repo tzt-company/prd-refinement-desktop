@@ -14,11 +14,32 @@ describe('需求细化数据契约', () => {
     const task={runtimeConfig:{adapter:'codex-oauth',provider:'openai-codex',model:'gpt-5.6-terra',reasoningEffort:'medium',fastModel:'gpt-5.6-luna',fastReasoningEffort:'low',nodeProfiles:{featureCandidates:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidateRepair:{model:'gpt-5.6-terra',reasoningEffort:'high'}},maxParallel:1},status:'running',progress:12.5,startedAt:1000,steps:[{id:'candidates',name:'功能候选识别',note:'已识别 1/2 份候选内容',status:'running',startedAt:1000}],runtimeMetrics:[{sessionId:'prd-T-a1-candidate-0-1-try1',adapter:'codex-oauth',model:'gpt-5.6-luna',reasoningEffort:'low',startedAt:1000,completedAt:2000,durationMs:1000,inputTokens:10,outputTokens:2}],project:{}} as AnalysisTask;
     const progress=renderToStaticMarkup(React.createElement(Progress,{task,now:3000}));
     const cost=renderToStaticMarkup(React.createElement(RuntimeCost,{task}));
-    expect(progress).toContain('识别 gpt-5.6-luna · 推理 低');
-    expect(progress).toContain('返工 gpt-5.6-terra · 推理 高');
+    expect(progress).toContain('首次识别');
+    expect(progress).toContain('逐份候选内容提取功能候选');
+    expect(progress).toContain('gpt-5.6-luna');
+    expect(progress).toContain('定点返工');
+    expect(progress).toContain('只修订检查发现问题的候选');
+    expect(progress).toContain('gpt-5.6-terra');
+    expect(progress).toContain('推理 高');
     expect(cost).toContain('gpt-5.6-luna');
     expect(cost).toContain('推理深度');
     expect(cost).toContain('<td>低</td>');
+  });
+
+  it('逐功能细化明确区分简单功能、复杂功能与补漏模型的职责', () => {
+    const task={runtimeConfig:{adapter:'codex-oauth',provider:'openai-codex',model:'gpt-5.6-terra',reasoningEffort:'low',fastModel:'gpt-5.6-luna',fastReasoningEffort:'low',nodeProfiles:{detailsFast:{model:'gpt-5.6-luna',reasoningEffort:'low'},details:{model:'gpt-5.6-terra',reasoningEffort:'medium'}},maxParallel:1},status:'running',progress:62.5,startedAt:1000,steps:[{id:'details',name:'逐功能细化',note:'已细化 1/2 个功能',runs:3,status:'running',startedAt:1000}],project:{}} as AnalysisTask;
+    const progress=renderToStaticMarkup(React.createElement(Progress,{task,now:3000}));
+    expect(progress).toContain('累计业务调用 3 次');
+    expect(progress).not.toContain('运行 3 轮');
+    expect(progress).toContain('简单功能细化');
+    expect(progress).toContain('处理短小且无复杂联动的功能');
+    expect(progress).toContain('复杂功能与补漏');
+    expect(progress).toContain('处理状态、权限、依赖、例外及定点补漏');
+  });
+  it('旧任务持久化的来源包文案在界面统一显示为候选内容',()=>{
+    const task={status:'running',progress:25,startedAt:1000,steps:[{id:'candidates',name:'功能候选识别',note:'已识别 17/17 个来源包',runs:19,status:'completed'}],project:{}} as AnalysisTask;
+    const progress=renderToStaticMarkup(React.createElement(Progress,{task,now:3000}));
+    expect(progress).toContain('已识别 17/17 个候选内容');expect(progress).toContain('累计业务调用 19 次');expect(progress).not.toContain('来源包');expect(progress).not.toContain('运行 19 轮');
   });
   it('区分模型活跃耗时、等待重试与墙钟耗时',()=>{
     const task={status:'failed',startedAt:1000,completedAt:13000,steps:[],runtimeMetrics:[
