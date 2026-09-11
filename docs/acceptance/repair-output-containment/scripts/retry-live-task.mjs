@@ -19,7 +19,7 @@ for(let elapsed=0;elapsed<7_200_000;elapsed+=10_000){
   const stage=text.match(/(正在执行|任务执行失败|结果已写入 Excel|已完成)/)?.[1]??'运行中';
   const progress=text.match(/(\d+(?:\.\d+)?)%/)?.[1]??'?';
   console.log(`STATUS elapsed=${Math.floor((elapsed+10_000)/1000)}s progress=${progress}% stage=${stage}`);
-  if(text.includes('任务执行失败')){console.log(text);await window.screenshot({path:path.resolve('docs/acceptance/repair-output-containment/round-1/live-final.png'),fullPage:true});await app.close();process.exit(2)}
-  if(text.includes('结果已写入 Excel')){await window.screenshot({path:path.resolve('docs/acceptance/repair-output-containment/round-1/live-final.png'),fullPage:true});console.log('TASK_COMPLETED');await app.close();process.exit(0)}
+  if(text.includes('任务执行失败')){console.log(text);await window.screenshot({path:path.resolve('docs/acceptance/repair-output-containment/round-2/live-final.png'),fullPage:true});await app.close();process.exit(2)}
+  if(text.includes('结果已写入 Excel')){await window.screenshot({path:path.resolve('docs/acceptance/repair-output-containment/round-2/live-final.png'),fullPage:true});console.log('TASK_COMPLETED');await app.close();process.exit(0)}
 }
 await app.close();throw new Error('等待真实任务完成超时');
