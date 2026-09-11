@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Progress, RuntimeCost } from '../src/App.js';
+import { Progress, RuntimeCost, runtimeTiming } from '../src/App.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
@@ -19,5 +19,15 @@ describe('需求细化数据契约', () => {
     expect(cost).toContain('gpt-5.6-luna');
     expect(cost).toContain('推理深度');
     expect(cost).toContain('<td>低</td>');
+  });
+  it('区分模型活跃耗时、等待重试与墙钟耗时',()=>{
+    const task={status:'failed',startedAt:1000,completedAt:13000,steps:[],runtimeMetrics:[
+      {sessionId:'prd-T-a1-candidate-1-try1',startedAt:1000,completedAt:4000,durationMs:3000,adapter:'codex-oauth',model:'fast',reasoningEffort:'low'},
+      {sessionId:'prd-T-a1-coverage-2-try1',startedAt:2000,completedAt:5000,durationMs:3000,adapter:'codex-oauth',model:'sol',reasoningEffort:'low'},
+      {sessionId:'prd-T-a2-unify-3-try1',startedAt:10000,completedAt:13000,durationMs:3000,adapter:'codex-oauth',model:'sol',reasoningEffort:'low'},
+    ],project:{}} as AnalysisTask;
+    expect(runtimeTiming(task)).toEqual({active:7000,retryWait:5000});
+    const cost=renderToStaticMarkup(React.createElement(RuntimeCost,{task}));
+    expect(cost).toContain('模型活跃耗时');expect(cost).toContain('墙钟耗时');expect(cost).toContain('等待重试');expect(cost).toContain('7 秒');expect(cost).toContain('12 秒');expect(cost).toContain('5 秒');
   });
 });

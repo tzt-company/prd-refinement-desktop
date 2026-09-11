@@ -98,4 +98,11 @@ describe('直接需求域契约',()=>{
     expect(invalid.explicitAcceptanceConditions).toEqual(['缺少 X 时显示红色提示']);
     expect(acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['字段 X 必填']}],[],sources).requirements[0].explicitAcceptanceConditions).toEqual(['字段 X 必填']);
   });
+  it('将跨关联原文单元合并的验收条件无损拆回逐字片段',()=>{
+    const first='基于当时的当前版本数据检查一次；无候选或检查失败时不展示合并提醒，进入原有生成版本确认弹窗',second='移除空格并忽略字母大小写；其他字符和符号按原值比较';
+    const linked=[{...sources[0],excerpt:first},{...sources[1],excerpt:second}];
+    const combined={...requirement,sourceUnitIds:['S1','S2'],explicitAcceptanceConditions:[`${first}；${second}`]};
+    expect(acceptDirectDetails([combined],[],linked).requirements[0].explicitAcceptanceConditions).toEqual([first,second]);
+    expect(()=>acceptDirectDetails([{...combined,explicitAcceptanceConditions:[`${first}；${second}。新增推导`]}],[],linked)).toThrow('不得推导或静默丢弃');
+  });
 });
