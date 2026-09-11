@@ -8,6 +8,6 @@ post-validation-coverage-failure-contained,FAIL,PASS
 overlapping-source-scope-not-overmerged,FAIL,PASS
 full-unit-tests,PASS,PASS
 typecheck,PASS,PASS
-production-build,PASS,PENDING
-installed-binary-hash,PASS,PENDING
-live-task-retry,FAIL,PENDING
+production-build,PASS,PASS
+installed-binary-hash,PASS,PASS
+live-task-retry,FAIL,PASS
