@@ -105,4 +105,9 @@ describe('直接需求域契约',()=>{
     expect(acceptDirectDetails([combined],[],linked).requirements[0].explicitAcceptanceConditions).toEqual([first,second]);
     expect(()=>acceptDirectDetails([{...combined,explicitAcceptanceConditions:[`${first}；${second}。新增推导`]}],[],linked)).toThrow('不得推导或静默丢弃');
   });
+  it('验收条件匹配移除空格并忽略字母大小写，但不忽略其他字符',()=>{
+    const linked=[{...sources[0],excerpt:'合并后统一使用关联 ID；完成后询问是否生成版本。'}];
+    expect(acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联 id']}],[],linked).requirements[0].explicitAcceptanceConditions).toEqual(['合并后统一使用关联 id']);
+    expect(()=>acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联-ID']}],[],linked)).toThrow('不得推导或静默丢弃');
+  });
 });
