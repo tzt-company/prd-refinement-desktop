@@ -35,4 +35,6 @@ describe('确定性原文证据目录',()=>{
     expect(value.requirements[0].explicitAcceptanceConditions).toEqual([]);
     expect(value.requirements[0].evidenceBindings.explicitAcceptanceConditions).toEqual([]);
   });
+  it('非重叠证据拼接后保留段间与尾部空白',()=>{const excerpt='第一句。\n\n第二句。\n  ',catalog=buildEvidenceCatalog([{...units[0],excerpt}]);expect(catalog.map(item=>item.text).join('')).toBe(excerpt);expect(catalog.map(item=>[item.start,item.end])).toEqual([[0,4],[4,13]])});
+  it('请求内证据使用短编号并移除调度与文件元数据',()=>{const {input,catalog}=evidencePromptInput({sourceUnits:[{...units[0],fileId:'very-long-file-id',fileRevision:9,status:'processed',synthetic:true,asset:{path:'secret-path',mimeType:'text/plain',sha256:'hash',readStatus:'read'}}]}) as {input:{sourceUnits:Array<Record<string,unknown>>;evidenceCatalog:Array<{id:string}>};catalog:Array<{id:string}>};expect(catalog.map(item=>item.id)).toEqual(['E1','E2']);expect(input.evidenceCatalog.map(item=>item.id)).toEqual(['E1','E2']);expect(input.sourceUnits[0]).not.toHaveProperty('fileId');expect(input.sourceUnits[0]).not.toHaveProperty('fileRevision');expect(JSON.stringify(input)).not.toContain('secret-path')});
 });

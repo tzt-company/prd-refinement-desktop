@@ -17,10 +17,10 @@ function boundaries(text: string) {
   for (let index = 0; index < text.length; index += 1) {
     if (!/[。！？；\n]/u.test(text[index])) continue;
     const end = index + 1;
-    if (text.slice(start, end).trim()) ranges.push([start, end]);
-    start = end;
+    if (text.slice(start, end).trim()) { ranges.push([start, end]); start = end; }
   }
   if (text.slice(start).trim()) ranges.push([start, text.length]);
+  else if (ranges.length) ranges[ranges.length - 1][1] = text.length;
   return ranges;
 }
 
@@ -104,9 +104,9 @@ export function evidencePromptInput(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { input, catalog: [] as SourceEvidence[] };
   const result = structuredClone(input) as Record<string, unknown>;
   const units = Array.isArray(result.sourceUnits) ? result.sourceUnits as SourceUnit[] : [];
-  const catalog = buildEvidenceCatalog(units);
+  const catalog = buildEvidenceCatalog(units).map((item,index)=>({...item,id:`E${index+1}`}));
   if (catalog.length) {
-    result.sourceUnits = units.map(({ excerpt: _excerpt, asset, ...unit }) => ({ ...unit, ...(asset ? { asset: { ...asset, extractedText: undefined } } : {}) }));
+    result.sourceUnits = units.map(unit => ({id:unit.id,label:unit.label,kind:unit.kind,location:unit.location,...(unit.logicalPath?{logicalPath:unit.logicalPath}:{}),...(unit.sourceRole?{sourceRole:unit.sourceRole}:{}),...(unit.context?{context:unit.context}:{}),...(unit.asset?{asset:{mimeType:unit.asset.mimeType,readStatus:unit.asset.readStatus}}:{})}));
     result.evidenceCatalog = catalog;
   }
   return { input: result, catalog };

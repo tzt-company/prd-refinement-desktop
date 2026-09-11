@@ -229,6 +229,7 @@ export interface RuntimeCallMetric {
 
 export interface PromptCallMetric {
   sessionId:string;
+  attempt:number;
   node:ModelNodeId;
   purpose:string;
   queuedAt:number;
@@ -242,6 +243,7 @@ export interface PromptCallMetric {
   budgetClass:'candidate'|'audit'|'repair';
   targetTokens:number;
   hardTokens:number;
+  requestHash:string;
 }
 
 export interface AnalysisTask {
@@ -250,7 +252,7 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
     resultVersion?:number;
     checks?:Partial<Record<RequiredCheckId,AnalysisCheckRecord>>;
     validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;
@@ -263,12 +265,15 @@ export interface AnalysisTask {
     repairFeedback?: Record<string,AuditIssue[]>;
     repairAttemptsV2?: RepairAttemptRecord[];
     confirmedIssueIds?: string[];
-    sourceCoverageDecisions?:Record<string,{status:'covered-by-existing'|'not-a-requirement';issueId:string;reason:string;at:number}>;
+    confirmedIssues?:Record<string,string>;
+    sourceCoverageDecisions?:Record<string,{status:'covered-by-existing';issueId:string;reason:string;requirementIds:string[];dependencyHash:string;at:number}>;
     relationRepairAttempts?: Record<string,number>;
     boundaryFeedback?: AuditIssue[];
     modelCallSequence?: number;
     deadlineAt?:number;
     promptMetrics?:PromptCallMetric[];
+    verificationCompletedVersion?:number;
+    verificationDependencyHash?:string;
     materializedFeatureIds?: string[];
     featureClarificationIds?: Record<string,string[]>;
     boundaryCandidate?: {features:Feature[];dispositions:SourceDisposition[]};

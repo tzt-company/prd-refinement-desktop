@@ -27,6 +27,9 @@ export function closeIssue(issue:AuditIssue,disposition:'repaired'|'dismissed'){
   issue.disposition=disposition;issue.closedDependencyHash=issue.dependencyHash;
 }
 export function contentFingerprint(project:PrdProject){return hash({features:project.features,requirements:project.requirements,relations:project.relations??[],clarifications:project.clarifications,sourceDispositions:project.sourceDispositions??[]})}
+export function sourceCoverageDecisionValid(project:PrdProject,sourceUnitId:string,decision:NonNullable<NonNullable<import('../src/types.js').AnalysisTask['checkpoint']>['sourceCoverageDecisions']>[string]){
+  return decision.requirementIds.length>0&&decision.requirementIds.every(id=>project.requirements.some(item=>item.id===id))&&decision.dependencyHash===projectDependencyHash(project,decision.requirementIds,[sourceUnitId],false);
+}
 export function requiredChecks(project:PrdProject,resultVersion:number):Record<RequiredCheckId,AnalysisCheckRecord>{
   const now=Date.now(),base={resultVersion,checkedAt:now,issueIds:[] as string[]};
   const dependencyHash=contentFingerprint(project);
