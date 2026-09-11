@@ -1,0 +1,13 @@
+case,round-1,round-2
+invalid-explicit-acceptance-rejected,PASS,PASS
+uncovered-source-becomes-visible-clarification,PASS,PASS
+runtime-error-still-fails,PASS,PASS
+duplicate-missing-source-scope-merged,PASS,PASS
+case-insensitive-exact-quote,PASS,PASS
+post-validation-coverage-failure-contained,FAIL,PASS
+overlapping-source-scope-not-overmerged,FAIL,PASS
+full-unit-tests,PASS,PASS
+typecheck,PASS,PASS
+production-build,PASS,PASS
+installed-binary-hash,PASS,PASS
+live-task-retry,FAIL,PASS
