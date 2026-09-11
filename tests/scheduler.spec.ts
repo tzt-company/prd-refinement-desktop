@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { AnalysisTaskScheduler } from '../electron/scheduler-v2';
+import { AnalysisTaskScheduler, compactPromptInput } from '../electron/scheduler-v2';
 import type { AnalysisRuntime } from '../electron/runtime';
 import type { PrdProject, RuntimeConfig, SourceUnit } from '../src/types';
 
@@ -42,6 +42,14 @@ function boundaryAnswer(p:string){
 async function terminal(s:AnalysisTaskScheduler){for(let i=0;i<300;i++){const task=s.list()[0];if(task&&['completed','failed'].includes(task.status))return task;await new Promise(r=>setTimeout(r,10))}throw new Error('任务未结束')}
 
 describe('八节点需求细化调度器',()=>{
+  it('提示词将重复来源上下文无损提取为共享字典',()=>{
+    const context='资料角色：主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：需求说明 → 目标与范围 → 业务规则\n</source-structure-context>';
+    const sourceUnits=Array.from({length:10},(_,index)=>({id:`S-${index+1}`,excerpt:`要求${index+1}`,context,kind:'paragraph',location:String(index+1),status:'processed'})) as SourceUnit[];
+    const compact=compactPromptInput({sourceUnits}) as {sourceUnits:Array<SourceUnit&{contextRef:string}>;sourceContexts:Record<string,string>};
+    expect(compact.sourceContexts).toEqual({'CTX-1':context});expect(compact.sourceUnits.map(u=>u.contextRef)).toEqual(Array(10).fill('CTX-1'));expect(compact.sourceUnits.every(u=>u.context===undefined)).toBe(true);
+    expect(compact.sourceUnits.map(u=>compact.sourceContexts[u.contextRef])).toEqual(sourceUnits.map(u=>u.context));
+    expect(JSON.stringify(compact).length).toBeLessThan(JSON.stringify({sourceUnits}).length);
+  });
   it.each([true,false])('补漏未覆盖来源必须进入审计且仅修复后可交付（修复=%s）',async fix=>{
     let audits=0,repairs=0;const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
       const v=input(p);
