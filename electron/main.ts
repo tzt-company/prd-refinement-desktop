@@ -131,7 +131,19 @@ if (ownsInstance) app.whenReady().then(async () => {
     return scheduler.create(project);
   });
   ipcMain.handle('analysis:cancel', (_event, taskId: string) => scheduler.cancel(taskId));
-  ipcMain.handle('analysis:retry', (_event, taskId: string) => scheduler.retry(taskId));
+  ipcMain.handle('analysis:retry', async (_event, taskId: string) => {
+    const task=scheduler.get(taskId);
+    if(!task||task.status!=='failed')return;
+    if(task.checkpoint?.pipelineVersion===7)return scheduler.retry(taskId);
+    const bundle=task.project.materialBundle;
+    if(!bundle)throw new Error('旧任务没有可重新读取的资料包，请重新选择原始文件');
+    const current=await materials.get(bundle.id);
+    if(current.revision!==bundle.revision)throw new Error('资料包版本已经变化，无法替代旧任务的冻结输入');
+    await materials.index(bundle.id);await materials.wait(bundle.id);
+    const indexed=await materials.get(bundle.id);if(indexed.state!=='ready')throw new Error(indexed.error??'原材料重新解析失败');
+    const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
+    try{return await scheduler.create(await materials.project(bundle.id,snapshot))}catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
+  });
   ipcMain.handle('analysis:open-result', async (_event, taskId: string) => { const directory = path.join(taskRoot(), taskId, 'result'); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
   await createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });

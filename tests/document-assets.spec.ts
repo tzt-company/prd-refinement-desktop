@@ -118,6 +118,19 @@ it('独立 CSS 登记来源数据并读取背景图，缺件可定位',async()=>
  const result=await extractDocument(file,path.join(directory,'assets'),{resolveReference:async(ref)=>{refs.push(ref);return ref==='icon.svg'?{path:svg}:{error:'未提交'}}});
  expect(refs).toEqual(['icon.svg','missing.png']);expect(result.sourceUnits[0].kind).toBe('attachment');expect(result.sourceUnits[0].context).toContain('不是普通业务需求');expect(result.sourceUnits[0].location).toBe('theme.css 第 1-2 行');expect(result.sourceUnits.some(x=>x.asset?.readStatus==='pending')).toBe(true);expect(result.sourceUnits.filter(x=>x.status==='blocked')).toHaveLength(1);
 });
+it('HTML 行内代码与相邻文字组成同一来源句，表格按整行建账',async()=>{
+ const {file,directory}=await fixture('inline.html',Buffer.from('<ul><li>不读取 <code>tw_processes.version</code>；</li></ul><table><tr><th>字段</th><th>规则</th></tr><tr><td>ID</td><td>必填</td></tr></table>'));
+ const result=await extractDocument(file,path.join(directory,'assets'));
+ expect(result.sourceUnits.some(unit=>unit.excerpt==='不读取 tw_processes.version；')).toBe(true);
+ expect(result.sourceUnits.some(unit=>unit.excerpt==='ID | 必填'&&unit.context?.includes('字段 | 规则'))).toBe(true);
+ expect(result.sourceUnits.some(unit=>unit.excerpt==='tw_processes.version')).toBe(false);
+});
+it('HTML iframe 章节不会污染返回父文档后的章节上下文',async()=>{
+ const {file,directory}=await fixture('scope.html',Buffer.from('<h1>父章节</h1><p>父内容一</p><iframe srcdoc="&lt;h1&gt;子章节&lt;/h1&gt;&lt;p&gt;子内容&lt;/p&gt;"></iframe><p>父内容二</p>'));
+ const result=await extractDocument(file,path.join(directory,'assets'));
+ const after=result.sourceUnits.find(unit=>unit.excerpt==='父内容二')!;
+ expect(after.context??'').not.toContain('子章节');
+});
 it('独立 JS 原样保留为脚本数据，不执行或抽取成业务段落',async()=>{
  const code='throw new Error("不得执行");\nconst label="确认合并";';const {file,directory}=await fixture('prototype.js',Buffer.from(code));
  const result=await extractDocument(file,path.join(directory,'assets'));

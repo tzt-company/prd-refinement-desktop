@@ -146,6 +146,27 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
         }catch(error){checkAbort(options.signal);blocked(`CSS 资源无法读取：${reference}；${String(error)}`,location)}
       }
     };
+    const inlineText=(node:DefaultTreeAdapterMap['node']):string=>{
+      if(node.nodeName==='#text')return (node as DefaultTreeAdapterMap['textNode']).value;
+      if(!('childNodes' in node)||('tagName' in node&&['script','style','iframe','img','svg','object','embed','canvas','video','audio','template'].includes(node.tagName)))return'';
+      return node.childNodes.map(child=>inlineText(child)).join('');
+    };
+    const cleanInline=(value:string)=>value.replace(/\s+/gu,' ').replace(/\s+([，。；：！？、,.!?;:）】])/gu,'$1').replace(/([（【])\s+/gu,'$1').trim();
+    const descendants=(node:DefaultTreeAdapterMap['node'],tagName:string):DefaultTreeAdapterMap['element'][]=>{
+      if(!('childNodes' in node))return[];
+      return node.childNodes.flatMap(child=>[...('tagName' in child&&child.tagName===tagName?[child]:[]),...descendants(child,tagName)]);
+    };
+    const visitMedia=async(node:DefaultTreeAdapterMap['node'],base:string,parentLocation:string,depth:number)=>{
+      if(!('childNodes' in node))return;
+      for(const child of node.childNodes){if('tagName' in child&&['script','style','link','iframe','img','svg','object','embed','canvas','video','audio','template'].includes(child.tagName))await visit(child,base,parentLocation,depth);else await visitMedia(child,base,parentLocation,depth)}
+    };
+    const visitDecorations=async(node:DefaultTreeAdapterMap['node'],base:string,parentLocation:string)=>{
+      if(!('childNodes' in node))return;
+      for(const child of node.childNodes){
+        if('tagName' in child){const childAttrs=Object.fromEntries(child.attrs.map(a=>[a.name,a.value]));const childPos='sourceCodeLocation' in child?child.sourceCodeLocation:undefined,childLocation=childPos?`${parentLocation} / HTML 第 ${childPos.startLine} 行第 ${childPos.startCol} 列`:parentLocation;if(childAttrs.style){add(childAttrs.style,childLocation,'attachment','HTML 排版属性（来源数据，不是普通业务需求）');await scanStyle(childAttrs.style,childLocation,base)}if(followReferences&&childAttrs.srcset)blocked(`HTML ${child.tagName} 替代图片未读取`,childLocation)}
+        await visitDecorations(child,base,parentLocation);
+      }
+    };
     const visit=async(node:DefaultTreeAdapterMap['node'],base:string,parentLocation:string,depth=0,heading='',tableContext=''):Promise<void>=>{
       checkAbort(options.signal);
       const pos='sourceCodeLocation' in node?node.sourceCodeLocation:undefined;
@@ -184,6 +205,23 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
       }
       if(tag==='svg'){try{await addAsset(await rasterizeSvg(Buffer.from(serializeOuter(node))),`html-image-${assets.length+1}.png`,location,'image/png')}catch(error){checkAbort(options.signal);blocked(`HTML SVG 无法读取：${String(error)}`,location)}return}
       if(['object','embed','canvas','video','audio','template'].includes(tag)){if(followReferences){if(attrs.src||attrs.data)await readReference(attrs.src??attrs.data,location,base);blocked(`HTML ${tag} 内容需另行读取`,location)}return}
+      if(tag==='table'){
+        await visitDecorations(node,base,parentLocation);
+        const rows=descendants(node,'tr');let header='';
+        for(const [index,row] of rows.entries()){
+          const cells=row.childNodes.filter(child=>'tagName' in child&&(child.tagName==='th'||child.tagName==='td')).map(cell=>cleanInline(inlineText(cell))).filter(Boolean);
+          const value=cells.join(' | ');if(!value)continue;
+          const rowPos='sourceCodeLocation' in row?row.sourceCodeLocation:undefined,rowLocation=rowPos?`${parentLocation} / HTML 第 ${rowPos.startLine} 行第 ${rowPos.startCol} 列`:location;
+          if(index===0)header=value;add(value,rowLocation,'table',index===0?undefined:`表格表头：${header}`);await visitMedia(row,base,parentLocation,depth);
+        }
+        return;
+      }
+      if(/^h[1-6]$/.test(tag)||tag==='p'||tag==='li'){
+        if(attrs.style){add(attrs.style,location,'attachment','HTML 排版属性（来源数据，不是普通业务需求）');await scanStyle(attrs.style,location,base)}
+        const value=cleanInline(inlineText(node));
+        if(value)add(/^h[1-6]$/.test(tag)?`${'#'.repeat(Number(tag[1]))} ${value}`:value,location,/^h[1-6]$/.test(tag)?'heading':'paragraph');
+        await visitMedia(node,base,parentLocation,depth);return;
+      }
       if(attrs.style){add(attrs.style,location,'attachment','HTML 排版属性（来源数据，不是普通业务需求）');await scanStyle(attrs.style,location,base)}
       if(followReferences&&attrs.srcset)blocked(`HTML ${tag} 替代图片未读取`,location);
       const context=tag==='table'?`表格原始位置：${location}`:tableContext;

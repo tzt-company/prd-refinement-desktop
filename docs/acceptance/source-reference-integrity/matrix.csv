@@ -1,0 +1,13 @@
+case_id,case,round_1,status
+SRC-01,HTML行内节点组成完整业务句,PASS,PASS
+SRC-02,表格行保留表头及列关系,PASS,PASS
+SRC-03,iframe与正文标题作用域隔离,PASS,PASS
+REF-01,模型仅选择有效证据ID,PASS,PASS
+REF-02,未知过期越权证据ID被拒绝,PASS,PASS
+REF-03,同段两个功能保留不同选区,PASS,PASS
+REF-04,非连续及共享选区不扩大,PASS,PASS
+REF-05,统一拆分返工与恢复保持选区,PASS,PASS
+OUT-01,页面JSONMarkdownExcel选区一致,PASS,PASS
+DIAG-01,失败诊断包含节点批次和证据,PASS,PASS
+E2E-01,真实HTML新任务完成,PASS,PASS
+E2E-02,真实业务关键规则反查通过,PASS,PASS

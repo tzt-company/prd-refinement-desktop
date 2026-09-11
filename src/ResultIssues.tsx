@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ChevronRight, CircleHelp, X } from 'lucide-react';
-import type { AuditIssue, Clarification, PrdProject, SourceUnit } from './types';
-import { activeClarifications, activePlatformIssues, affectedLabels, clarificationCounts, clarificationLevel, clarificationLevelLabel, issueTitle, readableContext, sourceHeading, sourcePosition } from './result-presentation';
+import type { AuditIssue, Clarification, PrdProject, SourceRef } from './types';
+import { activeClarifications, activePlatformIssues, affectedLabels, clarificationCounts, clarificationLevel, clarificationLevelLabel, issueTitle, readableContext, requirementSourceRefs, sourceExcerpt, sourceHeading, sourcePosition } from './result-presentation';
 
 type Item = {kind:'clarification';value:Clarification}|{kind:'platform';value:AuditIssue};
 type Filter = 'all'|'blocking'|'suggestion'|'ignorable'|'platform';
 
 function evidenceSources(project:PrdProject,item:Item){
-  const ids=item.kind==='platform'?item.value.sourceUnitIds:[...(item.value.sourceRefs??[]).map(ref=>ref.sourceUnitId),...item.value.affectedIds.flatMap(id=>project.requirements.find(requirement=>requirement.id===id)?.sourceUnitIds??(id.startsWith('S-')?[id]:[]))];
-  return [...new Set(ids)].map(id=>project.sourceUnits.find(source=>source.id===id)).filter((source):source is SourceUnit=>!!source);
+  const refs:SourceRef[]=item.kind==='platform'?item.value.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})):[...(item.value.sourceRefs??[]),...item.value.affectedIds.flatMap(id=>{const requirement=project.requirements.find(value=>value.id===id);return requirement?requirementSourceRefs(requirement):(id.startsWith('S-')?[{sourceUnitId:id}]:[])})];
+  return [...new Map(refs.map(ref=>[JSON.stringify(ref),ref])).values()].map(ref=>({ref,source:project.sourceUnits.find(source=>source.id===ref.sourceUnitId)})).filter(item=>!!item.source);
 }
 
 export function ResultIssues({project}:{project:PrdProject}){
@@ -43,7 +43,7 @@ function IssueDrawer({project,item,onClose}:{project:PrdProject;item:Item;onClos
   return <aside className="drawer issue-drawer" aria-label="待处理事项详情"><header><div><span className={`issue-level ${level}`}>{item.kind==='platform'?'阻塞':clarificationLevelLabel[level]}</span><h2>{item.kind==='platform'?issueTitle(item.value):legacy?'旧任务中的待确认内容需要重新分析':clarification!.question}</h2><small>{item.kind==='platform'?'处理方：平台':'处理方：需求负责人'}</small></div><button onClick={onClose} aria-label="关闭"><X/></button></header><div>
     {item.kind==='platform'?<><h3>平台需要处理什么</h3><p>{item.value.detail}</p><h3>为什么阻塞</h3><p>当前整理结果存在已确认问题，修正并重新检查前不能作为正式 Agent 需求包。</p></>:legacy?<><h3>为什么需要重新分析</h3><p>这条记录来自旧版任务，缺少完整问题、影响和分级依据。重新分析后才能作为可回答的业务澄清。</p></>:<><h3>已知事实</h3><p>{clarification!.knownFacts}</p><h3>唯一未决点</h3><p>{clarification!.unresolvedPoint}</p><h3>不处理的影响</h3><p>{clarification!.impact}</p><h3>分级依据</h3><p>{clarification!.levelReason}</p>{clarification!.defaultResolution&&<><h3>暂不处理时采用的口径</h3><p>{clarification!.defaultResolution}</p></>}</>}
     <h3>影响内容</h3>{affectedLabels(project,item.value.affectedIds).map((label,index)=><p className="rule" key={`${label}-${index}`}>{label}</p>)}
-    <h3>原文依据</h3>{evidenceSources(project,item).map(source=><section className="source-card" key={source.id}><strong>{sourceHeading(source)}</strong><small>{sourcePosition(source)}</small>{readableContext(source.context)&&<p>{readableContext(source.context)}</p>}<p className="source-excerpt">{source.asset?.extractedText??source.excerpt}</p></section>)}
+    <h3>原文依据</h3>{evidenceSources(project,item).map(({source,ref},index)=><section className="source-card" key={`${ref.sourceUnitId}-${ref.start??'all'}-${index}`}><strong>{sourceHeading(source!)}</strong><small>{sourcePosition(source!)}</small>{readableContext(source!.context)&&<p>{readableContext(source!.context)}</p>}<p className="source-excerpt">{sourceExcerpt(source!,ref)}</p></section>)}
     {item.kind==='clarification'&&!legacy&&<p className="issue-next"><CircleHelp/>回答入口将在“继续完善”中保存为新一轮输入；保存答案不直接改写本轮结果。</p>}
     {item.kind==='platform'&&<p className="issue-next"><AlertTriangle/>请从任务页重新分析或等待平台修正，不能由业务人员代替平台裁决。</p>}
   </div></aside>;

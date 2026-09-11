@@ -211,7 +211,8 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7;
+    validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
     unificationFeedbackRounds?: number;

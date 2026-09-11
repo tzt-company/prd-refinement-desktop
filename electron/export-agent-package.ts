@@ -2,9 +2,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { copyFile, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
-import type { AnalysisTask, DeliveryAssessment, PrdProject, RequirementDetail, SourceUnit } from '../src/types.js';
+import type { AnalysisTask, DeliveryAssessment, PrdProject, RequirementDetail, SourceRef, SourceUnit } from '../src/types.js';
 import { writeResultWorkbook } from './export-excel.js';
-import { activePlatformIssues, affectedLabels, clarificationLevel, clarificationLevelLabel, featureTitle, sourceHeading, sourcePosition } from '../src/result-presentation.js';
+import { activePlatformIssues, affectedLabels, clarificationLevel, clarificationLevelLabel, featureTitle, sourceExcerpt, sourceHeading, sourcePosition } from '../src/result-presentation.js';
 
 type DeliveryState = DeliveryAssessment['state'];
 type ExtendedTask = AnalysisTask & { runId?:string };
@@ -29,7 +29,7 @@ export interface AgentPackageResult { directory:string; manifest:AgentPackageMan
 const json = (value:unknown) => JSON.stringify(value,null,2)+'\n';
 const sha256 = (value:string|Buffer) => createHash('sha256').update(value).digest('hex');
 const safeSegment = (value:string,label:string) => {if(!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value))throw new Error(`${label}包含不安全字符`);return value};
-const sourceText = (source:SourceUnit) => `${sourcePosition(source)}\n${source.asset?.extractedText??source.excerpt}`;
+const sourceText = (source:SourceUnit,ref?:SourceRef) => `${sourcePosition(source)}\n${sourceExcerpt(source,ref)}`;
 const bullets = (values:string[]) => values.length?values.map(value=>`- ${value}`).join('\n'):'- 无';
 const requirementMarkdown = (project:PrdProject,requirement:RequirementDetail) => [
   `### ${requirement.id} ${requirement.title}`,
@@ -73,10 +73,10 @@ function featureMarkdown(project:PrdProject,featureId:string,qualityState:Delive
   const affected=new Set([feature.id,...feature.requirementIds,...feature.sourceUnitIds]);
   const clarifications=project.clarifications.filter(item=>item.affectedIds.some(id=>affected.has(id)));
   const issues=activePlatformIssues(project).filter(item=>item.affectedIds.some(id=>affected.has(id)));
-  const sources=project.sourceUnits.filter(item=>feature.sourceUnitIds.includes(item.id));
+  const refs=feature.sourceRefs?.length?feature.sourceRefs:feature.sourceUnitIds.map(sourceUnitId=>({sourceUnitId}));
   const sections=[
     `# ${featureTitle(project,feature)}`,'',`> 需求交付状态：${qualityState}`,'',
-    '## 原文位置','',sources.length?sources.map(item=>`### ${sourceHeading(item)}\n\n${sourceText(item)}`).join('\n\n'):'无','',
+    '## 原文位置','',refs.length?refs.map(ref=>{const item=project.sourceUnits.find(unit=>unit.id===ref.sourceUnitId)!;return`### ${sourceHeading(item)}\n\n${sourceText(item,ref)}`}).join('\n\n'):'无','',
     '## 本功能需求','',own.length?own.map(item=>requirementMarkdown(project,item)).join('\n\n'):'无'
   ];
   if(constraints.length)sections.push('','## 适用的通用约束','',constraints.map(item=>requirementMarkdown(project,item)).join('\n\n'));

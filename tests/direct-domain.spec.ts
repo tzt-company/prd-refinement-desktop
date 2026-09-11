@@ -29,9 +29,9 @@ describe('直接需求域契约',()=>{
   });
   it('紧凑多目标仅按完整有效来源分配编译',()=>{
     const compact=(id:string)=>{const {sourceUnitIds:_,...f}=feature(id,[]);return f};
-    const payload={features:[compact('F1'),compact('F2')],candidateMappings:[{candidateId:'C1',featureIds:['F1','F2'],sourceUnitIdsByFeature:{F1:['S1'],F2:['S2']}}]};
+    const payload={features:[compact('F1'),compact('F2')],candidateMappings:[{candidateId:'C1',featureIds:['F1','F2'],sourceRefsByFeature:{F1:[{sourceUnitId:'S1'}],F2:[{sourceUnitId:'S2'}]}}]};
     const candidates=[feature('C1',['S1','S2'])];expect(acceptFeatureUnification(payload,candidates,sources).map(f=>f.sourceUnitIds)).toEqual([['S1'],['S2']]);
-    for(const allocation of [undefined,{F1:['S1'],F2:['S1']},{F1:['S1'],F2:['S3']},{F1:['S1']},{F1:['S1'],F2:[]}])expect(()=>acceptFeatureUnification({...payload,candidateMappings:[{...payload.candidateMappings[0],sourceUnitIdsByFeature:allocation}]},candidates,sources)).toThrow();
+    for(const allocation of [undefined,{F1:[{sourceUnitId:'S1'}],F2:[{sourceUnitId:'S1'}]},{F1:[{sourceUnitId:'S1'}],F2:[{sourceUnitId:'S3'}]},{F1:[{sourceUnitId:'S1'}]},{F1:[{sourceUnitId:'S1'}],F2:[]}])expect(()=>acceptFeatureUnification({...payload,candidateMappings:[{...payload.candidateMappings[0],sourceRefsByFeature:allocation}]},candidates,sources)).toThrow();
   });
   it('紧凑与显式来源不可混用，显式遗漏不能被脚本补齐',()=>{
     const {sourceUnitIds:_,...compact}=feature('F1',[]),candidateMappings=[{candidateId:'C1',featureIds:['F1']},{candidateId:'C2',featureIds:['F2']}],candidates=[feature('C1',['S1','S2']),feature('C2',['S3'])];

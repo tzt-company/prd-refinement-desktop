@@ -1,4 +1,4 @@
-import type { AuditIssue, Clarification, Feature, PrdProject, SourceRef, SourceUnit } from './types.js';
+import type { AuditIssue, Clarification, Feature, PrdProject, RequirementDetail, SourceRef, SourceUnit } from './types.js';
 
 export type ClarificationLevel = NonNullable<Clarification['level']>;
 
@@ -45,6 +45,13 @@ export function readableContext(value?: string) {
 export function sourceExcerpt(unit: SourceUnit, ref?: SourceRef) {
   const text = unit.asset?.extractedText ?? unit.excerpt;
   return ref?.start !== undefined && ref.end !== undefined ? text.slice(ref.start, ref.end) : text;
+}
+
+export function requirementSourceRefs(requirement: RequirementDetail):SourceRef[] {
+  const bindings=requirement.evidenceBindings;
+  if(!bindings)return requirement.sourceUnitIds.map(sourceUnitId=>({sourceUnitId}));
+  const refs=[...bindings.behavior,...bindings.conditions.flat(),...bindings.constraints.flat(),...bindings.explicitAcceptanceConditions.flat()];
+  return [...new Map(refs.map(ref=>[JSON.stringify(ref),ref])).values()];
 }
 
 export function sourceHeading(unit: SourceUnit) {

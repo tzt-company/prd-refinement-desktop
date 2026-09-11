@@ -8,7 +8,7 @@ import { extractDocument } from './document-assets.js';
 import { sourceCoverage } from './source-units.js';
 import { SourceIndex } from './source-index.js';
 
-const PARSER_VERSION = 'bundle-2-uploaded-only';
+const PARSER_VERSION = 'bundle-3-evidence';
 export const MATERIAL_LIMITS = { files: 1000, fileBytes: 100 * 1024 * 1024, totalBytes: 500 * 1024 * 1024, units: 100000 };
 const supported = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt','.png','.jpg','.jpeg','.webp','.gif','.svg','.css','.js']);
 const documentTypes = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt']);
@@ -22,7 +22,7 @@ function logical(input: string) {
 function contained(root:string,relative:string){const result=path.resolve(root,logical(relative)),rel=path.relative(path.resolve(root),result);if(rel.startsWith('..')||path.isAbsolute(rel))throw new Error('资料路径越界');return result}
 interface StoredFile extends MaterialFile { blob?: string; originalPath?: string }
 interface StoredBundle extends MaterialBundle { files:StoredFile[]; bindings:Record<string,{targetFileId?:string;exclusionReason?:string}> }
-interface MaterialIndex { revision:number; units:SourceUnit[]; documents:NonNullable<PrdProject['sourceDocuments']>; manifestHash:string }
+interface MaterialIndex { parserVersion:string; revision:number; units:SourceUnit[]; documents:NonNullable<PrdProject['sourceDocuments']>; manifestHash:string }
 interface CachedParse { version:string; hash:string; logicalPath:string; result:Awaited<ReturnType<typeof extractDocument>> }
 export interface MaterialStoreOptions { readImage?:(unit:SourceUnit,signal:AbortSignal)=>Promise<{readable:boolean;text:string}>; visionKey?:(signal:AbortSignal)=>Promise<string> }
 
@@ -132,7 +132,7 @@ export class MaterialBundleStore {
       }
       signal.throwIfAborted();b.progress.phase='构建来源索引';await this.save(b);
       b.references=[];
-      const index:MaterialIndex={revision,units,documents,manifestHash:hash(JSON.stringify(b.files.map(f=>[f.id,f.revision,f.hash,f.logicalPath,f.role,f.exclusionReason])))};
+      const index:MaterialIndex={parserVersion:PARSER_VERSION,revision,units,documents,manifestHash:hash(JSON.stringify(b.files.map(f=>[f.id,f.revision,f.hash,f.logicalPath,f.role,f.exclusionReason])))};
       new SourceIndex(units,revision);
       signal.throwIfAborted();await this.atomic(path.join(revisionRoot,'index.json'),index);signal.throwIfAborted();
       b.indexedRevision=revision;b.state=b.issues.length?'needs-materials':'ready';b.progress.phase=b.issues.length?'等待补充资料':'索引就绪';await this.atomic(path.join(revisionRoot,'manifest.json'),b);signal.throwIfAborted();await this.save(b);signal.throwIfAborted();
@@ -141,7 +141,7 @@ export class MaterialBundleStore {
   private async indexed(id:string){
     const b=await this.load(id);if(b.indexedRevision!==b.revision||!['ready','needs-materials'].includes(b.state))throw new Error('请先完成当前版本资料索引');
     const key=id+':'+b.revision;let cached=this.indexes.get(key);
-    if(!cached){const index=JSON.parse(await readFile(path.join(this.dir(id),'revisions',String(b.revision),'index.json'),'utf8')) as MaterialIndex;cached={index,reader:new SourceIndex(index.units,index.revision)};this.indexes.set(key,cached);if(this.indexes.size>3)this.indexes.delete(this.indexes.keys().next().value!)}
+    if(!cached){const index=JSON.parse(await readFile(path.join(this.dir(id),'revisions',String(b.revision),'index.json'),'utf8')) as MaterialIndex;if(index.parserVersion!==PARSER_VERSION)throw new Error('资料解析规则已升级，请重新建立索引');cached={index,reader:new SourceIndex(index.units,index.revision)};this.indexes.set(key,cached);if(this.indexes.size>3)this.indexes.delete(this.indexes.keys().next().value!)}
     return {b,...cached};
   }
   async query(id:string,query:MaterialQuery){const {reader}=await this.indexed(id);return reader.query(query)}

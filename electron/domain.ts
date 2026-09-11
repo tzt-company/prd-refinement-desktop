@@ -26,7 +26,13 @@ const sourceRefs = (item:Record<string,unknown>, units:SourceUnit[], path:string
     if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error(`${path}.sourceRefs[${index}] 必须是对象`);
     const ref=raw as Record<string,unknown>,sourceUnitId=text(ref.sourceUnitId,`${path}.sourceRefs[${index}].sourceUnitId`),unit=units.find(value=>value.id===sourceUnitId);
     if(!unit)throw new Error(`${path}.sourceRefs[${index}] 引用了不存在的 ID：${sourceUnitId}`);
-    if(ref.quote===undefined)return{sourceUnitId};
+    if(ref.quote===undefined){
+      if(ref.start===undefined&&ref.end===undefined)return{sourceUnitId};
+      if(!Number.isInteger(ref.start)||!Number.isInteger(ref.end))throw new Error(`${path}.sourceRefs[${index}] 选区必须使用整数边界`);
+      const start=ref.start as number,end=ref.end as number,haystack=unit.asset?.extractedText??unit.excerpt;
+      if(start<0||end<=start||end>haystack.length)throw new Error(`${path}.sourceRefs[${index}] 选区超出指定原文范围`);
+      return{sourceUnitId,start,end};
+    }
     const quote=text(ref.quote,`${path}.sourceRefs[${index}].quote`),haystack=unit.asset?.extractedText??unit.excerpt,first=haystack.indexOf(quote);
     if(first<0)throw new Error(`${path}.sourceRefs[${index}] 引用文字不在指定原文中`);
     if(haystack.indexOf(quote,first+1)>=0)throw new Error(`${path}.sourceRefs[${index}] 引用文字在原文中不唯一`);
@@ -172,27 +178,30 @@ export function acceptFeatureUnification(value:unknown,candidates:Feature[],sour
   if(!Array.isArray(payload.features))throw new Error('features 必须是数组');
   if(!Array.isArray(payload.candidateMappings))throw new Error('candidateMappings 必须是数组');
   uniqueIds(candidates,'candidates');
-  const omitted=payload.features.map(raw=>!!raw&&typeof raw==='object'&&!Object.prototype.hasOwnProperty.call(raw,'sourceUnitIds'));
+  const omitted=payload.features.map(raw=>!!raw&&typeof raw==='object'&&!Object.prototype.hasOwnProperty.call(raw,'sourceUnitIds')&&!Object.prototype.hasOwnProperty.call(raw,'sourceRefs'));
   if(omitted.some(Boolean)&&!omitted.every(Boolean))throw new Error('features 不允许混用省略来源与显式来源');
   let featureValues=payload.features;
   if(omitted.length&&omitted.every(Boolean)){
-    const candidateMap=new Map(candidates.map(item=>[item.id,item])),compiled=new Map<string,Set<string>>();
-    for(const raw of featureValues){const item=raw as Record<string,unknown>,id=text(item.id,'features.id');if(compiled.has(id))throw new Error(`features 存在重复 ID：${id}`);compiled.set(id,new Set())}
+    const candidateMap=new Map(candidates.map(item=>[item.id,item])),compiled=new Map<string,SourceRef[]>(),unitById=new Map(sourceUnits.map(unit=>[unit.id,unit]));
+    for(const raw of featureValues){const item=raw as Record<string,unknown>,id=text(item.id,'features.id');if(compiled.has(id))throw new Error(`features 存在重复 ID：${id}`);compiled.set(id,[])}
+    const normalized=(ref:SourceRef)=>{const unit=unitById.get(ref.sourceUnitId);if(!unit)throw new Error(`候选引用了不存在的来源：${ref.sourceUnitId}`);const length=(unit.asset?.extractedText??unit.excerpt).length;return{sourceUnitId:ref.sourceUnitId,start:ref.start??0,end:ref.end??length}};
+    const add=(target:string,ref:SourceRef)=>{const list=compiled.get(target)!;if(!list.some(item=>JSON.stringify(item)===JSON.stringify(ref)))list.push(ref)};
     for(const raw of payload.candidateMappings){
       if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('candidateMappings 必须包含对象');
       const item=raw as Record<string,unknown>,candidateId=text(item.candidateId,'candidateMappings.candidateId'),targets=strings(item.featureIds,'candidateMappings.featureIds',false);
       refs([candidateId],new Set(candidateMap.keys()),'candidateMappings.candidateId');refs(targets,new Set(compiled.keys()),'candidateMappings.featureIds');
       const candidate=candidateMap.get(candidateId)!;
-      if(targets.length===1){candidate.sourceUnitIds.forEach(id=>compiled.get(targets[0])!.add(id));continue}
-      const allocation=item.sourceUnitIdsByFeature;
-      if(!allocation||typeof allocation!=='object'||Array.isArray(allocation))throw new Error(`${candidateId} 多目标映射必须提供 sourceUnitIdsByFeature`);
+      const candidateRefs=candidate.sourceRefs?.length?candidate.sourceRefs:candidate.sourceUnitIds.map(sourceUnitId=>({sourceUnitId}));
+      if(targets.length===1){candidateRefs.forEach(ref=>add(targets[0],ref));continue}
+      const allocation=item.sourceRefsByFeature;
+      if(!allocation||typeof allocation!=='object'||Array.isArray(allocation))throw new Error(`${candidateId} 多目标映射必须提供 evidenceIdsByFeature`);
       const entries=allocation as Record<string,unknown>,keys=Object.keys(entries);
-      if(keys.length!==targets.length||keys.some(id=>!targets.includes(id)))throw new Error(`${candidateId} sourceUnitIdsByFeature 键必须恰为目标集合`);
-      const covered=new Set<string>();
-      for(const id of targets){const ids=strings(entries[id],`${candidateId}.sourceUnitIdsByFeature.${id}`,false);refs(ids,new Set(candidate.sourceUnitIds),`${candidateId}.sourceUnitIdsByFeature.${id}`);ids.forEach(source=>{covered.add(source);compiled.get(id)!.add(source)})}
-      const missing=candidate.sourceUnitIds.filter(id=>!covered.has(id));if(missing.length)throw new Error(`${candidateId} 来源分配遗漏：${missing.join('、')}`);
+      if(keys.length!==targets.length||keys.some(id=>!targets.includes(id)))throw new Error(`${candidateId} evidenceIdsByFeature 键必须恰为目标集合`);
+      const allocated:SourceRef[]=[];
+      for(const id of targets){const selected=sourceRefs({sourceRefs:entries[id]},sourceUnits,`${candidateId}.sourceRefsByFeature.${id}`);for(const ref of selected){const range=normalized(ref);if(!candidateRefs.map(normalized).some(parent=>parent.sourceUnitId===range.sourceUnitId&&parent.start<=range.start&&parent.end>=range.end))throw new Error(`${candidateId} 证据分配超出候选选区`);allocated.push(ref);add(id,ref)}}
+      for(const parent of candidateRefs.map(normalized)){const ranges=allocated.map(normalized).filter(ref=>ref.sourceUnitId===parent.sourceUnitId&&ref.end>parent.start&&ref.start<parent.end).sort((a,b)=>a.start-b.start);let end=parent.start;for(const range of ranges){if(range.start>end)break;end=Math.max(end,range.end)}if(end<parent.end)throw new Error(`${candidateId} 证据分配遗漏候选选区`)}
     }
-    featureValues=featureValues.map(raw=>{const item=raw as Record<string,unknown>;return{...item,sourceUnitIds:[...compiled.get(item.id as string)!]}});
+    featureValues=featureValues.map(raw=>{const item=raw as Record<string,unknown>;return{...item,sourceRefs:compiled.get(item.id as string)!}});
   }
   const features=acceptDirectFeatures(featureValues,sourceUnits);
   const candidateById=new Map(candidates.map(item=>[item.id,item])),featureById=new Map(features.map(item=>[item.id,item])),sourceIds=new Set(sourceUnits.map(item=>item.id));
@@ -234,9 +243,9 @@ export function validateDirectGraph(sourceUnits:SourceUnit[],dispositions:Source
   for(const item of dispositions){refs([item.sourceUnitId],sourceIds,'sourceDispositions.sourceUnitId');if(!dispositionKinds.has(item.kind))throw new Error(`${item.sourceUnitId} 原文处置分类非法`);text(item.reason,`${item.sourceUnitId}.reason`);refs(item.featureIds,featureIds,`${item.sourceUnitId}.featureIds`)}
   const disposed=new Set(dispositions.map(item=>item.sourceUnitId));const undisposed=sourceUnits.filter(unit=>!disposed.has(unit.id));if(undisposed.length)throw new Error(`仍有未分类原文单元：${undisposed.slice(0,10).map(unit=>unit.id).join('、')}`);
   const owners=new Map<string,string>();
-  for(const feature of features){refs(strings(feature.sourceUnitIds,`${feature.id}.sourceUnitIds`,false),sourceIds,`${feature.id}.sourceUnitIds`);refs(feature.requirementIds,requirementIds,`${feature.id}.requirementIds`);for(const id of feature.requirementIds){if(owners.has(id))throw new Error(`${id} 必须有且仅有一个主所属功能，重复归属 ${owners.get(id)}、${feature.id}`);owners.set(id,feature.id)}}
-  for(const requirement of requirements){refs(strings(requirement.sourceUnitIds,`${requirement.id}.sourceUnitIds`,false),sourceIds,`${requirement.id}.sourceUnitIds`);if(!owners.has(requirement.id))throw new Error(`${requirement.id} 没有主所属功能`)}
-  for(const question of clarifications)refs(strings(question.affectedIds,`${question.id}.affectedIds`,false),new Set([...sourceIds,...requirementIds]),`${question.id}.affectedIds`);
+  for(const feature of features){refs(strings(feature.sourceUnitIds,`${feature.id}.sourceUnitIds`,false),sourceIds,`${feature.id}.sourceUnitIds`);const selected=sourceRefs({sourceRefs:feature.sourceRefs?.length?feature.sourceRefs:feature.sourceUnitIds.map(sourceUnitId=>({sourceUnitId}))},sourceUnits,feature.id),derived=new Set(selected.map(ref=>ref.sourceUnitId));if(feature.sourceUnitIds.some(id=>!derived.has(id))||derived.size!==new Set(feature.sourceUnitIds).size)throw new Error(`${feature.id}.sourceUnitIds 必须由 sourceRefs 唯一派生`);refs(feature.requirementIds,requirementIds,`${feature.id}.requirementIds`);for(const id of feature.requirementIds){if(owners.has(id))throw new Error(`${id} 必须有且仅有一个主所属功能，重复归属 ${owners.get(id)}、${feature.id}`);owners.set(id,feature.id)}}
+  for(const requirement of requirements){refs(strings(requirement.sourceUnitIds,`${requirement.id}.sourceUnitIds`,false),sourceIds,`${requirement.id}.sourceUnitIds`);if(requirement.evidenceBindings){sourceRefs({sourceRefs:requirement.evidenceBindings.behavior},sourceUnits,`${requirement.id}.evidenceBindings.behavior`);for(const [field,groups] of [['conditions',requirement.evidenceBindings.conditions],['constraints',requirement.evidenceBindings.constraints],['explicitAcceptanceConditions',requirement.evidenceBindings.explicitAcceptanceConditions]] as const)for(const [index,selected] of groups.entries())sourceRefs({sourceRefs:selected},sourceUnits,`${requirement.id}.evidenceBindings.${field}[${index}]`)}if(!owners.has(requirement.id))throw new Error(`${requirement.id} 没有主所属功能`)}
+  for(const question of clarifications){refs(strings(question.affectedIds,`${question.id}.affectedIds`,false),new Set([...sourceIds,...requirementIds]),`${question.id}.affectedIds`);if(question.sourceRefs?.length)sourceRefs({sourceRefs:question.sourceRefs},sourceUnits,question.id)}
   const requirementById=new Map(requirements.map(item=>[item.id,item]));
   const detailed=new Set(requirements.flatMap(item=>item.sourceUnitIds)),questioned=new Set(clarifications.flatMap(item=>item.affectedIds.flatMap(id=>requirementById.get(id)?.sourceUnitIds??[id])));
   const uncovered=dispositions.filter(item=>(item.kind==='requirement'||item.kind==='clarification')&&!detailed.has(item.sourceUnitId)&&!questioned.has(item.sourceUnitId));return{uncovered};
