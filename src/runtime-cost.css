@@ -21,6 +21,9 @@
 .runtime-cost strong { color: var(--ink); font-size: 15px; }
 .runtime-cost-wrap details { border: 1px solid var(--line); border-top: 0; background: #fff; font-size: 12px; }
 .runtime-cost-wrap summary { padding: 9px 14px; color: var(--blue); cursor: pointer; }
+.runtime-cost-table { overflow-x: auto; scrollbar-gutter: stable; }
 .runtime-cost-wrap table { width: 100%; border-collapse: collapse; }
 .runtime-cost-wrap th, .runtime-cost-wrap td { padding: 8px 14px; border-top: 1px solid #edf0f2; text-align: right; }
 .runtime-cost-wrap th:first-child, .runtime-cost-wrap td:first-child { text-align: left; }
+.runtime-cost-wrap th, .runtime-cost-wrap td { white-space: nowrap; }
+.runtime-cost-wrap td code { font: 600 12px "Cascadia Mono", ui-monospace, monospace; color: var(--navy); }

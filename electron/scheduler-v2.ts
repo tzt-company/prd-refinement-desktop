@@ -254,7 +254,7 @@ export class AnalysisTaskScheduler {
         const unread = task.project.sourceUnits.filter(u => u.status !== 'processed');
         if (unread.length) throw new Error(`存在 ${unread.length} 个未读取的原文单元：${unread.slice(0,8).map(u=>`${u.id} ${u.label}`).join('；')}${unread.length>8?'；更多项见来源记录':''}`);
       });
-      // 两个职责独立、按来源包流水并行；全部包通过后才进入统一。
+      // 两个职责独立、按候选内容流水并行；全部候选内容通过后才进入统一。
       const packs = batches(task.project.sourceUnits);
       const collectCandidates = async () => {
       if (task.steps[2].status !== 'completed') {
@@ -268,11 +268,11 @@ export class AnalysisTaskScheduler {
             task.project.sourceDispositions = cp.sourceDispositionBatches.flat();
             cp.featureCandidateBatchCount = cp.featureCandidateBatches.filter(Boolean).length;
             if (clearFeedback) delete cp.unificationFeedback![index];
-            task.steps[1].note = `已识别 ${cp.featureCandidateBatchCount}/${packs.length} 个来源包`; await checkpoint();
+            task.steps[1].note = `已识别 ${cp.featureCandidateBatchCount}/${packs.length} 份候选内容`; await checkpoint();
           };
           const feedback = cp.unificationFeedback?.[index];
           if (feedback?.length) {
-            if ((cp.candidateRepairRounds?.[index] ?? 0) >= 2) throw new Error(`来源包 ${index + 1} 已达到两轮返工上限：${feedback.map(i => i.detail).join('；')}`);
+            if ((cp.candidateRepairRounds?.[index] ?? 0) >= 2) throw new Error(`第 ${index + 1} 份候选内容已达到两轮返工上限：${feedback.map(i => i.detail).join('；')}`);
             const revised = await identify(units, `candidate-classification-${index}`, cp.featureCandidateBatches?.[index], feedback);
             (cp.candidateRepairRounds ??= [])[index] = (cp.candidateRepairRounds?.[index] ?? 0) + 1;
             await persistCandidate(revised, true);
@@ -287,10 +287,10 @@ export class AnalysisTaskScheduler {
             issues = await inspectCandidates(units, cp.featureCandidateBatches![index], cp.sourceDispositionBatches![index], `coverage-review-${index}`);
             cp.candidateCheckIssues![index] = issues; await checkpoint();
           }
-          if (issues.length) throw new Error(`来源包 ${index + 1} 已达到两轮返工上限：${issues.map(i => i.detail).join('；')}`);
+          if (issues.length) throw new Error(`第 ${index + 1} 份候选内容已达到两轮返工上限：${issues.map(i => i.detail).join('；')}`);
           this.assert(task, attempt); (cp.featureCoverageBatches ??= [])[index] = [];
           cp.featureCoverageBatchCount = cp.featureCoverageBatches.filter(Boolean).length;
-          task.steps[2].note = `已检查 ${cp.featureCoverageBatchCount}/${packs.length} 个来源包`; await checkpoint();
+          task.steps[2].note = `已检查 ${cp.featureCoverageBatchCount}/${packs.length} 份候选内容`; await checkpoint();
         });
         for (const index of [1, 2]) { task.steps[index].status = 'completed'; task.steps[index].completedAt = Date.now(); }
         task.progress = 37.5; await checkpoint();
@@ -380,7 +380,7 @@ export class AnalysisTaskScheduler {
             const clarifications = task.project.clarifications.filter(q => q.affectedIds.some(id => ids.has(id) || requirements.some(r => r.id === id)));
             const evidence = sourceUnits([...ids, ...requirements.flatMap(r => r.sourceUnitIds), ...clarifications.flatMap(q => q.affectedIds.flatMap(id => task.project.requirements.find(r => r.id === id)?.sourceUnitIds ?? (id.startsWith('S-') ? [id] : [])))]);
             checks[index] = await call('audit', `audit-${index}`, '完整性与忠实性检查', `uncoveredSourceUnits是脚本发现尚无需求或澄清引用的来源事实；须核查遗漏，也可报告feature-boundary，但不能把这些事实视为已覆盖。只检查 reviewSourceUnitIds 指定范围；其他原文是理解条目完整依据的补充证据。报告具体遗漏、误读、错误条件、无依据新增和不必要澄清。不要要求拆出常识或单独的测试场景；没有问题返回空数组。输出 ${auditSchema}`, { reviewSourceUnitIds: [...ids], uncoveredSourceUnits: graph().uncovered.filter(d => ids.has(d.sourceUnitId)), sourceUnits: evidence, sourceDispositions: task.project.sourceDispositions?.filter(d => ids.has(d.sourceUnitId)), features, requirements, clarifications }, v => acceptDirectAuditIssues(v.issues, evidence, features, requirements, clarifications));
-            cp.auditBatchCount = checks.filter(Boolean).length; task.steps[5].note = `已审计 ${cp.auditBatchCount}/${packs.length} 个来源包`; await checkpoint();
+            cp.auditBatchCount = checks.filter(Boolean).length; task.steps[5].note = `已审计 ${cp.auditBatchCount}/${packs.length} 份候选内容`; await checkpoint();
           });
           // 从当前图重算，避免模型空结果吞掉脚本事实，也避免边界返工沿用旧遗漏。
           const uncovered = graph().uncovered;

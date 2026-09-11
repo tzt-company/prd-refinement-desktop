@@ -27,3 +27,8 @@ premium-strict-audit,4,PASS,round-4/premium-audit.json
 uploaded-files-only,5,PASS,tests/material-bundle.spec.ts
 no-reference-gap-ui,5,PASS,round-5/material-preparation-1440.png
 uploaded-files-responsive,5,PASS,round-5/material-preparation-1100.png
+bundle-rename-preserves-index,6,PASS,tests/material-bundle.spec.ts
+bundle-delete-storage,6,PASS,tests/material-bundle.spec.ts
+bundle-delete-indexing-guard,6,PASS,tests/material-bundle.spec.ts
+bundle-management-ui,6,PASS,round-6/material-preparation-1440.png + round-6/bundle-delete-confirm-1440.png
+bundle-management-responsive,6,PASS,round-6/material-preparation-1100.png

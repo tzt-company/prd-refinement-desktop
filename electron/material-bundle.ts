@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, lstat, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { MaterialAddition, MaterialBundle, MaterialFile, MaterialFilePatch, MaterialQuery } from '../src/material-types.js';
@@ -47,6 +47,8 @@ export class MaterialBundleStore {
   async create(){const id='B-'+randomUUID();const b:StoredBundle={id,name:'未命名资料包',revision:1,state:'draft',files:[],references:[],issues:[],bindings:{},progress:{completed:0,total:0,phase:'等待添加资料'},updatedAt:new Date().toISOString()};await this.save(b);return this.view(b)}
   async list(){const result:MaterialBundle[]=[];for(const entry of await readdir(this.root,{withFileTypes:true})){if(entry.isDirectory()&&/^[A-Za-z0-9-]+$/.test(entry.name)){try{result.push(await this.get(entry.name))}catch{/* 损坏清单不伪造正常对象 */}}}return result.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))}
   async get(id:string){return this.view(await this.load(id))}
+  async renameBundle(id:string,name:string){return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);const next=name.trim();if(!next)throw new Error('资料包名称不能为空');if(next.length>100)throw new Error('资料包名称不能超过 100 个字符');b.name=next;await this.save(b);return this.view(b)})}
+  async deleteBundle(id:string){return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);if(this.additions.has(id))throw new Error('资料处理中，请先取消再删除');await rm(this.dir(id),{recursive:true});for(const key of this.indexes.keys())if(key.startsWith(id+':'))this.indexes.delete(key)})}
   async add(id:string,paths:string[],options:MaterialAddition){const generation=this.cancellation.get(id)??0;return this.serial(id,async()=>{
     const b=await this.load(id);this.writable(b);if(generation!==(this.cancellation.get(id)??0))throw new Error('资料添加已取消');
     if(!['primary','supplement','historical'].includes(options.role)||!['files','directory'].includes(options.kind)||!Array.isArray(paths)||!paths.length)throw new Error('添加资料参数无效');
