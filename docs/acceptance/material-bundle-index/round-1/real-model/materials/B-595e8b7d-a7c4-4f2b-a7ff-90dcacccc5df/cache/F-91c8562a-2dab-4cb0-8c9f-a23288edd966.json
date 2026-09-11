@@ -1,0 +1,20 @@
+{
+  "version": "bundle-1",
+  "hash": "431171fb39f5c1bf1499f129cb7a88450a47ef4244c7942b5a594cec9daef974",
+  "logicalPath": "supplement.txt",
+  "result": {
+    "rawText": "订单备注保存后重新打开仍显示。",
+    "sourceUnits": [
+      {
+        "id": "S-001",
+        "label": "原文单元 1",
+        "kind": "paragraph",
+        "excerpt": "订单备注保存后重新打开仍显示。",
+        "location": "第 1 行",
+        "status": "processed"
+      }
+    ]
+  },
+  "references": [],
+  "dependencies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+}

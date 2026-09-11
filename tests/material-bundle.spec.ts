@@ -1,0 +1,68 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import * as fs from 'node:fs/promises';
+import os from 'node:os';import path from 'node:path';
+import { MaterialBundleStore } from '../electron/material-bundle';
+vi.mock('node:fs/promises',async()=>{const actual=await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');return {...actual,rename:vi.fn(actual.rename)}});
+const roots:string[]=[];
+afterEach(async()=>{vi.restoreAllMocks();for(const root of roots.splice(0))await rm(root,{recursive:true,force:true})});
+async function setup(){const root=await mkdtemp(path.join(os.tmpdir(),'prd-material-'));roots.push(root);const store=new MaterialBundleStore(path.join(root,'store'),{readImage:async()=>({readable:true,text:'图标：筛选按钮'})});await store.initialize();return {root,store,bundle:await store.create()}}
+async function file(root:string,name:string,text:string){const p=path.join(root,name);await mkdir(path.dirname(p),{recursive:true});await writeFile(p,text);return p}
+const addPrimary=async(store:MaterialBundleStore,id:string,p:string)=>store.add(id,[p],{kind:'files',role:'primary'});
+const index=async(store:MaterialBundleStore,id:string)=>{await store.index(id);return store.wait(id)};
+describe('资料包快照、索引和恢复',()=>{
+ it('主文档和补充文件按身份与位置检索，原文件变动不影响固定快照',async()=>{
+  const {root,store,bundle}=await setup();const main=await file(root,'main.md','# 订单\n\n订单编号必填');await addPrimary(store,bundle.id,main);await store.add(bundle.id,[await file(root,'more.txt','退款金额不能超过订单金额')],{kind:'files',role:'supplement'});
+  expect((await index(store,bundle.id)).state).toBe('ready');const p=await store.project(bundle.id);expect(p.sourceDocuments).toHaveLength(2);expect(new Set(p.sourceUnits.map(u=>u.id)).size).toBe(p.sourceUnits.length);expect(p.sourceUnits.every(u=>u.location.includes(u.logicalPath!))).toBe(true);
+  await writeFile(main,'改写源文件');expect((await store.project(bundle.id)).rawText).toContain('订单编号必填');const q=await store.query(bundle.id,{query:'退款'});expect(q.total).toBe(1);expect(q.items[0].sourceRole).toBe('supplement');await expect(store.read(bundle.id,['S-not-owned'])).rejects.toThrow();
+ });
+ it('缺少相对SVG资源进入待补件，添加目录后绑定、图像识别并就绪',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.html','<h1>订单</h1><p>点击筛选</p><img src="assets/filter.svg">'));
+  const missing=await index(store,bundle.id);expect(missing.state).toBe('needs-materials');expect(missing.references[0].state).toBe('missing');await expect(store.project(bundle.id)).rejects.toThrow('未就绪');
+  await file(root,'assets/filter.svg','<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><rect width="12" height="12" fill="red"/></svg>');await store.add(bundle.id,[path.join(root,'assets')],{kind:'directory',role:'supplement'});const ready=await index(store,bundle.id);expect(ready.state,JSON.stringify(ready.issues)).toBe('ready');expect(ready.references[0].state).toBe('resolved');expect((await store.project(bundle.id)).sourceUnits.some(u=>u.asset?.readStatus==='read')).toBe(true);
+ });
+ it('未提交的旁边文件不可被偷偷读取，明确绑定包内文件才消除缺口',async()=>{
+  const {root,store,bundle}=await setup();await file(root,'secret.png','not-an-image');await addPrimary(store,bundle.id,await file(root,'main.html','<p>规则</p><img src="secret.png">'));const missing=await index(store,bundle.id);expect(missing.state).toBe('needs-materials');expect(missing.references[0].state).toBe('missing');
+  const svg=await file(root,'uploaded/icon.svg','<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><circle cx="5" cy="5" r="3"/></svg>');const b=await store.add(bundle.id,[svg],{kind:'files',role:'supplement',mount:'provided'});await store.resolveReference(bundle.id,missing.references[0].id,{targetFileId:b.files.find(f=>f.role==='supplement')!.id});expect((await index(store,bundle.id)).state).toBe('ready');
+ });
+ it('显式排除必须有理由，文件与来源绑定不能跨资料包',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.html','<p>订单</p><img src="https://example.invalid/a.png">'));const b=await index(store,bundle.id);const ref=b.references[0];await expect(store.resolveReference(bundle.id,ref.id,{})).rejects.toThrow();await expect(store.resolveReference(bundle.id,ref.id,{targetFileId:'F-other'})).rejects.toThrow();await store.resolveReference(bundle.id,ref.id,{exclusionReason:'用户确认仅为装饰图标，不含需求信息'});expect((await index(store,bundle.id)).state).toBe('ready');
+ });
+ it('同名异目录不合并，同逻辑路径冲突拒绝且不部分提交',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'a/main.txt','A'));const second=await file(root,'b/main.txt','B');await expect(store.add(bundle.id,[second],{kind:'files',role:'supplement'})).rejects.toThrow('冲突');expect((await store.get(bundle.id)).files).toHaveLength(1);await store.add(bundle.id,[second],{kind:'files',role:'supplement',mount:'b'});expect((await index(store,bundle.id)).state).toBe('ready');expect((await store.project(bundle.id)).sourceDocuments).toHaveLength(2);
+ });
+ it('符号链接不跟随、未知格式必须明确处置，不丢登记记录',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.txt','主文档'));await file(root,'extra/unknown.bin','binary');await mkdir(path.join(root,'outside'));await symlink(path.join(root,'outside'),path.join(root,'extra/link'),'junction');const added=await store.add(bundle.id,[path.join(root,'extra')],{kind:'directory',role:'supplement'});expect(added.files).toHaveLength(3);const b=await index(store,bundle.id);expect(b.state).toBe('needs-materials');expect(b.files.find(f=>f.logicalPath.endsWith('/link'))?.reason).toContain('链接');
+ });
+ it('资料路径穿越拒绝，删除/角色修改使旧索引失效而旧快照保留',async()=>{
+  const {root,store,bundle}=await setup();const b=await addPrimary(store,bundle.id,await file(root,'main.txt','要求'));await expect(store.updateFile(bundle.id,b.files[0].id,{logicalPath:'../escape'})).rejects.toThrow();const ready=await index(store,bundle.id);const old=await store.project(bundle.id);await store.add(bundle.id,[await file(root,'extra.txt','补充')],{kind:'files',role:'supplement'});await expect(store.project(bundle.id)).rejects.toThrow('索引');const prior=JSON.parse(await readFile(path.join(root,'store',bundle.id,'revisions',String(ready.revision),'index.json'),'utf8'));expect(prior.units[0].excerpt).toBe(old.sourceUnits[0].excerpt);
+ });
+ it('取消视觉识别不产生ready，重启保留cancelled和文件清单',async()=>{
+  const {root,bundle}=await setup();let entered=false;const store=new MaterialBundleStore(path.join(root,'store'),{readImage:async(_u,signal)=>{entered=true;return new Promise((_r,reject)=>signal.addEventListener('abort',()=>reject(new Error('abort')),{once:true}))}});await store.initialize();await addPrimary(store,bundle.id,await file(root,'main.html','<p>规则</p><img src="data:image/svg+xml;base64,'+Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>').toString('base64')+'">'));await store.index(bundle.id);for(let n=0;n<100&&!entered;n++)await new Promise(r=>setTimeout(r,10));expect(entered).toBe(true);expect((await store.cancel(bundle.id)).state).toBe('cancelled');const reopened=new MaterialBundleStore(path.join(root,'store'));await reopened.initialize();expect((await reopened.get(bundle.id)).state).toBe('cancelled');await expect(reopened.project(bundle.id)).rejects.toThrow();
+ });
+ it('应用重启将持久化indexing改为取消，不能把半成品当可用',async()=>{
+  const {root,store,bundle}=await setup();const manifest=path.join(root,'store',bundle.id,'bundle.json');const raw=JSON.parse(await readFile(manifest,'utf8'));raw.state='indexing';await writeFile(manifest,JSON.stringify(raw));const reopened=new MaterialBundleStore(path.join(root,'store'));await reopened.initialize();expect((await reopened.get(bundle.id)).state).toBe('cancelled');
+ });
+ it('空主文档阻断，不以零来源判为就绪',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'empty.txt','  '));const b=await index(store,bundle.id);expect(b.state).toBe('needs-materials');expect(b.files[0].reason).toContain('没有可读取内容');await expect(store.project(bundle.id)).rejects.toThrow();
+ });
+ it('重复索引产生新版本，已提交索引不覆盖',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.txt','规则'));const first=await index(store,bundle.id);const target=path.join(root,'store',bundle.id,'revisions',String(first.revision),'index.json');const before=await readFile(target,'utf8');const second=await index(store,bundle.id);expect(second.revision).toBeGreaterThan(first.revision);expect(await readFile(target,'utf8')).toBe(before);
+ });
+ it('索引启动同刻取消，不能漏过尚未注册的工作',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.txt','规则'));const start=store.index(bundle.id);const cancelled=store.cancel(bundle.id);await start;expect((await cancelled).state).toBe('cancelled');await expect(store.project(bundle.id)).rejects.toThrow();
+ });
+ it('同一文件重复添加不增加清单数量或改变来源身份',async()=>{
+  const {root,store,bundle}=await setup();const p=await file(root,'main.txt','规则');const first=await addPrimary(store,bundle.id,p);const second=await addPrimary(store,bundle.id,p);expect(second.files).toHaveLength(1);expect(second.files[0].id).toBe(first.files[0].id);expect(second.files[0].revision).toBe(first.files[0].revision);
+ });
+
+ it('Windows短暂改名占用有界重试，持久失败保留原清单',async()=>{
+  if(process.platform!=='win32')return;
+  const {root,store,bundle}=await setup();const p=await file(root,'main.txt','规则');const original=(await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')).rename;const spy=vi.mocked(fs.rename);spy.mockImplementation(original);spy.mockRejectedValueOnce(Object.assign(new Error('busy'),{code:'EPERM'}));expect((await addPrimary(store,bundle.id,p)).files).toHaveLength(1);
+  const before=await store.get(bundle.id);spy.mockRejectedValue(Object.assign(new Error('locked'),{code:'EPERM'}));await expect(store.updateFile(bundle.id,before.files[0].id,{logicalPath:'renamed.txt'})).rejects.toThrow('locked');expect((await store.get(bundle.id)).files[0].logicalPath).toBe('main.txt');
+ });
+ it('HTML与独立CSS、JS和背景图均完成登记读取，不把代码当业务段落',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.html','<p>订单备注</p><link rel="stylesheet" href="assets/style.css"><script src="assets/app.js"></script>'));await file(root,'assets/style.css','body{background:url(icon.svg)}');await file(root,'assets/app.js','const label="订单备注";');await file(root,'assets/icon.svg','<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><rect width="12" height="12"/></svg>');await store.add(bundle.id,[path.join(root,'assets')],{kind:'directory',role:'supplement'});const b=await index(store,bundle.id);expect(b.state,JSON.stringify(b.issues)).toBe('ready');expect(b.files).toHaveLength(4);const p=await store.project(bundle.id);expect(p.sourceUnits.filter(u=>u.logicalPath?.endsWith('.js')).every(u=>u.kind==='attachment')).toBe(true);
+ });
+
+});

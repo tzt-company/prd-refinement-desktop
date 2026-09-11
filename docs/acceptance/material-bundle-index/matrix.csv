@@ -1,0 +1,26 @@
+case,round,status,evidence
+snapshot-version,1,FAIL,round-1.md
+cancel-startup,1,FAIL,round-1.md
+empty-document,1,FAIL,round-1.md
+windows-save-contention,1,FAIL,round-1/real-model/readback.md
+snapshot-version,2,PASS,tests/material-bundle.spec.ts
+cancel-startup,2,PASS,tests/material-bundle.spec.ts
+empty-document,2,PASS,tests/material-bundle.spec.ts
+windows-save-contention,2,PASS,tests/material-bundle.spec.ts
+html-css-svg-references,2,PASS,tests/document-assets.spec.ts + tests/material-bundle.spec.ts
+path-boundary-and-exclusion,2,PASS,tests/material-bundle.spec.ts
+index-query-isolation,2,PASS,tests/source-index.spec.ts
+word-convert-cancel,2,PASS,round-1/word-verification/result.json
+native-html-directory,2,PASS,round-1/native-desktop.json
+real-file-drop,2,PASS,round-1/electron-ui/result.json
+original-html-missing-assets,2,PASS,round-1/original-html.json
+real-model-excel,2,PASS,round-1/real-model/evidence.json
+ui-pagination-preview,2,PASS,round-1/material-ui-1100.png
+real-vision-cache,2,PASS,round-1/real-vision/evidence.json
+final-desktop,2,PASS,round-1/final-desktop.json
+progressive-prd-entry,3,PASS,round-3/desktop-entry.json
+progressive-material-flow,3,PASS,round-3/prd-entry-1440.png
+selected-state-hierarchy,4,PASS,round-4/material-preparation-1100.png
+missing-reference-summary,4,PASS,round-4/current-desktop.json
+current-electron-build,4,PASS,round-4/current-desktop.png
+premium-strict-audit,4,PASS,round-4/premium-audit.json

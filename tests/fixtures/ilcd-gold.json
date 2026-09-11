@@ -1,0 +1,450 @@
+{
+  "version": 1,
+  "annotation": "由agent在读取待测产物前直接根据原始PRD制作；无真人独立复核，定向样本而非全量gold",
+  "sourcePath": "D:/project/hiq-project/docs/reference/PRD-基于ILCD合规字段调整-过程管理.md",
+  "sourceSha256": "70013bb295ab6aaef3db91b9afa7b4f2487e927c9db5e28d1b461b9c7f9928dd",
+  "cases": [
+    {
+      "id": "G01",
+      "category": "多语言",
+      "title": "产品技术目的双语必填",
+      "target": "requirements",
+      "source": {
+        "line": 53,
+        "quote": "| baseInfo.technicalPurpose（DB：tw\\_processes.technical\\_purpose） | 产品/过程技术目的 | Technical purpose of product or process（technologicalApplicability） | textarea（多语言，i18n） | 对物品 / 服务 / 过程预期或可能用途的描述。例：\"这种高纯度化学品仅供分析实验室使用\"；\"该卡车仅用于散装液体化学品的长途运输\" | **是** | 历史值置空，发布前由编辑者补录；列表页对未补录的发版数据集打\"待补录\"角标 | — | 与\"技术描述（descriptionTechnology）\"区别：技术描述讲\"怎么做\"，技术目的讲\"做出来能用在哪\" | i18n JSON 双语必填（zh-CN + en-US） |"
+      },
+      "facets": [
+        [
+          "zh-CN"
+        ],
+        [
+          "en-US"
+        ],
+        [
+          "必填"
+        ]
+      ]
+    },
+    {
+      "id": "G02",
+      "category": "历史数据",
+      "title": "未补录的发版数据集列表角标",
+      "target": "requirements",
+      "source": {
+        "line": 53,
+        "quote": "| baseInfo.technicalPurpose（DB：tw\\_processes.technical\\_purpose） | 产品/过程技术目的 | Technical purpose of product or process（technologicalApplicability） | textarea（多语言，i18n） | 对物品 / 服务 / 过程预期或可能用途的描述。例：\"这种高纯度化学品仅供分析实验室使用\"；\"该卡车仅用于散装液体化学品的长途运输\" | **是** | 历史值置空，发布前由编辑者补录；列表页对未补录的发版数据集打\"待补录\"角标 | — | 与\"技术描述（descriptionTechnology）\"区别：技术描述讲\"怎么做\"，技术目的讲\"做出来能用在哪\" | i18n JSON 双语必填（zh-CN + en-US） |"
+      },
+      "facets": [
+        [
+          "待补录"
+        ],
+        [
+          "角标"
+        ]
+      ]
+    },
+    {
+      "id": "G03",
+      "category": "交互",
+      "title": "切换原则清空方法前确认",
+      "target": "requirements",
+      "source": {
+        "line": 59,
+        "quote": "| modelInfo.lciMethodPrinciple（DB：tw\\_process\\_modeling\\_alidation.lci\\_method\\_principle） | LCI 方法原则 | LCI method principle（LCIMethodPrinciple） | el-select（单选枚举） | 枚举：ATTRIBUTIONAL 归因型 / CONSEQUENTIAL 后果型 / CONSEQUENTIAL\\_WITH\\_ATTRIBUTIONAL 带有归因特征的后果型 / NOT\\_APPLICABLE 不适用 / OTHER 其他 | **是** | 见 §4 规则 4-1：按系统模型映射 — Cutoff/EN15804→ATTRIBUTIONAL；Consequential→CONSEQUENTIAL；未识别→OTHER | 决定 R59 \"LCI 建模方法\" 的枚举可选范围（见 §2） | 区分归因型 vs 后果型，是 ILCD 区分两类建模哲学的入口 | 控件改变时弹\"切换会清空 LCI 建模方法的取值\"确认框 |"
+      },
+      "facets": [
+        [
+          "清空"
+        ],
+        [
+          "确认"
+        ]
+      ]
+    },
+    {
+      "id": "G04",
+      "category": "默认值",
+      "title": "建模常数偏差历史回填",
+      "target": "requirements",
+      "source": {
+        "line": 61,
+        "quote": "| modelInfo.deviationFromModellingConstants（DB：...deviation\\_from\\_modelling\\_constants） | 建模常数的偏差/解释 | Deviation from modelling constants / explanations（deviationsFromModellingConstants） | textarea（i18n） | 描述本数据集在\"建模常数\"方面的特定偏离 | 否 | 历史统一回填 None（中文\"无\"） | 与 modellingConstants 联动展示 | — | — |"
+      },
+      "facets": [
+        [
+          "None"
+        ]
+      ]
+    },
+    {
+      "id": "G05",
+      "category": "禁止迁移",
+      "title": "使用建议不得用suggest回填",
+      "target": "requirements",
+      "source": {
+        "line": 76,
+        "quote": "| modelInfo.useAdviceForDataSet（DB：...use\\_advice\\_for\\_data\\_set） | 数据集使用建议 | Use advice for data set（useAdviceForDataSet） | textarea（i18n） | 供数据集用户参考且需要特别注意的特定方法论建议。例：关于材料数据集中回收的包含 / 排除、需要建模的特定使用阶段行为 | **是** | **不要**用现有 managerInfo.suggest 回填本字段；suggest 留给 R99 \"预期应用\"。本字段历史值统一回填 待补录，发版前阻断 | 与 R99 \"预期应用\" 易混淆，详见 §3-① | 数据集\"使用方法学层面\"的建议；R99 \"预期应用\"侧重数据收集 / 建模时的目标场景 | — |"
+      },
+      "facets": [
+        [
+          "suggest"
+        ],
+        [
+          "不要",
+          "不得",
+          "不能",
+          "禁止",
+          "不使用"
+        ]
+      ]
+    },
+    {
+      "id": "G06",
+      "category": "发布阻断",
+      "title": "使用建议待补录阻止发版",
+      "target": "requirements",
+      "source": {
+        "line": 76,
+        "quote": "| modelInfo.useAdviceForDataSet（DB：...use\\_advice\\_for\\_data\\_set） | 数据集使用建议 | Use advice for data set（useAdviceForDataSet） | textarea（i18n） | 供数据集用户参考且需要特别注意的特定方法论建议。例：关于材料数据集中回收的包含 / 排除、需要建模的特定使用阶段行为 | **是** | **不要**用现有 managerInfo.suggest 回填本字段；suggest 留给 R99 \"预期应用\"。本字段历史值统一回填 待补录，发版前阻断 | 与 R99 \"预期应用\" 易混淆，详见 §3-① | 数据集\"使用方法学层面\"的建议；R99 \"预期应用\"侧重数据收集 / 建模时的目标场景 | — |"
+      },
+      "facets": [
+        [
+          "待补录"
+        ],
+        [
+          "阻断",
+          "阻止"
+        ]
+      ]
+    },
+    {
+      "id": "G07",
+      "category": "固定子表",
+      "title": "完整性初始化18行默认未声明",
+      "target": "requirements",
+      "source": {
+        "line": 83,
+        "quote": "| tw\\_process\\_completeness\\_elem 子表（每行 1 条）：process\\_id + completeness\\_type + value | 完整性类别 + 评价 | completeness type / @value | 表格：第 1 列固定枚举（不可编辑）+ 第 2 列下拉 | 18 行固定 completeness\\_type：Climate change / Ozone depletion / Summer smog / Eutrophication / Acidification / Human toxicity / Freshwater ecotoxicity / Seawater eco-toxicity / Terrestric eco-toxicity / Radioactivity / Land use / Non-renewable material resource depletion / Renewable material resource consumption / Non-renewable primary energy depletion / Renewable primary energy consumption / Particulate matter/respiratory inorganics / Species depletion / Noise；value 枚举：所有相关流已量化 (All relevant flows quantified) / 相关流存在缺失 (Relevant flows missing) / 不适用 (Topic not relevant) / 未声明 (No statement) | value **是** | 历史数据为每个数据集初始化 18 条记录，value 默认 No statement | — | 新建数据集自动初始化 18 行 | DB 建议：completeness\\_type 用枚举字符串（与 ILCD code 对齐）；value 同枚举字符串 |"
+      },
+      "facets": [
+        [
+          "18"
+        ],
+        [
+          "No statement"
+        ]
+      ]
+    },
+    {
+      "id": "G08",
+      "category": "可选分组",
+      "title": "合规组可选添加后六项必填",
+      "target": "requirements",
+      "source": {
+        "line": 90,
+        "quote": "| tw\\_process\\_compliance 子表（一对多，编辑器内\"添加合规性声明\"按钮） | 合规性 | Compliance declarations（complianceDeclarations） / Compliance（compliance） | 表单数组 | 一个数据集可声明 N 条合规性，每条对应 1 个合规体系 + 6 个分项评级 | 一组**整体可选**，添加后六项必填 | 历史数据**不自动**创建合规性声明（已有数据保持空），由编辑者按需添加 | — | 对接 ILCD / EN15804 / 国标等多套合规体系的官方批准声明 | 表结构如下 |"
+      },
+      "facets": [
+        [
+          "可选"
+        ],
+        [
+          "六项",
+          "6项"
+        ],
+        [
+          "必填"
+        ]
+      ]
+    },
+    {
+      "id": "G09",
+      "category": "历史数据",
+      "title": "合规历史不自动创建",
+      "target": "requirements",
+      "source": {
+        "line": 90,
+        "quote": "| tw\\_process\\_compliance 子表（一对多，编辑器内\"添加合规性声明\"按钮） | 合规性 | Compliance declarations（complianceDeclarations） / Compliance（compliance） | 表单数组 | 一个数据集可声明 N 条合规性，每条对应 1 个合规体系 + 6 个分项评级 | 一组**整体可选**，添加后六项必填 | 历史数据**不自动**创建合规性声明（已有数据保持空），由编辑者按需添加 | — | 对接 ILCD / EN15804 / 国标等多套合规体系的官方批准声明 | 表结构如下 |"
+      },
+      "facets": [
+        [
+          "不自动"
+        ],
+        [
+          "创建"
+        ]
+      ]
+    },
+    {
+      "id": "G10",
+      "category": "状态",
+      "title": "永久URI工作区为空",
+      "target": "requirements",
+      "source": {
+        "line": 126,
+        "quote": "| managerInfo.permanentDataSetUri（DB：tw\\_process\\_doc.permanent\\_data\\_set\\_uri） | 数据集永久 URI | Permanent data set URI（permanentDataSetURI） | 只读输入框 + 复制按钮 | 发版后由后端按 {数据广场域名}/processes/{UUID} 拼接生成；工作区状态为空 | 否（发版自动生成） | 历史已发版数据触发一次回填脚本 | 依赖 tw\\_processes.uuid + 数据广场域名配置 | 全局唯一标识符，便于跨系统检索与更新检查 | — |"
+      },
+      "facets": [
+        [
+          "工作区"
+        ],
+        [
+          "空"
+        ]
+      ]
+    },
+    {
+      "id": "G11",
+      "category": "只读",
+      "title": "注册号取id且只读",
+      "target": "requirements",
+      "source": {
+        "line": 130,
+        "quote": "| managerInfo.registrationNumber（DB：tw\\_processes.registration\\_number） | 注册号 | Registration number（registrationNumber） | 只读输入 | 取自 tw\\_processes.id（数据集身份 ID） | 否（自动生成） | 历史数据脚本回填 id 值；后续保持只读 | 依赖 tw\\_processes.id | 由注册机构颁发的唯一识别号码；HiQ 内部直接使用现有 id | 若未来对接外部注册机构，再独立扩字段 |"
+      },
+      "facets": [
+        [
+          "id"
+        ],
+        [
+          "只读"
+        ]
+      ]
+    },
+    {
+      "id": "G12",
+      "category": "数值范围",
+      "title": "覆盖比例范围步长",
+      "target": "requirements",
+      "source": {
+        "line": 168,
+        "quote": "| modelInfo.model.coverageRatio | 数据覆盖率 | **生产或供应的覆盖比例** | Percentage supply or production covered（percentageSupplyOrProductionCovered） | 数值输入框（el-input-number） | 范围 0-100，步进 0.01；输入框末尾固定显示\"%\"；DB 存储采用百分比数值（如 75 表示 75%）；前端展示统一带\"%\" | **是** | 见 §4 规则 4-4：原\"高/中/低\"等枚举映射为：高→90、中→60、低→30；原本就是百分比数值的直接保留 | — | 该数据集所代表的特定货物 / 服务 / 技术在所声明的地理位置内占总体供应、消费或生产的百分比；若 A 区域数据用于 B 区域，本字段填 0 | DB 字段类型从 varchar 改为 numeric(5,2)，需迁移脚本 |"
+      },
+      "facets": [
+        [
+          "0-100",
+          "0～100",
+          "0至100"
+        ],
+        [
+          "0.01"
+        ]
+      ]
+    },
+    {
+      "id": "G13",
+      "category": "特殊条件",
+      "title": "跨区域代表填写0",
+      "target": "requirements",
+      "source": {
+        "line": 168,
+        "quote": "| modelInfo.model.coverageRatio | 数据覆盖率 | **生产或供应的覆盖比例** | Percentage supply or production covered（percentageSupplyOrProductionCovered） | 数值输入框（el-input-number） | 范围 0-100，步进 0.01；输入框末尾固定显示\"%\"；DB 存储采用百分比数值（如 75 表示 75%）；前端展示统一带\"%\" | **是** | 见 §4 规则 4-4：原\"高/中/低\"等枚举映射为：高→90、中→60、低→30；原本就是百分比数值的直接保留 | — | 该数据集所代表的特定货物 / 服务 / 技术在所声明的地理位置内占总体供应、消费或生产的百分比；若 A 区域数据用于 B 区域，本字段填 0 | DB 字段类型从 varchar 改为 numeric(5,2)，需迁移脚本 |"
+      },
+      "facets": [
+        [
+          "A区域"
+        ],
+        [
+          "B区域"
+        ],
+        [
+          "0"
+        ]
+      ]
+    },
+    {
+      "id": "G14",
+      "category": "迁移映射",
+      "title": "覆盖率高中低迁移映射",
+      "target": "requirements",
+      "source": {
+        "line": 198,
+        "quote": "| 4-4 | 修改 coverageRatio（生产或供应的覆盖比例）控件 | 现有枚举值映射数值：高→90，中→60，低→30；现有就是百分比数值的保留；DB 列类型 varchar → numeric(5,2) 需迁移脚本一次性更换 |"
+      },
+      "facets": [
+        [
+          "高"
+        ],
+        [
+          "90"
+        ],
+        [
+          "中"
+        ],
+        [
+          "60"
+        ],
+        [
+          "低"
+        ],
+        [
+          "30"
+        ]
+      ]
+    },
+    {
+      "id": "G15",
+      "category": "保留用户输入",
+      "title": "用户改过时不刷新默认内容",
+      "target": "requirements",
+      "source": {
+        "line": 216,
+        "quote": "3.  **lciMethodPrinciple** **→** **method.descriptionDeviate / LCI 方法原则的偏差/解释****（R58）**：原则切换时按 §2 ② 默认文本规则刷新内容（仅当用户未手动改过时）"
+      },
+      "facets": [
+        [
+          "未手动",
+          "未修改",
+          "未编辑"
+        ],
+        [
+          "刷新",
+          "更新"
+        ]
+      ]
+    },
+    {
+      "id": "G16",
+      "category": "弱校验",
+      "title": "整体合规建议而非阻断",
+      "target": "requirements",
+      "source": {
+        "line": 222,
+        "quote": "6.  **合规性声明子表行为**：每行 6 个分项中只要有一项不是 Fully compliant，\"整体合规性\"建议提示用户改为 Not compliant（仅前端弱校验，不强制阻断）"
+      },
+      "facets": [
+        [
+          "Not compliant"
+        ],
+        [
+          "不强制阻断",
+          "不阻断",
+          "非阻断"
+        ]
+      ]
+    },
+    {
+      "id": "G17",
+      "category": "互斥",
+      "title": "重发布与转换来源互斥保存阻断",
+      "target": "requirements",
+      "source": {
+        "line": 224,
+        "quote": "7.  **unchangedRePublicationSourceId** **vs** **convertedOriginalDataSetFromSourceId**：互斥；同时填写时保存阻断并提示二选一"
+      },
+      "facets": [
+        [
+          "unchangedRePublicationSourceId"
+        ],
+        [
+          "convertedOriginalDataSetFromSourceId"
+        ],
+        [
+          "阻断",
+          "阻止"
+        ]
+      ]
+    },
+    {
+      "id": "G18",
+      "category": "时机",
+      "title": "EULA年份迁移当年与未来发版当年",
+      "target": "requirements",
+      "source": {
+        "line": 208,
+        "quote": "| 4-14 | 新增 R120 accessAndUseRestrictions 默认 EULA | 历史值统一回填默认 EULA 文本（年份按迁移当年），未来发版时再按当年替换 {{YYYY}} |"
+      },
+      "facets": [
+        [
+          "迁移"
+        ],
+        [
+          "年份"
+        ],
+        [
+          "发版"
+        ]
+      ]
+    },
+    {
+      "id": "G19",
+      "category": "待确认",
+      "title": "永久URI多域名待确认",
+      "target": "clarifications",
+      "source": {
+        "line": 298,
+        "quote": "4.  **§1.10** **permanentDataSetUri** **拼接规则**：数据广场域名是否已固定？是否需要支持多域名（中外站点）？"
+      },
+      "facets": [
+        [
+          "域名"
+        ],
+        [
+          "是否",
+          "未明确",
+          "待确认"
+        ]
+      ]
+    },
+    {
+      "id": "G20",
+      "category": "待确认",
+      "title": "存量发版宽限期待确认",
+      "target": "clarifications",
+      "source": {
+        "line": 294,
+        "quote": "2.  **§4-2 / §1.4 中\"数据集使用建议\"必填**：发版前阻断会影响存量数据集的再发版，是否要为存量数据集提供宽限期？"
+      },
+      "facets": [
+        [
+          "宽限期"
+        ]
+      ]
+    },
+    {
+      "id": "G21",
+      "category": "附录枚举",
+      "title": "混合原则包含三系列",
+      "target": "requirements",
+      "source": {
+        "line": 308,
+        "quote": "    | 带有归因特征的后果型 (Consequential with attributional components) | Allocation 系列 + Substitution 系列 + Consequential effects - other |"
+      },
+      "facets": [
+        [
+          "Allocation"
+        ],
+        [
+          "Substitution"
+        ],
+        [
+          "Consequential"
+        ]
+      ]
+    },
+    {
+      "id": "G22",
+      "category": "迁移前置",
+      "title": "先预置来源联系人再批量回填",
+      "target": "requirements",
+      "source": {
+        "line": 204,
+        "quote": "| 4-10 | 新增 R105 dataSetFormatSourceId / R114 registrationAuthorityContactId / R116 ownerContactId / R118 exclusiveAccessContactIds | 先在 tw\\_sources 预置 \"ILCD 1.1\"、tw\\_actors 预置 \"HiQLCD\"；再批量回填历史数据指向预置 ID |"
+      },
+      "facets": [
+        [
+          "ILCD 1.1"
+        ],
+        [
+          "HiQLCD"
+        ],
+        [
+          "预置"
+        ],
+        [
+          "回填"
+        ]
+      ]
+    }
+  ]
+}

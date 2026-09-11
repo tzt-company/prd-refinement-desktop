@@ -1,0 +1,40 @@
+{
+  "url": "file:///D:/project/prd-refinement-desktop/dist/index.html",
+  "bundle": {
+    "id": "B-024d7b0c-9c02-477d-ac1f-b8e5e0d28f03",
+    "name": "主文档",
+    "revision": 3,
+    "state": "ready",
+    "files": [
+      {
+        "id": "F-14c68d82-9e6a-4282-ac77-7250cbef14c0",
+        "logicalPath": "主文档.html",
+        "role": "primary",
+        "revision": 1,
+        "size": 96,
+        "hash": "5193fa2d9b38d90456b57a122606b13ea752359196aa199843da23bfec934de5",
+        "status": "read",
+        "sourceCount": 2
+      },
+      {
+        "id": "F-3a39f8fd-395f-4d82-841b-7fc3461ea5fa",
+        "logicalPath": "assets/补充.md",
+        "role": "supplement",
+        "revision": 1,
+        "size": 51,
+        "hash": "504507fd880e2c0908a7db89ce8dbe47b6b7d29ee747deba8435b5e5e1c5d3fb",
+        "status": "read",
+        "sourceCount": 2
+      }
+    ],
+    "references": [],
+    "issues": [],
+    "progress": {
+      "completed": 2,
+      "total": 2,
+      "phase": "索引就绪"
+    },
+    "updatedAt": "2026-09-10T13:48:47.378Z",
+    "indexedRevision": 3
+  }
+}

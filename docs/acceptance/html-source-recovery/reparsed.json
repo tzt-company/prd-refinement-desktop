@@ -1,0 +1,2264 @@
+{
+  "rawText": "### HTML 样式源码（来源数据，未执行）\n\n:root {\ncolor-scheme: light;\n--ink: #182230;\n--muted: #667085;\n--line: #e4e7ec;\n--soft: #f7f8fb;\n--brand: #5146ff;\n}\n* { box-sizing: border-box; }\nhtml { scroll-behavior: smooth; }\nbody {\nmargin: 0;\nbackground: #f3f5f8;\ncolor: var(--ink);\nfont-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;\nfont-size: 15px;\nline-height: 1.75;\n}\n.layout {\ndisplay: grid;\ngrid-template-columns: 280px minmax(0, 1fr);\ngap: 28px;\nwidth: min(1760px, calc(100% - 40px));\nmargin: 24px auto 56px;\nalign-items: start;\n}\n.sidebar {\nposition: sticky;\ntop: 20px;\nmax-height: calc(100vh - 40px);\noverflow: auto;\npadding: 20px 16px;\nbackground: rgba(255, 255, 255, .98);\nborder: 1px solid #dfe3eb;\nborder-radius: 12px;\nbox-shadow: 0 12px 30px rgba(16, 24, 40, .06);\n}\n.toc-label {\nmargin: 0;\npadding: 0 8px 4px;\ncolor: #344054;\nfont-size: 18px;\nfont-weight: 700;\n}\n.toc-version { margin: 0 0 12px; padding: 0 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }\n.sidebar #TOC ul { margin: 0; padding: 0; list-style: none; }\n.sidebar #TOC ul ul { padding-left: 14px; }\n.sidebar #TOC li { margin: 2px 0; }\n.sidebar #TOC a {\ndisplay: block;\npadding: 7px 8px;\nborder-radius: 6px;\ncolor: #344054;\nfont-size: 14px;\nline-height: 1.4;\ntext-decoration: none;\n}\n.sidebar #TOC ul ul a { color: var(--muted); font-size: 13px; }\n.sidebar #TOC a:hover, .sidebar #TOC a.active { color: var(--brand); background: #f1f0ff; }\n.paper {\nmin-width: 0;\nbackground: #fff;\nborder: 1px solid #dfe3eb;\nborder-radius: 12px;\nbox-shadow: 0 12px 36px rgba(16, 24, 40, .07);\noverflow: hidden;\n}\n.paper > section.level1 { max-width: 1440px; margin: 0 auto; padding: 42px 48px 64px; }\n.paper > section.level1 > h1 {\nmargin: 0 0 22px;\npadding-bottom: 24px;\nborder-bottom: 1px solid var(--line);\nfont-size: 34px;\nline-height: 1.35;\nletter-spacing: -.02em;\n}\n.paper > section.level1 > h1::before {\ndisplay: block;\nmargin-bottom: 10px;\ncontent: \"PRODUCT REQUIREMENT DOCUMENT\";\ncolor: var(--brand);\nfont-size: 12px;\nfont-weight: 800;\nletter-spacing: .08em;\n}\nh2 { margin: 44px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font-size: 23px; }\nh3 { margin: 32px 0 12px; font-size: 19px; }\nh4 { margin: 26px 0 10px; font-size: 16px; }\np { margin: 8px 0 14px; }\na { color: #315efb; }\nblockquote { margin: 0 0 22px; padding: 9px 14px; border-left: 3px solid var(--brand); background: #f5f4ff; color: #475467; }\nblockquote p { margin: 0; }\ncode { padding: 2px 5px; border-radius: 4px; background: #f2f4f7; color: #344054; font-family: \"SFMono-Regular\", Consolas, monospace; font-size: .9em; }\ntable { width: 100%; margin: 14px 0 24px; border-collapse: collapse; font-size: 14px; }\nth, td { padding: 10px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }\nth { background: var(--soft); color: #344054; font-weight: 600; }\ntr:nth-child(even) td { background: #fcfcfd; }\nul, ol { padding-left: 24px; }\nli { margin: 4px 0; }\n.prototype-embed { margin: 18px 0 28px; }\n.prototype-stage { width: 100%; overflow: hidden; border: 1px solid #dfe3eb; border-radius: 12px; background: #f5f6f8; }\n.prototype-stage iframe { display: block; border: 0; transform-origin: top left; background: #f5f6f8; }\n.prototype-embed figcaption { margin-top: 8px; color: var(--muted); font-size: 13px; text-align: center; }\n@media (max-width: 980px) {\n.layout { display: block; width: min(100% - 24px, 900px); margin-top: 12px; }\n.sidebar { position: static; max-height: none; margin-bottom: 14px; }\n.sidebar #TOC > ul { columns: 2; column-gap: 18px; }\n.paper > section.level1 { padding: 30px 28px 50px; }\n}\n@media (max-width: 640px) {\n.sidebar #TOC > ul { columns: 1; }\n.paper > section.level1 { padding: 24px 18px 40px; }\n}\n@media print {\nbody { background: #fff; font-size: 11pt; }\n.layout { display: block; width: auto; margin: 0; }\n.sidebar { display: none; }\n.paper { border: 0; box-shadow: none; }\n.paper > section.level1 { max-width: none; padding: 0; }\n.prototype-embed { break-inside: avoid; }\n}\n\n目录\n\nV1.5 · 正式版\n\n- 1. 概要\n\n- 2. 背景\n\n- 3. 目标与范围\n\n- 3.1 目标\n\n- 3.2 本期范围\n\n- 3.3 边界\n\n- 4. 用户与场景\n\n- 5. 方案\n\n- 5.1 核心规则\n\n- 5.2 检查范围\n\n- 5.3 用户流程\n\n- 5.4 页面与交互\n\n- 5.5 合并与结果\n\n- 6. 验收标准\n\n- 7. 约束与风险\n\n# PRD：同名生产活动关联 ID 合并提醒\n\n当前版本：V1.5（正式版）\n\n## 1. 概要\n\n在「版本管理 >\n版本详情」中，用户点击「生成版本」后，系统检查当前版本内是否存在名称相同、关联\nID\n不同且能够安全合并的生产活动。存在候选时，系统在生成版本前提醒一次。\n\n用户可以选择要处理的同名生产活动组、合并后统一使用的关联\nID，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，也可以暂不合并。合并提醒仅处理关联\nID\n合并；合并完成或暂不合并后，系统再通过独立弹窗询问是否生成版本。合并不改变当前版本的数据集成员。\n\n## 2. 背景\n\n当前租户全量工作区内的未删除数据集中，可能存在本应使用同一关联 ID\n的生产活动，但由于录入、导入或维护操作被分散到多个关联 ID\n下，增加后续查询和维护成本。\n\n用户准备生成版本时，需要判断这些同名数据是否确实属于同一生产活动。候选来自当前版本，而关联\nID 合并可能影响候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，因此用户需要同时看见当前版本涉及范围和当前租户全量工作区内未删除数据集的实际影响范围。\n\n## 3. 目标与范围\n\n### 3.1 目标\n\n- 用户点击「生成版本」时，可以发现当前版本范围内可合并的同名生产活动。\n\n- 用户可以查看影响范围，并选择同名生产活动组、目标关联 ID\n和参与合并的数据集。\n\n- 用户完成合并或暂不合并后，通过独立确认决定是否生成版本；取消生成版本时，已完成的合并结果保留，当前版本保持未生成状态。\n\n### 3.2 本期范围\n\n- 检查并展示可完整合并的同名生产活动组；\n\n- 双栏展示候选组，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集；\n\n- 支持选择同名生产活动组、筛选数据集、筛选结果全选、逐行选择和明细导出；\n\n- 按组执行合并并反馈失败组的生产活动名称；\n\n- 具有版本管理权限的用户可以使用本功能。\n\n### 3.3 边界\n\n- 合并是可选操作，不作为生成版本的阻断条件；\n\n- 不能整组通过冲突校验的同名组不展示；\n\n- 校验和可选范围仅包含候选关联 ID\n在当前租户全量工作区内的未删除数据集；\n\n- 不新建关联 ID，不改造独立「关联 ID\n合并」页面，也不新增独立合并权限；\n\n- 不改变数据集 ID\n和版本数据集成员；版本生成完成后的导出和发布流程保持不变。\n\n- 数据集自身仅修改关联 ID；生产活动关联名称不随合并自动修改。源关联 ID\n在当前租户全量工作区内已无未删除数据集时，软删除对应的生产活动关联关系。\n\n## 4. 用户与场景\n\n具有版本管理权限的用户完成计算任务数据选择后，点击「生成版本」。若系统发现候选，用户判断哪些同名生产活动属于同一活动、统一使用哪个关联\nID、候选关联 ID\n在当前租户全量工作区内的哪些未删除数据集参与合并，并选择确认合并或暂不合并。合并提醒关闭后，用户在独立的生成版本确认弹窗中决定是否触发版本生成。\n\n## 5. 方案\n\n### 5.1 核心规则\n\n[HTML col 排版属性：width: 50%]\n\n[HTML col 排版属性：width: 50%]\n\n| 规则\n| 定义\n\n| 同名匹配\n| 移除生产活动名称中的空格后，不区分字母大小写；其他字符和符号按原值比较\n\n| 候选组\n| 当前版本范围实际数据集中出现过、同名匹配且包含两个及以上关联 ID\n的同名生产活动关联 ID 组\n\n| 可完整合并\n| 将候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集模拟统一到同一目标关联 ID\n后，不存在「目标关联\nID＋参考产品标识＋地理位置标识＋系统模型值＋活动类型值」全部相同的两条及以上数据集\n\n| 目标关联 ID\n| 从候选组已有的关联 ID 中选择；默认选中按关联 ID\n字符串升序排序后的最小值，用户可以修改\n\n| 参与合并的数据集\n| 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集；用户未选中的数据保留原关联\nID\n\n安全合并使用以下字段原始存储值进行判断，不使用页面展示名称或翻译值：\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n| 产品字段\n| 判定字段\n| 判定规则\n\n| 目标关联 ID\n| tw_processes.uuid\n| 将候选组相关数据模拟为用户选择的目标关联 ID\n\n| 参考产品\n| tw_processes.reference_flow_id\n| 按标识原值比较\n\n| 地理位置\n| tw_processes.location_id\n| 按标识原值比较\n\n| 系统模型\n| tw_processes.from_data\n| 按系统模型原始存储值比较\n\n| 活动类型\n| tw_processes.special_type\n| 按枚举原值比较\n\n空值和重复记录按以下规则处理：\n\n- 同一判定字段均为数据库空值（NULL）时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较；\n\n- 开发前需统计上述字段是否存在空字符串或纯空格，并由技术评审确认是否统一按空值处理；\n\n- 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集中已经存在完整键重复时，该组不作为可合并候选；\n\n- 用户确认后重新校验发现完整键重复时，该组整体失败，不修改部分数据。\n\n### 5.2 检查范围\n\n| 环节\n| 范围\n\n| 候选关联 ID 来源\n| 当前版本实际包含的数据集中出现过的关联 ID\n\n| 同名分组\n| 仅在上述关联 ID 中按同名规则分组\n\n| 冲突校验\n| 每组关联 ID 在当前租户全量工作区内的全部未删除数据集\n\n| 提醒\n| 仅展示能够完整合并的组\n\n| 合并执行\n| 用户选中组内勾选的数据集\n\n### 5.3 用户流程\n\n- 用户在版本详情页进入第二步点击「生成版本」时，系统基于当时的当前版本数据执行一次候选检查。\n\n- 没有候选或检查失败时，不展示本提醒，进入原有生成版本确认弹窗；检查失败不增加提示。\n\n- 存在候选时，打开「发现可合并的同名生产活动」弹窗。\n\n- 用户选择同名生产活动组、目标关联 ID 和参与合并的数据集。\n\n- 用户点击「跳过，继续生成版本」时，不执行合并；关闭合并提醒后，打开独立的生成版本确认弹窗。\n\n- 用户点击右上角关闭按钮时，取消本次版本生成；再次点击「生成版本」时重新检查。\n\n- 用户点击「确认合并」时，系统重新校验并按组执行。处理结束后提示合并结果，关闭合并提醒，再打开独立的生成版本确认弹窗；该按钮不触发版本生成。\n\n- 用户在生成版本确认弹窗中点击「确认生成版本」时，单独触发异步版本生成；点击「取消」时，不生成版本，保留已完成的合并结果并返回版本详情页。\n\n- 合并成功但版本生成失败时，保留已经完成的合并结果并提示用户重新生成版本。\n\n- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。\n\n### 5.4 页面与交互\n\n## 内嵌文档：生成版本前同名生产活动合并提醒原型\n\n### HTML 样式源码（来源数据，未执行）\n\n:root{--primary:#5051f9;--primary-soft:#edeffa;--primary-border:#d1d1ff;--text:#303133;--regular:#606266;--secondary:#909399;--muted:#717182;--border:#dcdfe6;--light:#e4e7ed;--lighter:#f4f4f5;--link:#165dff}\n*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;min-width:0;min-height:0}body{display:flex;justify-content:center;align-items:flex-start;padding:2px 12px 22px;overflow:hidden;color:var(--text);background:#f7f7f7;font:12px/1.5 \"PingFang SC\",Inter,\"Microsoft YaHei\",Arial,sans-serif;-webkit-font-smoothing:antialiased}button{font:inherit;cursor:pointer}\n.modal{width:min(1320px,calc(100vw - 24px));height:min(833px,calc(100vh - 24px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(0,0,0,.1);border-radius:10px;background:#fff;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)}\n.modal-header{height:105px;flex:none;display:flex;justify-content:space-between;padding:20px 28px 12px;background:#fff}.header-copy{min-width:0;flex:1}h1{margin:0 0 5px;font-size:18px;line-height:28px;font-weight:600}.description{margin:0;color:var(--muted);font-size:12px;line-height:20px}.close{width:28px;height:28px;flex:none;padding:0;border:0;background:transparent;color:var(--secondary);font-size:22px;line-height:28px}.close:hover{color:var(--text)}\n.summary-wrap{height:74px;flex:none;padding:0 18px}.summary{width:100%;height:74px;display:flex;align-items:center;gap:4px;padding:12px 12px 12px 20px;border:1px solid var(--lighter);border-radius:10px}.summary-stats{flex:1;display:flex;align-items:center;gap:16px;min-width:0}.stat{width:130px;flex:none;display:flex;flex-direction:column;gap:8px}.stat-label{height:18px;color:var(--secondary);line-height:18px}.stat-value{height:24px;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;line-height:24px}.divider{width:1px;height:12px;flex:none;background:#e8e8ed}.tag-version{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:9px;background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:400;white-space:nowrap}\n.button{height:32px;display:inline-flex;align-items:center;justify-content:center;padding:4px 16px;border:1px solid var(--border);border-radius:4px;color:var(--regular);background:#fff;font-size:12px;line-height:22px;white-space:nowrap}.button.primary{border-color:var(--primary);color:#fff;background:var(--primary)}.button:hover{filter:brightness(.98)}.button:disabled{cursor:not-allowed;border-color:#c8c9cc;color:#fff;background:#a8abb2;filter:none}\n.modal-body{min-height:0;flex:1;display:flex;overflow:hidden;background:#fff}.candidate-pane{width:316px;height:100%;flex:none;display:flex;flex-direction:column;gap:9px;padding:16px 18px;overflow:hidden}.pane-heading{width:100%;height:22px;flex:none;display:flex;align-items:center;justify-content:space-between;color:var(--secondary);line-height:18px;white-space:nowrap}.pane-heading b{font-family:Inter,\"PingFang SC\",sans-serif;font-weight:500}.pane-heading span{font-size:11px}.candidate-list{min-height:0;flex:1;display:flex;flex-direction:column;gap:9px;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#c9cdd6 transparent}.candidate-list::-webkit-scrollbar{width:8px}.candidate-list::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:8px;background:#c9cdd6;background-clip:padding-box}\n.candidate-card{width:100%;height:74px;flex:none;display:flex;flex-direction:column;gap:8px;padding:11px 12px 10px;border:1px solid var(--lighter);border-radius:8px;background:#fff;text-align:left}.candidate-card.active{border-color:#bfbfff;background:#f7f7ff}.candidate-card:hover{border-color:#bfbfff}.candidate-title{height:20px;display:flex;align-items:center;gap:9px;overflow:hidden}.candidate-name{min-width:0;flex:1;overflow:hidden;color:var(--text);font-size:13px;font-weight:600;line-height:20px;text-overflow:ellipsis;white-space:nowrap}.candidate-meta{margin-left:23px;color:var(--secondary);font-size:11px;line-height:17px}\n.check{width:14px;height:14px;flex:none;display:inline-block;border:1px solid var(--light);border-radius:4px;background:#fff center/14px 14px no-repeat}.check.checked{border:0;background-image:url(\"assets/checkbox-checked.svg\")}.check.indeterminate{position:relative;border-color:var(--primary);background:var(--primary)}.check.indeterminate::after{content:\"\";position:absolute;left:3px;right:3px;top:6px;height:2px;border-radius:1px;background:#fff}\n.configuration-pane{width:1004px;height:100%;min-width:0;display:flex;flex-direction:column;gap:10px;padding:16px 18px 0;overflow:hidden}.activity-title{width:100%;height:28px;flex:none;margin:0;overflow:hidden;font-size:18px;font-weight:600;line-height:28px;text-overflow:ellipsis;white-space:nowrap}.target-row{height:32px;flex:none;display:flex;align-items:center;gap:14px}.target-label{line-height:18px;white-space:nowrap}.select-shell{width:430px;height:32px;padding:4px 30px 4px 8px;border:1px solid var(--border);border-radius:4px;color:var(--text);background:#fff url(\"assets/arrow-down.svg\") right 8px center/16px 16px no-repeat;line-height:22px;appearance:none}.config-copy{height:45px;flex:none;display:flex;flex-direction:column;gap:5px;line-height:20px}.config-copy p{margin:0}.config-copy .muted{color:var(--muted)}\n.selection-banner{width:100%;height:36px;flex:none;display:flex;align-items:center;gap:12px;padding:0 11px;border:1px solid var(--primary-border);border-radius:6px;color:var(--primary);background:var(--primary-soft);line-height:18px;white-space:nowrap}.clear-selection{padding:0;border:0;color:var(--primary);background:transparent;font-weight:600}\n.table-viewport{width:100%;min-height:0;flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:#c9cdd6 transparent}.table-viewport::-webkit-scrollbar{display:block;width:8px;height:8px}.table-viewport::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:8px;background:#c9cdd6;background-clip:padding-box}table{width:1122px;border-collapse:separate;border-spacing:0;table-layout:fixed;color:#60758d}th,td{height:40px;padding:0 12px;overflow:hidden;text-align:left;text-overflow:ellipsis;white-space:nowrap}th{position:sticky;top:0;z-index:1;color:#2e2e2e;background:#fff;font-weight:600;line-height:23px;box-shadow:0 1px 0 rgba(228,231,237,.8)}tbody tr:hover td{background:#fafaff}.selection-cell{position:sticky;left:0;z-index:2;padding:0;text-align:center;background:#fff;box-shadow:1px 0 0 rgba(228,231,237,.55)}thead .selection-cell{z-index:4}.selection-cell .check{vertical-align:middle}.header-label{display:inline-flex;align-items:center;gap:10px}.header-label img{width:12px;height:12px}.header-label .copy-ids{cursor:pointer}.link{color:var(--link);cursor:pointer}.uuid-cell{color:#60758d}.dataset-name-cell{overflow:hidden}.dataset-name-wrap{max-width:100%;min-width:0;display:flex;align-items:center;overflow:hidden}.dataset-name-text{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dataset-name-wrap .table-version{flex:none;margin-left:8px}.type-tag{display:inline-flex;align-items:center;justify-content:center;width:68px;height:23px;color:#b88230;background:#fcf6ec}.type-tag.consume{color:#529b2e;background:#f0f9eb}\n.configuration-pane.is-disabled .select-shell,.configuration-pane.is-disabled .clear-selection{pointer-events:none;opacity:.5}.configuration-pane.is-disabled .selection-cell{pointer-events:none}.configuration-pane.is-disabled .selection-cell .check{opacity:.45}.configuration-pane.is-disabled .selection-banner{color:var(--secondary);border-color:var(--light);background:var(--lighter)}\n.toast{position:fixed;left:50%;bottom:24px;z-index:20;max-width:520px;padding:9px 16px;border-radius:6px;color:#fff;background:rgba(31,35,41,.92);box-shadow:0 6px 18px rgba(0,0,0,.16);font-size:12px;opacity:0;transform:translate(-50%,8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}.toast.show{opacity:1;transform:translate(-50%,0)}\n.el-tooltip-popper{position:fixed;z-index:1000;display:none;max-width:420px;padding:5px 11px;border-radius:4px;color:#fff;background:#303133;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:12px;line-height:20px;overflow-wrap:anywhere;pointer-events:none}.el-tooltip-popper.show{display:block}.el-tooltip-popper::after{content:\"\";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#303133;border-bottom:0}\n.modal-footer{height:42px;flex:none;display:flex;align-items:flex-start;justify-content:center;gap:16px;padding:0 24px 10px;background:#fff}.modal-footer .secondary{width:164px}.modal-footer .primary{width:214px}\n@media(max-height:680px){.modal-header{height:96px;padding-top:14px}.summary-wrap,.summary{height:68px}.candidate-pane,.configuration-pane{padding-top:12px}.configuration-pane{gap:8px}}\n\n# 发现可合并的同名生产活动\n\n当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID 下的同名生产活动。\n若确认属于同一生产活动，可合并使用统一关联 ID。如果只是名称相同，可不进行合并，不影响版本发布。\n\n×\n\n同名生产活动数量3\n\n相关关联 ID  数量7\n\n相关数据集数量33 版本内 12 条\n\n导出同名生产活动明细\n\n同名生产活动已选 0/3 组\n\n氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均涉及 3 个 关联 ID · 17 条数据集\n电力，天然气发电，中压涉及 2 个 关联 ID · 9 条数据集\n运输，货运，公路涉及 2 个 关联 ID · 7 条数据集\n\n## 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n\n设置合并后统一关联 ID：\n\n配置数据集合并范围：\n\n默认合并工作区所有相关数据集，结果使用统一关联 ID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID 下。\n\n已选 0/17 条清除选择\n\n[HTML col 排版属性：width:42px]\n\n[HTML col 排版属性：width:122px]\n\n[HTML col 排版属性：width:144px]\n\n[HTML col 排版属性：width:220px]\n\n[HTML col 排版属性：width:140px]\n\n[HTML col 排版属性：width:140px]\n\n[HTML col 排版属性：width:140px]\n\n[HTML col 排版属性：width:140px]\n\n|  | 关联 ID \n[图片：未命名]\n| 身份 ID \n[图片：复制当前结果身份 ID]\n| 数据集名称 \n[图片：未命名]\n| 参考产品 | 地理位置 | 系统模型 | 活动类型\n\n跳过，继续生成版本确认合并生成版本\n\n### HTML 交互脚本源码（来源数据，未执行）\n\nconst groupData = [\n{\nname: '氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均',\nuuids: ['8c7d0507-2b6c-4155-b7ce-ca32a8ef9f6c5', 'c7b7690c-cb3c-4d83-8fcc-1b0e53a415c0', 'f9e87a21-6fc7-4718-996a-04ae0fe81bb2'],\ncount: 17,\nversionCount: 6,\nreference: '氧化铝',\nnames: ['铝精矿焙烧，回转窑', '铝精矿焙烧，流化床', '氧化铝生产，拜耳法'],\ngeographies: ['中国，山东省', '中国，河南省', '中国，广西壮族自治区'],\nmodels: ['CUT_OFF', 'CONSEQUENTIAL', 'ATTRIBUTIONAL']\n},\n{\nname: '电力，天然气发电，中压',\nuuids: ['2d31db78-e8bb-4417-b3de-50b78a6fb1c9', '5a872cef-b412-491f-a06f-271b3ec3c641'],\ncount: 9,\nversionCount: 4,\nreference: '中压电力',\nnames: ['天然气发电，中压', '联合循环天然气发电，中压'],\ngeographies: ['中国', '中国，安徽省'],\nmodels: ['CUT_OFF', 'CONSEQUENTIAL']\n},\n{\nname: '运输，货运，公路',\nuuids: ['7697bd3c-72c1-49fc-b895-3ed32925a2c3', 'ab2190b1-70a1-40e0-a641-df10a2783256'],\ncount: 7,\nversionCount: 2,\nreference: '公路货运',\nnames: ['公路货运，重型卡车', '公路货运，中型卡车'],\ngeographies: ['中国', '中国，华东地区'],\nmodels: ['CUT_OFF', 'ATTRIBUTIONAL']\n}\n];\n\nconst cards = [...document.querySelectorAll('.candidate-card')];\nconst groupChecks = cards.map(card => card.querySelector('.check'));\nconst groupCount = document.querySelector('.group-count');\nconst configurationPane = document.querySelector('.configuration-pane');\nconst activityTitle = document.querySelector('.activity-title');\nconst targetSelect = document.querySelector('.select-shell');\nconst tbody = document.querySelector('tbody');\nconst selectAll = document.querySelector('.table-select-all');\nconst datasetCount = document.querySelector('.dataset-count');\nconst clearSelection = document.querySelector('.clear-selection');\nconst confirmButton = document.querySelector('.confirm-button');\nconst toast = document.querySelector('.toast');\nconst tooltip = document.querySelector('.el-tooltip-popper');\nconst states = groupData.map(group => ({\nselected: false,\ninitialized: false,\nselectedRows: new Set(),\ntargetUuid: [...group.uuids].sort((left, right) => left.localeCompare(right))[0]\n}));\nlet activeIndex = 0;\nlet toastTimer;\n\nfunction escapeHtml(value) {\nreturn String(value).replace(/[&<>\"']/g, character => ({\n'&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;'\n})[character]);\n}\n\nfunction rowsForGroup(group, groupIndex) {\nreturn Array.from({ length: group.count }, (_, index) => ({\nkey: `${groupIndex}-${index}`,\nuuid: group.uuids[index % group.uuids.length],\nid: `${String(groupIndex + 1).padStart(2, '0')}${String(index + 1).padStart(2, '0')}d0507-2b6c-4155-b7ce-ca32a8ef9f6c5`,\nname: group.names[index % group.names.length],\nreference: group.reference,\ngeography: group.geographies[index % group.geographies.length],\nmodel: group.models[index % group.models.length],\ntype: index % 3 === 1 ? '消费混合' : '生产混合',\ninVersion: index < group.versionCount\n}));\n}\n\nconst rowsByGroup = groupData.map(rowsForGroup);\n\ncards.forEach((card, index) => {\nconst name = card.querySelector('.candidate-name');\nname.textContent = groupData[index].name;\nname.dataset.tooltip = groupData[index].name;\n});\n\nfunction hideTooltip() {\ntooltip.classList.remove('show');\ntooltip.removeAttribute('data-for');\n}\n\nfunction showTooltip(target) {\nif (!target?.dataset.tooltip || target.scrollWidth <= target.clientWidth) {\nhideTooltip();\nreturn;\n}\ntooltip.textContent = target.dataset.tooltip;\ntooltip.classList.add('show');\ntooltip.dataset.for = target.dataset.tooltip;\nconst targetRect = target.getBoundingClientRect();\nconst tooltipRect = tooltip.getBoundingClientRect();\nconst left = Math.min(\nwindow.innerWidth - tooltipRect.width - 8,\nMath.max(8, targetRect.left + targetRect.width / 2 - tooltipRect.width / 2)\n);\nconst top = Math.max(8, targetRect.top - tooltipRect.height - 10);\ntooltip.style.left = `${left}px`;\ntooltip.style.top = `${top}px`;\n}\n\ndocument.addEventListener('mouseover', event => {\nconst target = event.target.closest('[data-tooltip]');\nif (target) showTooltip(target);\n});\ndocument.addEventListener('mouseout', event => {\nconst target = event.target.closest('[data-tooltip]');\nif (target && !target.contains(event.relatedTarget)) hideTooltip();\n});\nwindow.addEventListener('resize', hideTooltip);\nwindow.addEventListener('scroll', hideTooltip, true);\n\nfunction showToast(message) {\ntoast.textContent = message;\ntoast.classList.add('show');\nclearTimeout(toastTimer);\ntoastTimer = setTimeout(() => toast.classList.remove('show'), 1800);\n}\n\nfunction updateConfirmState() {\nconfirmButton.disabled = !states.some(state => state.selected && state.selectedRows.size > 0);\n}\n\nfunction updateGroupCount() {\nconst selected = states.filter(state => state.selected).length;\ngroupCount.textContent = `已选 ${selected}/${states.length} 组`;\ngroupChecks.forEach((box, index) => box.classList.toggle('checked', states[index].selected));\nupdateConfirmState();\n}\n\nfunction updateDatasetSelection() {\nconst state = states[activeIndex];\nconst rows = rowsByGroup[activeIndex];\nconst selected = state.selectedRows.size;\ndatasetCount.textContent = `已选 ${selected}/${rows.length} 条`;\nselectAll.classList.toggle('checked', selected === rows.length && rows.length > 0);\nselectAll.classList.toggle('indeterminate', selected > 0 && selected < rows.length);\nselectAll.setAttribute('aria-checked', selected > 0 && selected < rows.length ? 'mixed' : String(selected === rows.length && rows.length > 0));\n[...tbody.querySelectorAll('tr')].forEach((row, index) => row.querySelector('.check').classList.toggle('checked', state.selectedRows.has(rows[index].key)));\nupdateConfirmState();\n}\n\nfunction renderActiveGroup() {\nconst group = groupData[activeIndex];\nconst state = states[activeIndex];\nconst rows = rowsByGroup[activeIndex];\nactivityTitle.textContent = group.name;\nactivityTitle.dataset.tooltip = group.name;\nconfigurationPane.classList.toggle('is-disabled', !state.selected);\ntargetSelect.disabled = !state.selected;\ntargetSelect.innerHTML = group.uuids.map(uuid => `<option value=\"${escapeHtml(uuid)}\">${escapeHtml(uuid)}</option>`).join('');\ntargetSelect.value = state.targetUuid;\ntbody.innerHTML = rows.map(row => `\n<tr data-key=\"${row.key}\">\n<td class=\"selection-cell\"><span class=\"check\"></span></td>\n<td class=\"uuid-cell\" data-tooltip=\"${escapeHtml(row.uuid)}\">${escapeHtml(row.uuid)}</td>\n<td data-tooltip=\"${escapeHtml(row.id)}\">${escapeHtml(row.id)}</td>\n<td class=\"dataset-name-cell\"><span class=\"dataset-name-wrap\"><span class=\"link dataset-name-text\" data-tooltip=\"${escapeHtml(row.name)}\">${escapeHtml(row.name)}</span>${row.inVersion ? '<span class=\"tag-version table-version\">版本内</span>' : ''}</span></td>\n<td data-tooltip=\"${escapeHtml(row.reference)}\">${escapeHtml(row.reference)}</td>\n<td data-tooltip=\"${escapeHtml(row.geography)}\">${escapeHtml(row.geography)}</td>\n<td data-tooltip=\"${escapeHtml(row.model)}\">${escapeHtml(row.model)}</td>\n<td><span class=\"type-tag${row.type === '消费混合' ? ' consume' : ''}\">${row.type}</span></td>\n</tr>`).join('');\nupdateDatasetSelection();\n}\n\ncards.forEach((card, index) => {\ncard.addEventListener('click', () => {\nactiveIndex = index;\ncards.forEach(item => item.classList.remove('active'));\ncard.classList.add('active');\nrenderActiveGroup();\n});\ngroupChecks[index].addEventListener('click', event => {\nevent.stopPropagation();\nconst state = states[index];\nstate.selected = !state.selected;\nif (state.selected && !state.initialized) {\nrowsByGroup[index].forEach(row => state.selectedRows.add(row.key));\nstate.initialized = true;\n}\nupdateGroupCount();\nif (activeIndex === index) renderActiveGroup();\n});\n});\n\ntbody.addEventListener('click', event => {\nconst row = event.target.closest('tr');\nif (!row) return;\nif (event.target.closest('.link')) {\nshowToast(`将打开数据集详情：${row.querySelector('.link').textContent}`);\nreturn;\n}\nif (!states[activeIndex].selected || !event.target.closest('.selection-cell')) return;\nconst key = row.dataset.key;\nconst selectedRows = states[activeIndex].selectedRows;\nselectedRows.has(key) ? selectedRows.delete(key) : selectedRows.add(key);\nupdateDatasetSelection();\n});\n\nselectAll.parentElement.addEventListener('click', () => {\nconst state = states[activeIndex];\nif (!state.selected) return;\nconst rows = rowsByGroup[activeIndex];\nconst shouldSelectAll = state.selectedRows.size !== rows.length;\nstate.selectedRows.clear();\nif (shouldSelectAll) rows.forEach(row => state.selectedRows.add(row.key));\nupdateDatasetSelection();\n});\n\nclearSelection.addEventListener('click', () => {\nif (!states[activeIndex].selected) return;\nstates[activeIndex].selectedRows.clear();\nupdateDatasetSelection();\n});\n\ntargetSelect.addEventListener('change', () => {\nstates[activeIndex].targetUuid = targetSelect.value;\n});\n\ndocument.querySelector('.close').addEventListener('click', () => showToast('已取消本次版本生成'));\ndocument.querySelector('.skip-button').addEventListener('click', () => showToast('将跳过合并并继续生成版本'));\nconfirmButton.addEventListener('click', () => showToast('将合并已选组并继续生成版本'));\ndocument.querySelector('.summary .button').addEventListener('click', () => showToast('将导出全部候选组的同名生产活动明细'));\ndocument.querySelector('.copy-ids').addEventListener('click', async () => {\nconst ids = rowsByGroup[activeIndex].map(row => row.id).join(',');\ntry {\nawait navigator.clipboard.writeText(ids);\n} catch {\nconst input = document.createElement('textarea');\ninput.value = ids;\ninput.style.position = 'fixed';\ninput.style.opacity = '0';\ndocument.body.appendChild(input);\ninput.select();\ndocument.execCommand('copy');\ninput.remove();\n}\nshowToast(`已复制 ${rowsByGroup[activeIndex].length} 个身份 ID`);\n});\n\nupdateGroupCount();\nrenderActiveGroup();\n\n原型图\n\n#### 5.4.1 信息结构\n\n[HTML col 排版属性：width: 50%]\n\n[HTML col 排版属性：width: 50%]\n\n| 区域\n| 内容\n\n| 汇总\n| 同名生产活动数量、相关关联 ID 数量、相关数据集数量并标注「版本内 n\n条」、“导出同名生产活动明细”按钮\n\n| 左栏\n| 同名生产活动组、关联 ID\n数量、当前租户全量工作区内的相关未删除数据集数量、组选择\n\n| 右栏\n| 当前组名称、目标关联 ID Select、已选数据量、数据集表格\n\n| 底部\n| 「跳过，继续生成版本」「确认合并」；跳过或合并处理完成后均关闭合并提醒，再打开独立的生成版本确认弹窗，不直接触发版本生成\n\n具体见原型文件。\n\n原型用于说明主要页面结构和交互方向。若原型未覆盖、缺少或仅静态展示本\nPRD 已明确的功能与状态，实际开发与验收以本 PRD 为准补足。\n\n#### 5.4.2 选择规则\n\n- 同名生产活动组默认均不勾选；未勾选的组不执行；\n\n- 选中某组后，默认选中该组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，用户可以排除部分数据；\n\n- 切换当前组时，保留各组已经选择的目标关联 ID 和数据集范围；\n\n- 「清除选择」清空当前组的数据集选择；\n\n#### 5.4.3 设置合并后统一关联 ID\n\n- 使用 Select 选择当前同名生产活动组合并后统一使用的关联 ID；\n\n- Select 选项为当前组已有的全部关联 ID，默认选中按关联 ID\n字符串升序排序后的最小值；\n\n- 用户可以分别修改每个已选组的目标关联 ID，切换组后保留已选结果；\n\n- 不支持输入或新建关联 ID。\n\n#### 5.4.4 数据集表格\n\n数据列依次包括：关联 ID、身份\nID、数据集名称、参考产品、地理位置、系统模型、活动类型。\n\n- 数据列支持横向滚动，最左侧选择列固定在滚动内容上层；\n\n- 支持按关联ID（筛选控件在关联 id 列表头）、是否在版本范围内筛选数据\n（筛选控件在数据集名称列表头）；\n\n- 表头选择框选择或取消当前筛选结果中的全部数据，不限当前可视行；\n\n- 不提供分页；\n\n- 支持点击数据集名称跳转数据集详情，当前版本中的数据集名称右侧显示「版本内」Tag；\n\n- 支持点击身份 ID 表头右侧的复制按钮，复制当前筛选结果中的全部身份\nID；复制内容使用英文逗号（,）分隔；\n\n- 筛选条件变化后保留已有选择，并更新「已选 x/y 条」。\n\n- 活动类型信息展示方式沿用现有数据集列表中的 Tag 展示方式。\n\n#### 5.4.5 生成版本确认\n\n- 合并处理完成或用户点击「跳过，继续生成版本」后，关闭合并提醒，再打开独立的生成版本确认弹窗；\n\n- 合并提醒中的操作只处理是否合并，不同时触发版本生成；\n\n- 用户点击「确认生成版本」后，系统单独触发异步版本生成；\n\n- 用户点击「取消」后返回版本详情页，不生成版本；已完成的合并结果不回滚；\n\n- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。\n\n#### 5.4.6 文案\n\n- 浮窗标题下提示：\n\n当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID\n下的同名生产活动。 若确认属于同一生产活动，可合并使用统一关联\nID。如果只是名称相同，可不进行合并，不影响版本发布。\n\n- 配置参与合并的数据集时提示：\n\n默认合并候选关联 ID\n在当前租户全量工作区内的所有未删除数据集，结果使用统一关联\nID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID\n下。\n\n#### 5.4.7 导出\n\n「导出同名生产活动明细」导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集。Excel\n字段及规则如下：\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n| Excel 字段\n| 取值来源\n| 转换规则\n\n| Production Activity Name\n| tb_activities.activity_name\n| 通过 tb_activities.activity_id = tw_processes.uuid\n取得并直接输出；不实时读取 tw_processes.name\n\n| Activity ID\n| tw_processes.id\n| 直接输出数据集身份 ID\n\n| Related UUID\n| tw_processes.uuid\n| 直接输出关联 UUID\n\n| Activity Name\n| tw_processes.name\n| 直接输出数据集过程名称\n\n| Included Version\n| te_datasource_version_dataset.version\n| 按数据集 ID\n查询全部有效版本关系；多个版本值使用英文逗号（,）拼接到同一单元格；没有版本关系时输出空\n\n| Reference Product Name\n| tw_flows.name\n| 使用 tw_processes.reference_flow_id 关联\ntw_flows.id\n\n| Unit\n| tw_units.name\n| 从 tw_process_doc.document.declaredUnitId 关联\ntw_units.id\n\n| Special Activity Type\n| tw_processes.special_type\n| MARKET_TYPE → 消费混合；PRODUCT_TYPE → 生产混合\n\n| System Model\n| tw_processes.from_data\n| 原值输出，不查询数据源名称或翻译\n\n| Geography\n| tw_processes.location_id\n| 关联 tw_locations，输出当前语言下的\ni18nFullName；位置为空则输出空\n\n| Editor\n| tw_process_doc.business_json.editor\n| 使用用户 ID 查询 SSO 用户，输出用户邮箱，不输出姓名\n\n| Industries\n| tw_processes.industries\n| 数组中的字典 ID 分别转换为当前语言名称，使用英文逗号（,）拼接\n\n| Calculation\n| tw_process_doc.business_json.isCalculated\n| 数值为 1 输出 Calculated；其他值或空值输出\nNot Calculated\n\n| Review Status\n| tw_process_doc.business_json.processStatus\n| 状态字典 ID 转换为当前语言下的字典名称；空值输出空\n\n其中：\n\n- Production Activity Name 是生产活动关联名称，初始可能与 Activity\nName 相同，后续不保证一致；\n\n- Included Version 表示该数据集被加入的全部版本，不读取\ntw_processes.version；\n\n- 同一数据集存在多条有效版本关系时，将所有 version\n值使用英文逗号（,）拼接，例如 0.0.3,0.0.4,1.0.0；\n\n### 5.5 合并与结果\n\n- 系统仅处理用户选中的组和数据集，将所选数据改为该组选择的目标关联\nID；未选数据保留原关联 ID。\n\n- 执行前根据候选组各关联 ID\n在当前租户全量工作区内的最新未删除数据集重新校验。某同名组不再满足合并条件时，该组不执行，校验范围不限于数据集是否被勾选。\n\n- 每组执行前基于当时最新的当前租户全量工作区内未删除数据集重新校验。执行期间出现并发修改并导致最终状态冲突时，该组全部失败，不保留部分修改。\n\n- 单合并组内所选数据全部成功或全部失败；多组独立执行，一组失败不回滚其他成功组。\n\n- 存在失败组时，提示部分组合并失败并展示失败组的生产活动名称；成功组保留结果。合并结果提示完成后关闭合并提醒，再进入独立的生成版本确认弹窗。\n\n- 合并只修改所选数据集的关联 ID，不改变数据集\nID、数据集状态和版本数据集成员；当前位于版本外的未删除数据集不会因关联\nID 更新而加入当前版本。\n\n- 目标关联 ID 保留自身现有的 Production Activity\nName，本功能不自动修改生产活动关联名称。\n\n- 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时，保留该源生产活动关联关系；已无未删除数据集时，软删除对应的生产活动关联关系。\n\n- 合并执行与版本生成分别触发、分别记录结果。合并成功但用户取消生成版本，或后续版本生成失败时，均不回滚已经完成的合并；版本生成失败时提示「关联\nID 合并已完成，但版本生成失败。合并结果已保留，请重新生成版本。」\n\n- 再次点击「生成版本」时，系统基于最新版本范围重新检查；已经统一到目标关联\nID 的数据不重复处理，仍满足候选条件的其他数据可以再次提醒。\n\n- 本功能仅允许具有版本管理权限且能够操作当前版本的用户使用；前端入口和后端执行均校验权限及当前租户范围，不新增独立的关联\nID 合并权限。\n\n## 6. 验收标准\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n[HTML col 排版属性：width: 33%]\n\n| 编号\n| 场景\n| 预期结果\n\n| AC-01\n| 用户点击「生成版本」\n| 基于当时的当前版本数据检查一次；无候选或检查失败时不展示合并提醒，进入原有生成版本确认弹窗\n\n| AC-03\n| 名称存在空格、大小写或其他符号差异\n| 移除空格并忽略字母大小写；其他字符和符号按原值比较\n\n| AC-04\n| 同名关联 ID 组进行候选校验\n| 使用组内各关联 ID\n在当前租户全量工作区内的全部未删除数据集，并按目标关联\nID、参考产品标识、地理位置标识、系统模型值和活动类型值的原始存储值判断；不能完整合并或该范围内已有完整键重复的组不展示\n\n| AC-05\n| 用户查看提醒\n| 正确展示候选组、当前租户全量工作区内的相关未删除数据集数量和版本内数量；当前版本中的数据集显示「版本内」Tag\n\n| AC-06\n| 用户配置候选组\n| 同名生产活动组默认不勾选；目标关联 ID\n默认选中按字符串升序排序后的最小值且可修改；选中组后默认选中该组各关联\nID 在当前租户全量工作区内的全部未删除数据集\n\n| AC-07\n| 用户筛选、选择或复制数据集身份 ID\n| 可逐行选择、清除选择或通过表头选择全部筛选结果；横向滚动时选择列固定可见；复制当前筛选结果中的全部身份\nID 时使用英文逗号（,）分隔\n\n| AC-08\n| 用户跳过合并或关闭提醒\n| 点击「跳过，继续生成版本」时不执行合并；关闭合并提醒后打开独立的生成版本确认弹窗。点击右上角关闭按钮时取消本次版本生成，不打开生成版本确认弹窗；再次点击时重新检查\n\n| AC-09\n| 用户确认合并\n| 重新校验后仅修改所选组内所选数据，未选数据保留原关联\nID；完成后提示合并结果并进入独立的生成版本确认弹窗，不直接生成版本\n\n| AC-10\n| 单组、多组合并或执行期间出现并发修改\n| 单组全部成功或全部失败；并发修改导致最终状态冲突时该组不保留部分修改；多组独立，一组失败不回滚其他成功组\n\n| AC-11\n| 部分组合并失败\n| 展示失败组的生产活动名称并保留成功组结果；结果提示完成后进入独立的生成版本确认弹窗，不自动生成版本\n\n| AC-12\n| 合并涉及当前租户全量工作区内位于版本外的未删除数据集\n| 数据集 ID、状态和版本成员不变，这些数据集不会加入当前版本\n\n| AC-13\n| 用户导出明细\n| 导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集；Included\nVersion\n聚合该数据集全部有效版本关系，多个版本值使用英文逗号（,）拼接且不增加数据集行数；其他字段及转换结果符合\n5.4.7\n\n| AC-14\n| 用户访问本功能\n| 具有版本管理权限且能够操作当前版本的用户可以使用；前端入口和后端执行均校验权限及当前租户范围，不增加独立合并权限\n\n| AC-15\n| 判定字段存在空值\n| 同一字段均为 NULL\n时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较\n\n| AC-16\n| 合并成功但生成版本失败\n| 已完成的合并结果不回滚，提示合并已完成且版本生成失败；用户可以重新生成版本\n\n| AC-17\n| 合并后检查源生产活动关联关系\n| 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时保留关联关系；已无未删除数据集时软删除关联关系；目标关联\nID 的 Production Activity Name 不变\n\n| AC-18\n| 合并完成后用户确认或取消生成版本\n| 点击「确认生成版本」时单独触发异步版本生成；点击「取消」时返回版本详情页且当前版本保持未生成，已经完成的合并结果保留\n\n## 7. 约束与风险\n\n- 范围一致性：候选来源基于当前版本；冲突校验覆盖候选组各关联\nID\n在当前租户全量工作区内的全部未删除数据集；执行只处理用户所选数据。页面数量和提交范围必须使用相同口径。\n\n- 数据变化：候选检查与提交之间及执行期间数据可能变化，每组执行前必须按用户最终选择和最新数据重新校验，冲突组不得保留部分修改。\n\n- 大数据量选择：表头全选必须作用于完整筛选结果，不能只处理前端已显示的数据。\n\n- 字段空值：开发前必须确认判定字段中空字符串和纯空格的实际数据情况，并确定是否与\nNULL 统一处理。\n\n- 现有合并能力边界：本需求只允许修改用户所选数据集的关联\nID，并按源关联 ID\n在当前租户全量工作区内剩余的未删除数据集处理生产活动关联关系；不得自动修改生产活动关联名称或将未选数据一并更新。\n\n### HTML 交互脚本源码（来源数据，未执行）\n\n(function () {\nfunction resizePrototype(stage) {\nvar width = Number(stage.dataset.prototypeWidth);\nvar height = Number(stage.dataset.prototypeHeight);\nvar frame = stage.querySelector('iframe');\nvar scale = Math.min(stage.clientWidth / width, 1);\nframe.style.width = width + 'px';\nframe.style.height = height + 'px';\nframe.style.transform = 'scale(' + scale + ')';\nstage.style.height = Math.round(height * scale) + 'px';\n}\nfunction resizeAll() {\ndocument.querySelectorAll('.prototype-stage').forEach(resizePrototype);\n}\nvar links = Array.from(document.querySelectorAll('.sidebar a[href^=\"#\"]'));\nvar sections = links.map(function (link) {\ntry { return document.querySelector(link.getAttribute('href')); } catch (error) { return null; }\n}).filter(Boolean);\nfunction updateActive() {\nvar current = sections[0];\nsections.forEach(function (section) {\nif (section.getBoundingClientRect().top <= 120) current = section;\n});\nlinks.forEach(function (link) {\nlink.classList.toggle('active', current && link.getAttribute('href') === '#' + current.id);\n});\n}\nwindow.addEventListener('load', resizeAll);\nwindow.addEventListener('resize', resizeAll);\nwindow.addEventListener('scroll', updateActive, { passive: true });\nresizeAll();\nupdateActive();\n}());",
+  "sourceUnits": [
+    {
+      "id": "S-001",
+      "label": "HTML 样式源码（来源数据，未执行）",
+      "kind": "heading",
+      "excerpt": "### HTML 样式源码（来源数据，未执行）",
+      "location": "第 1 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-002",
+      "label": "原文单元 2",
+      "kind": "paragraph",
+      "excerpt": ":root {\ncolor-scheme: light;\n--ink: #182230;\n--muted: #667085;\n--line: #e4e7ec;\n--soft: #f7f8fb;\n--brand: #5146ff;\n}\n* { box-sizing: border-box; }\nhtml { scroll-behavior: smooth; }\nbody {\nmargin: 0;\nbackground: #f3f5f8;\ncolor: var(--ink);\nfont-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif;\nfont-size: 15px;\nline-height: 1.75;\n}\n.layout {\ndisplay: grid;\ngrid-template-columns: 280px minmax(0, 1fr);\ngap: 28px;\nwidth: min(1760px, calc(100% - 40px));\nmargin: 24px auto 56px;\nalign-items: start;\n}\n.sidebar {\nposition: sticky;\ntop: 20px;\nmax-height: calc(100vh - 40px);\noverflow: auto;\npadding: 20px 16px;\nbackground: rgba(255, 255, 255, .98);\nborder: 1px solid #dfe3eb;\nborder-radius: 12px;\nbox-shadow: 0 12px 30px rgba(16, 24, 40, .06);\n}\n.toc-label {\nmargin: 0;\npadding: 0 8px 4px;\ncolor: #344054;\nfont-size: 18px;\nfont-weight: 700;\n}\n.toc-version { margin: 0 0 12px; padding: 0 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }\n.sidebar #TOC ul { margin: 0; padding: 0; list-style: none; }\n.sidebar #TOC ul ul { padding-left: 14px; }\n.sidebar #TOC li { margin: 2px 0; }\n.sidebar #TOC a {\ndisplay: block;\npadding: 7px 8px;\nborder-radius: 6px;\ncolor: #344054;\nfont-size: 14px;\nline-height: 1.4;\ntext-decoration: none;\n}\n.sidebar #TOC ul ul a { color: var(--muted); font-size: 13px; }\n.sidebar #TOC a:hover, .sidebar #TOC a.active { color: var(--brand); background: #f1f0ff; }\n.paper {\nmin-width: 0;\nbackground: #fff;\nborder: 1px solid #dfe3eb;\nborder-radius: 12px;\nbox-shadow: 0 12px 36px rgba(16, 24, 40, .07);\noverflow: hidden;\n}\n.paper > section.level1 { max-width: 1440px; margin: 0 auto; padding: 42px 48px 64px; }\n.paper > section.level1 > h1 {\nmargin: 0 0 22px;\npadding-bottom: 24px;\nborder-bottom: 1px solid var(--line);\nfont-size: 34px;\nline-height: 1.35;\nletter-spacing: -.02em;\n}\n.paper > section.level1 > h1::before {\ndisplay: block;\nmargin-bottom: 10px;\ncontent: \"PRODUCT REQUIREMENT DOCUMENT\";\ncolor: var(--brand);\nfont-size: 12px;\nfont-weight: 800;\nletter-spacing: .08em;\n}\nh2 { margin: 44px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font-size: 23px; }\nh3 { margin: 32px 0 12px; font-size: 19px; }\nh4 { margin: 26px 0 10px; font-size: 16px; }\np { margin: 8px 0 14px; }\na { color: #315efb; }\nblockquote { margin: 0 0 22px; padding: 9px 14px; border-left: 3px solid var(--brand); background: #f5f4ff; color: #475467; }\nblockquote p { margin: 0; }\ncode { padding: 2px 5px; border-radius: 4px; background: #f2f4f7; color: #344054; font-family: \"SFMono-Regular\", Consolas, monospace; font-size: .9em; }\ntable { width: 100%; margin: 14px 0 24px; border-collapse: collapse; font-size: 14px; }\nth, td { padding: 10px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }\nth { background: var(--soft); color: #344054; font-weight: 600; }\ntr:nth-child(even) td { background: #fcfcfd; }\nul, ol { padding-left: 24px; }\nli { margin: 4px 0; }\n.prototype-embed { margin: 18px 0 28px; }\n.prototype-stage { width: 100%; overflow: hidden; border: 1px solid #dfe3eb; border-radius: 12px; background: #f5f6f8; }\n.prototype-stage iframe { display: block; border: 0; transform-origin: top left; background: #f5f6f8; }\n.prototype-embed figcaption { margin-top: 8px; color: var(--muted); font-size: 13px; text-align: center; }\n@media (max-width: 980px) {\n.layout { display: block; width: min(100% - 24px, 900px); margin-top: 12px; }\n.sidebar { position: static; max-height: none; margin-bottom: 14px; }\n.sidebar #TOC > ul { columns: 2; column-gap: 18px; }\n.paper > section.level1 { padding: 30px 28px 50px; }\n}\n@media (max-width: 640px) {\n.sidebar #TOC > ul { columns: 1; }\n.paper > section.level1 { padding: 24px 18px 40px; }\n}\n@media print {\nbody { background: #fff; font-size: 11pt; }\n.layout { display: block; width: auto; margin: 0; }\n.sidebar { display: none; }\n.paper { border: 0; box-shadow: none; }\n.paper > section.level1 { max-width: none; padding: 0; }\n.prototype-embed { break-inside: avoid; }\n}",
+      "location": "第 3-123 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-003",
+      "label": "原文单元 3",
+      "kind": "paragraph",
+      "excerpt": "目录",
+      "location": "第 125 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-004",
+      "label": "原文单元 4",
+      "kind": "paragraph",
+      "excerpt": "V1.5 · 正式版",
+      "location": "第 127 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-005",
+      "label": "原文单元 5",
+      "kind": "paragraph",
+      "excerpt": "- 1. 概要",
+      "location": "第 129 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-006",
+      "label": "原文单元 6",
+      "kind": "paragraph",
+      "excerpt": "- 2. 背景",
+      "location": "第 131 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-007",
+      "label": "原文单元 7",
+      "kind": "paragraph",
+      "excerpt": "- 3. 目标与范围",
+      "location": "第 133 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-008",
+      "label": "原文单元 8",
+      "kind": "paragraph",
+      "excerpt": "- 3.1 目标",
+      "location": "第 135 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-009",
+      "label": "原文单元 9",
+      "kind": "paragraph",
+      "excerpt": "- 3.2 本期范围",
+      "location": "第 137 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-010",
+      "label": "原文单元 10",
+      "kind": "paragraph",
+      "excerpt": "- 3.3 边界",
+      "location": "第 139 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-011",
+      "label": "原文单元 11",
+      "kind": "paragraph",
+      "excerpt": "- 4. 用户与场景",
+      "location": "第 141 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-012",
+      "label": "原文单元 12",
+      "kind": "paragraph",
+      "excerpt": "- 5. 方案",
+      "location": "第 143 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-013",
+      "label": "原文单元 13",
+      "kind": "paragraph",
+      "excerpt": "- 5.1 核心规则",
+      "location": "第 145 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-014",
+      "label": "原文单元 14",
+      "kind": "paragraph",
+      "excerpt": "- 5.2 检查范围",
+      "location": "第 147 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-015",
+      "label": "原文单元 15",
+      "kind": "paragraph",
+      "excerpt": "- 5.3 用户流程",
+      "location": "第 149 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-016",
+      "label": "原文单元 16",
+      "kind": "paragraph",
+      "excerpt": "- 5.4 页面与交互",
+      "location": "第 151 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-017",
+      "label": "原文单元 17",
+      "kind": "paragraph",
+      "excerpt": "- 5.5 合并与结果",
+      "location": "第 153 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-018",
+      "label": "原文单元 18",
+      "kind": "paragraph",
+      "excerpt": "- 6. 验收标准",
+      "location": "第 155 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-019",
+      "label": "原文单元 19",
+      "kind": "paragraph",
+      "excerpt": "- 7. 约束与风险",
+      "location": "第 157 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-001] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-020",
+      "label": "PRD：同名生产活动关联 ID 合并提醒",
+      "kind": "heading",
+      "excerpt": "# PRD：同名生产活动关联 ID 合并提醒",
+      "location": "第 159 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒\n</source-structure-context>"
+    },
+    {
+      "id": "S-021",
+      "label": "原文单元 21",
+      "kind": "paragraph",
+      "excerpt": "当前版本：V1.5（正式版）",
+      "location": "第 161 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒\n</source-structure-context>"
+    },
+    {
+      "id": "S-022",
+      "label": "1. 概要",
+      "kind": "heading",
+      "excerpt": "## 1. 概要",
+      "location": "第 163 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-022] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-023",
+      "label": "原文单元 23",
+      "kind": "paragraph",
+      "excerpt": "在「版本管理 >\n版本详情」中，用户点击「生成版本」后，系统检查当前版本内是否存在名称相同、关联\nID\n不同且能够安全合并的生产活动。存在候选时，系统在生成版本前提醒一次。",
+      "location": "第 165-168 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-022] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-024",
+      "label": "原文单元 24",
+      "kind": "paragraph",
+      "excerpt": "用户可以选择要处理的同名生产活动组、合并后统一使用的关联\nID，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，也可以暂不合并。合并提醒仅处理关联\nID\n合并；合并完成或暂不合并后，系统再通过独立弹窗询问是否生成版本。合并不改变当前版本的数据集成员。",
+      "location": "第 170-174 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-022] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-025",
+      "label": "2. 背景",
+      "kind": "heading",
+      "excerpt": "## 2. 背景",
+      "location": "第 176 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-025] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-026",
+      "label": "原文单元 26",
+      "kind": "paragraph",
+      "excerpt": "当前租户全量工作区内的未删除数据集中，可能存在本应使用同一关联 ID\n的生产活动，但由于录入、导入或维护操作被分散到多个关联 ID\n下，增加后续查询和维护成本。",
+      "location": "第 178-180 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-025] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-027",
+      "label": "原文单元 27",
+      "kind": "paragraph",
+      "excerpt": "用户准备生成版本时，需要判断这些同名数据是否确实属于同一生产活动。候选来自当前版本，而关联\nID 合并可能影响候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，因此用户需要同时看见当前版本涉及范围和当前租户全量工作区内未删除数据集的实际影响范围。",
+      "location": "第 182-184 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-025] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-028",
+      "label": "3. 目标与范围",
+      "kind": "heading",
+      "excerpt": "## 3. 目标与范围",
+      "location": "第 186 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-029",
+      "label": "3.1 目标",
+      "kind": "heading",
+      "excerpt": "### 3.1 目标",
+      "location": "第 188 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-029] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-030",
+      "label": "原文单元 30",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「生成版本」时，可以发现当前版本范围内可合并的同名生产活动。",
+      "location": "第 190 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-029] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-031",
+      "label": "原文单元 31",
+      "kind": "paragraph",
+      "excerpt": "- 用户可以查看影响范围，并选择同名生产活动组、目标关联 ID\n和参与合并的数据集。",
+      "location": "第 192-193 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-029] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-032",
+      "label": "原文单元 32",
+      "kind": "paragraph",
+      "excerpt": "- 用户完成合并或暂不合并后，通过独立确认决定是否生成版本；取消生成版本时，已完成的合并结果保留，当前版本保持未生成状态。",
+      "location": "第 195 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-029] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-033",
+      "label": "3.2 本期范围",
+      "kind": "heading",
+      "excerpt": "### 3.2 本期范围",
+      "location": "第 197 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-034",
+      "label": "原文单元 34",
+      "kind": "paragraph",
+      "excerpt": "- 检查并展示可完整合并的同名生产活动组；",
+      "location": "第 199 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-035",
+      "label": "原文单元 35",
+      "kind": "paragraph",
+      "excerpt": "- 双栏展示候选组，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集；",
+      "location": "第 201-202 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-036",
+      "label": "原文单元 36",
+      "kind": "paragraph",
+      "excerpt": "- 支持选择同名生产活动组、筛选数据集、筛选结果全选、逐行选择和明细导出；",
+      "location": "第 204 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-037",
+      "label": "原文单元 37",
+      "kind": "paragraph",
+      "excerpt": "- 按组执行合并并反馈失败组的生产活动名称；",
+      "location": "第 206 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-038",
+      "label": "原文单元 38",
+      "kind": "paragraph",
+      "excerpt": "- 具有版本管理权限的用户可以使用本功能。",
+      "location": "第 208 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-033] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-039",
+      "label": "3.3 边界",
+      "kind": "heading",
+      "excerpt": "### 3.3 边界",
+      "location": "第 210 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-040",
+      "label": "原文单元 40",
+      "kind": "paragraph",
+      "excerpt": "- 合并是可选操作，不作为生成版本的阻断条件；",
+      "location": "第 212 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-041",
+      "label": "原文单元 41",
+      "kind": "paragraph",
+      "excerpt": "- 不能整组通过冲突校验的同名组不展示；",
+      "location": "第 214 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-042",
+      "label": "原文单元 42",
+      "kind": "paragraph",
+      "excerpt": "- 校验和可选范围仅包含候选关联 ID\n在当前租户全量工作区内的未删除数据集；",
+      "location": "第 216-217 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-043",
+      "label": "原文单元 43",
+      "kind": "paragraph",
+      "excerpt": "- 不新建关联 ID，不改造独立「关联 ID\n合并」页面，也不新增独立合并权限；",
+      "location": "第 219-220 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-044",
+      "label": "原文单元 44",
+      "kind": "paragraph",
+      "excerpt": "- 不改变数据集 ID\n和版本数据集成员；版本生成完成后的导出和发布流程保持不变。",
+      "location": "第 222-223 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-045",
+      "label": "原文单元 45",
+      "kind": "paragraph",
+      "excerpt": "- 数据集自身仅修改关联 ID；生产活动关联名称不随合并自动修改。源关联 ID\n在当前租户全量工作区内已无未删除数据集时，软删除对应的生产活动关联关系。",
+      "location": "第 225-226 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-028] 3. 目标与范围 → [S-039] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-046",
+      "label": "4. 用户与场景",
+      "kind": "heading",
+      "excerpt": "## 4. 用户与场景",
+      "location": "第 228 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 4. 用户与场景\n</source-structure-context>"
+    },
+    {
+      "id": "S-047",
+      "label": "原文单元 47",
+      "kind": "paragraph",
+      "excerpt": "具有版本管理权限的用户完成计算任务数据选择后，点击「生成版本」。若系统发现候选，用户判断哪些同名生产活动属于同一活动、统一使用哪个关联\nID、候选关联 ID\n在当前租户全量工作区内的哪些未删除数据集参与合并，并选择确认合并或暂不合并。合并提醒关闭后，用户在独立的生成版本确认弹窗中决定是否触发版本生成。",
+      "location": "第 230-232 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 4. 用户与场景\n</source-structure-context>"
+    },
+    {
+      "id": "S-048",
+      "label": "5. 方案",
+      "kind": "heading",
+      "excerpt": "## 5. 方案",
+      "location": "第 234 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案\n</source-structure-context>"
+    },
+    {
+      "id": "S-049",
+      "label": "5.1 核心规则",
+      "kind": "heading",
+      "excerpt": "### 5.1 核心规则",
+      "location": "第 236 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-050",
+      "label": "原文单元 50",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 50%]",
+      "location": "第 238 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-051",
+      "label": "原文单元 51",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 50%]",
+      "location": "第 240 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-052",
+      "label": "原文单元 52",
+      "kind": "paragraph",
+      "excerpt": "| 规则\n| 定义",
+      "location": "第 242-243 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-053",
+      "label": "原文单元 53",
+      "kind": "paragraph",
+      "excerpt": "| 同名匹配\n| 移除生产活动名称中的空格后，不区分字母大小写；其他字符和符号按原值比较",
+      "location": "第 245-246 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-054",
+      "label": "原文单元 54",
+      "kind": "paragraph",
+      "excerpt": "| 候选组\n| 当前版本范围实际数据集中出现过、同名匹配且包含两个及以上关联 ID\n的同名生产活动关联 ID 组",
+      "location": "第 248-250 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-055",
+      "label": "原文单元 55",
+      "kind": "paragraph",
+      "excerpt": "| 可完整合并\n| 将候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集模拟统一到同一目标关联 ID\n后，不存在「目标关联\nID＋参考产品标识＋地理位置标识＋系统模型值＋活动类型值」全部相同的两条及以上数据集",
+      "location": "第 252-256 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-056",
+      "label": "原文单元 56",
+      "kind": "paragraph",
+      "excerpt": "| 目标关联 ID\n| 从候选组已有的关联 ID 中选择；默认选中按关联 ID\n字符串升序排序后的最小值，用户可以修改",
+      "location": "第 258-260 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-057",
+      "label": "原文单元 57",
+      "kind": "paragraph",
+      "excerpt": "| 参与合并的数据集\n| 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集；用户未选中的数据保留原关联\nID",
+      "location": "第 262-265 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-058",
+      "label": "原文单元 58",
+      "kind": "paragraph",
+      "excerpt": "安全合并使用以下字段原始存储值进行判断，不使用页面展示名称或翻译值：",
+      "location": "第 267 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-059",
+      "label": "原文单元 59",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 269 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-060",
+      "label": "原文单元 60",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 271 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-061",
+      "label": "原文单元 61",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 273 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-062",
+      "label": "原文单元 62",
+      "kind": "paragraph",
+      "excerpt": "| 产品字段\n| 判定字段\n| 判定规则",
+      "location": "第 275-277 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-063",
+      "label": "原文单元 63",
+      "kind": "paragraph",
+      "excerpt": "| 目标关联 ID\n| tw_processes.uuid\n| 将候选组相关数据模拟为用户选择的目标关联 ID",
+      "location": "第 279-281 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-064",
+      "label": "原文单元 64",
+      "kind": "paragraph",
+      "excerpt": "| 参考产品\n| tw_processes.reference_flow_id\n| 按标识原值比较",
+      "location": "第 283-285 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-065",
+      "label": "原文单元 65",
+      "kind": "paragraph",
+      "excerpt": "| 地理位置\n| tw_processes.location_id\n| 按标识原值比较",
+      "location": "第 287-289 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-066",
+      "label": "原文单元 66",
+      "kind": "paragraph",
+      "excerpt": "| 系统模型\n| tw_processes.from_data\n| 按系统模型原始存储值比较",
+      "location": "第 291-293 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-067",
+      "label": "原文单元 67",
+      "kind": "paragraph",
+      "excerpt": "| 活动类型\n| tw_processes.special_type\n| 按枚举原值比较",
+      "location": "第 295-297 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-068",
+      "label": "原文单元 68",
+      "kind": "paragraph",
+      "excerpt": "空值和重复记录按以下规则处理：",
+      "location": "第 299 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-069",
+      "label": "原文单元 69",
+      "kind": "paragraph",
+      "excerpt": "- 同一判定字段均为数据库空值（NULL）时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较；",
+      "location": "第 301 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n列表引导原文 [S-068]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-070",
+      "label": "原文单元 70",
+      "kind": "paragraph",
+      "excerpt": "- 开发前需统计上述字段是否存在空字符串或纯空格，并由技术评审确认是否统一按空值处理；",
+      "location": "第 303 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n列表引导原文 [S-068]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-071",
+      "label": "原文单元 71",
+      "kind": "paragraph",
+      "excerpt": "- 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集中已经存在完整键重复时，该组不作为可合并候选；",
+      "location": "第 305-306 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n列表引导原文 [S-068]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-072",
+      "label": "原文单元 72",
+      "kind": "paragraph",
+      "excerpt": "- 用户确认后重新校验发现完整键重复时，该组整体失败，不修改部分数据。",
+      "location": "第 308 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-049] 5.1 核心规则\n列表引导原文 [S-068]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-073",
+      "label": "5.2 检查范围",
+      "kind": "heading",
+      "excerpt": "### 5.2 检查范围",
+      "location": "第 310 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-074",
+      "label": "原文单元 74",
+      "kind": "paragraph",
+      "excerpt": "| 环节\n| 范围",
+      "location": "第 312-313 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-075",
+      "label": "原文单元 75",
+      "kind": "paragraph",
+      "excerpt": "| 候选关联 ID 来源\n| 当前版本实际包含的数据集中出现过的关联 ID",
+      "location": "第 315-316 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-076",
+      "label": "原文单元 76",
+      "kind": "paragraph",
+      "excerpt": "| 同名分组\n| 仅在上述关联 ID 中按同名规则分组",
+      "location": "第 318-319 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-077",
+      "label": "原文单元 77",
+      "kind": "paragraph",
+      "excerpt": "| 冲突校验\n| 每组关联 ID 在当前租户全量工作区内的全部未删除数据集",
+      "location": "第 321-322 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-078",
+      "label": "原文单元 78",
+      "kind": "paragraph",
+      "excerpt": "| 提醒\n| 仅展示能够完整合并的组",
+      "location": "第 324-325 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-079",
+      "label": "原文单元 79",
+      "kind": "paragraph",
+      "excerpt": "| 合并执行\n| 用户选中组内勾选的数据集",
+      "location": "第 327-328 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-073] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-080",
+      "label": "5.3 用户流程",
+      "kind": "heading",
+      "excerpt": "### 5.3 用户流程",
+      "location": "第 330 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-081",
+      "label": "原文单元 81",
+      "kind": "paragraph",
+      "excerpt": "- 用户在版本详情页进入第二步点击「生成版本」时，系统基于当时的当前版本数据执行一次候选检查。",
+      "location": "第 332 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-082",
+      "label": "原文单元 82",
+      "kind": "paragraph",
+      "excerpt": "- 没有候选或检查失败时，不展示本提醒，进入原有生成版本确认弹窗；检查失败不增加提示。",
+      "location": "第 334 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-083",
+      "label": "原文单元 83",
+      "kind": "paragraph",
+      "excerpt": "- 存在候选时，打开「发现可合并的同名生产活动」弹窗。",
+      "location": "第 336 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-084",
+      "label": "原文单元 84",
+      "kind": "paragraph",
+      "excerpt": "- 用户选择同名生产活动组、目标关联 ID 和参与合并的数据集。",
+      "location": "第 338 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-085",
+      "label": "原文单元 85",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「跳过，继续生成版本」时，不执行合并；关闭合并提醒后，打开独立的生成版本确认弹窗。",
+      "location": "第 340 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-086",
+      "label": "原文单元 86",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击右上角关闭按钮时，取消本次版本生成；再次点击「生成版本」时重新检查。",
+      "location": "第 342 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-087",
+      "label": "原文单元 87",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「确认合并」时，系统重新校验并按组执行。处理结束后提示合并结果，关闭合并提醒，再打开独立的生成版本确认弹窗；该按钮不触发版本生成。",
+      "location": "第 344 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-088",
+      "label": "原文单元 88",
+      "kind": "paragraph",
+      "excerpt": "- 用户在生成版本确认弹窗中点击「确认生成版本」时，单独触发异步版本生成；点击「取消」时，不生成版本，保留已完成的合并结果并返回版本详情页。",
+      "location": "第 346 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-089",
+      "label": "原文单元 89",
+      "kind": "paragraph",
+      "excerpt": "- 合并成功但版本生成失败时，保留已经完成的合并结果并提示用户重新生成版本。",
+      "location": "第 348 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-090",
+      "label": "原文单元 90",
+      "kind": "paragraph",
+      "excerpt": "- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。",
+      "location": "第 350 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-080] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-091",
+      "label": "5.4 页面与交互",
+      "kind": "heading",
+      "excerpt": "### 5.4 页面与交互",
+      "location": "第 352 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-048] 5. 方案 → [S-091] 5.4 页面与交互\n</source-structure-context>"
+    },
+    {
+      "id": "S-092",
+      "label": "内嵌文档：生成版本前同名生产活动合并提醒原型",
+      "kind": "heading",
+      "excerpt": "## 内嵌文档：生成版本前同名生产活动合并提醒原型",
+      "location": "第 354 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-092] 内嵌文档：生成版本前同名生产活动合并提醒原型\n</source-structure-context>"
+    },
+    {
+      "id": "S-093",
+      "label": "HTML 样式源码（来源数据，未执行）",
+      "kind": "heading",
+      "excerpt": "### HTML 样式源码（来源数据，未执行）",
+      "location": "第 356 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-092] 内嵌文档：生成版本前同名生产活动合并提醒原型 → [S-093] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-094",
+      "label": "原文单元 94",
+      "kind": "paragraph",
+      "excerpt": ":root{--primary:#5051f9;--primary-soft:#edeffa;--primary-border:#d1d1ff;--text:#303133;--regular:#606266;--secondary:#909399;--muted:#717182;--border:#dcdfe6;--light:#e4e7ed;--lighter:#f4f4f5;--link:#165dff}\n*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;min-width:0;min-height:0}body{display:flex;justify-content:center;align-items:flex-start;padding:2px 12px 22px;overflow:hidden;color:var(--text);background:#f7f7f7;font:12px/1.5 \"PingFang SC\",Inter,\"Microsoft YaHei\",Arial,sans-serif;-webkit-font-smoothing:antialiased}button{font:inherit;cursor:pointer}\n.modal{width:min(1320px,calc(100vw - 24px));height:min(833px,calc(100vh - 24px));display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(0,0,0,.1);border-radius:10px;background:#fff;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)}\n.modal-header{height:105px;flex:none;display:flex;justify-content:space-between;padding:20px 28px 12px;background:#fff}.header-copy{min-width:0;flex:1}h1{margin:0 0 5px;font-size:18px;line-height:28px;font-weight:600}.description{margin:0;color:var(--muted);font-size:12px;line-height:20px}.close{width:28px;height:28px;flex:none;padding:0;border:0;background:transparent;color:var(--secondary);font-size:22px;line-height:28px}.close:hover{color:var(--text)}\n.summary-wrap{height:74px;flex:none;padding:0 18px}.summary{width:100%;height:74px;display:flex;align-items:center;gap:4px;padding:12px 12px 12px 20px;border:1px solid var(--lighter);border-radius:10px}.summary-stats{flex:1;display:flex;align-items:center;gap:16px;min-width:0}.stat{width:130px;flex:none;display:flex;flex-direction:column;gap:8px}.stat-label{height:18px;color:var(--secondary);line-height:18px}.stat-value{height:24px;display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;line-height:24px}.divider{width:1px;height:12px;flex:none;background:#e8e8ed}.tag-version{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:9px;background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:400;white-space:nowrap}\n.button{height:32px;display:inline-flex;align-items:center;justify-content:center;padding:4px 16px;border:1px solid var(--border);border-radius:4px;color:var(--regular);background:#fff;font-size:12px;line-height:22px;white-space:nowrap}.button.primary{border-color:var(--primary);color:#fff;background:var(--primary)}.button:hover{filter:brightness(.98)}.button:disabled{cursor:not-allowed;border-color:#c8c9cc;color:#fff;background:#a8abb2;filter:none}\n.modal-body{min-height:0;flex:1;display:flex;overflow:hidden;background:#fff}.candidate-pane{width:316px;height:100%;flex:none;display:flex;flex-direction:column;gap:9px;padding:16px 18px;overflow:hidden}.pane-heading{width:100%;height:22px;flex:none;display:flex;align-items:center;justify-content:space-between;color:var(--secondary);line-height:18px;white-space:nowrap}.pane-heading b{font-family:Inter,\"PingFang SC\",sans-serif;font-weight:500}.pane-heading span{font-size:11px}.candidate-list{min-height:0;flex:1;display:flex;flex-direction:column;gap:9px;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#c9cdd6 transparent}.candidate-list::-webkit-scrollbar{width:8px}.candidate-list::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:8px;background:#c9cdd6;background-clip:padding-box}\n.candidate-card{width:100%;height:74px;flex:none;display:flex;flex-direction:column;gap:8px;padding:11px 12px 10px;border:1px solid var(--lighter);border-radius:8px;background:#fff;text-align:left}.candidate-card.active{border-color:#bfbfff;background:#f7f7ff}.candidate-card:hover{border-color:#bfbfff}.candidate-title{height:20px;display:flex;align-items:center;gap:9px;overflow:hidden}.candidate-name{min-width:0;flex:1;overflow:hidden;color:var(--text);font-size:13px;font-weight:600;line-height:20px;text-overflow:ellipsis;white-space:nowrap}.candidate-meta{margin-left:23px;color:var(--secondary);font-size:11px;line-height:17px}\n.check{width:14px;height:14px;flex:none;display:inline-block;border:1px solid var(--light);border-radius:4px;background:#fff center/14px 14px no-repeat}.check.checked{border:0;background-image:url(\"assets/checkbox-checked.svg\")}.check.indeterminate{position:relative;border-color:var(--primary);background:var(--primary)}.check.indeterminate::after{content:\"\";position:absolute;left:3px;right:3px;top:6px;height:2px;border-radius:1px;background:#fff}\n.configuration-pane{width:1004px;height:100%;min-width:0;display:flex;flex-direction:column;gap:10px;padding:16px 18px 0;overflow:hidden}.activity-title{width:100%;height:28px;flex:none;margin:0;overflow:hidden;font-size:18px;font-weight:600;line-height:28px;text-overflow:ellipsis;white-space:nowrap}.target-row{height:32px;flex:none;display:flex;align-items:center;gap:14px}.target-label{line-height:18px;white-space:nowrap}.select-shell{width:430px;height:32px;padding:4px 30px 4px 8px;border:1px solid var(--border);border-radius:4px;color:var(--text);background:#fff url(\"assets/arrow-down.svg\") right 8px center/16px 16px no-repeat;line-height:22px;appearance:none}.config-copy{height:45px;flex:none;display:flex;flex-direction:column;gap:5px;line-height:20px}.config-copy p{margin:0}.config-copy .muted{color:var(--muted)}\n.selection-banner{width:100%;height:36px;flex:none;display:flex;align-items:center;gap:12px;padding:0 11px;border:1px solid var(--primary-border);border-radius:6px;color:var(--primary);background:var(--primary-soft);line-height:18px;white-space:nowrap}.clear-selection{padding:0;border:0;color:var(--primary);background:transparent;font-weight:600}\n.table-viewport{width:100%;min-height:0;flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:#c9cdd6 transparent}.table-viewport::-webkit-scrollbar{display:block;width:8px;height:8px}.table-viewport::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:8px;background:#c9cdd6;background-clip:padding-box}table{width:1122px;border-collapse:separate;border-spacing:0;table-layout:fixed;color:#60758d}th,td{height:40px;padding:0 12px;overflow:hidden;text-align:left;text-overflow:ellipsis;white-space:nowrap}th{position:sticky;top:0;z-index:1;color:#2e2e2e;background:#fff;font-weight:600;line-height:23px;box-shadow:0 1px 0 rgba(228,231,237,.8)}tbody tr:hover td{background:#fafaff}.selection-cell{position:sticky;left:0;z-index:2;padding:0;text-align:center;background:#fff;box-shadow:1px 0 0 rgba(228,231,237,.55)}thead .selection-cell{z-index:4}.selection-cell .check{vertical-align:middle}.header-label{display:inline-flex;align-items:center;gap:10px}.header-label img{width:12px;height:12px}.header-label .copy-ids{cursor:pointer}.link{color:var(--link);cursor:pointer}.uuid-cell{color:#60758d}.dataset-name-cell{overflow:hidden}.dataset-name-wrap{max-width:100%;min-width:0;display:flex;align-items:center;overflow:hidden}.dataset-name-text{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dataset-name-wrap .table-version{flex:none;margin-left:8px}.type-tag{display:inline-flex;align-items:center;justify-content:center;width:68px;height:23px;color:#b88230;background:#fcf6ec}.type-tag.consume{color:#529b2e;background:#f0f9eb}\n.configuration-pane.is-disabled .select-shell,.configuration-pane.is-disabled .clear-selection{pointer-events:none;opacity:.5}.configuration-pane.is-disabled .selection-cell{pointer-events:none}.configuration-pane.is-disabled .selection-cell .check{opacity:.45}.configuration-pane.is-disabled .selection-banner{color:var(--secondary);border-color:var(--light);background:var(--lighter)}\n.toast{position:fixed;left:50%;bottom:24px;z-index:20;max-width:520px;padding:9px 16px;border-radius:6px;color:#fff;background:rgba(31,35,41,.92);box-shadow:0 6px 18px rgba(0,0,0,.16);font-size:12px;opacity:0;transform:translate(-50%,8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}.toast.show{opacity:1;transform:translate(-50%,0)}\n.el-tooltip-popper{position:fixed;z-index:1000;display:none;max-width:420px;padding:5px 11px;border-radius:4px;color:#fff;background:#303133;box-shadow:0 2px 12px rgba(0,0,0,.18);font-size:12px;line-height:20px;overflow-wrap:anywhere;pointer-events:none}.el-tooltip-popper.show{display:block}.el-tooltip-popper::after{content:\"\";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#303133;border-bottom:0}\n.modal-footer{height:42px;flex:none;display:flex;align-items:flex-start;justify-content:center;gap:16px;padding:0 24px 10px;background:#fff}.modal-footer .secondary{width:164px}.modal-footer .primary{width:214px}\n@media(max-height:680px){.modal-header{height:96px;padding-top:14px}.summary-wrap,.summary{height:68px}.candidate-pane,.configuration-pane{padding-top:12px}.configuration-pane{gap:8px}}",
+      "location": "第 358-374 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-020] PRD：同名生产活动关联 ID 合并提醒 → [S-092] 内嵌文档：生成版本前同名生产活动合并提醒原型 → [S-093] HTML 样式源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-095",
+      "label": "发现可合并的同名生产活动",
+      "kind": "heading",
+      "excerpt": "# 发现可合并的同名生产活动",
+      "location": "第 376 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-096",
+      "label": "原文单元 96",
+      "kind": "paragraph",
+      "excerpt": "当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID 下的同名生产活动。\n若确认属于同一生产活动，可合并使用统一关联 ID。如果只是名称相同，可不进行合并，不影响版本发布。",
+      "location": "第 378-379 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-097",
+      "label": "原文单元 97",
+      "kind": "paragraph",
+      "excerpt": "×",
+      "location": "第 381 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-098",
+      "label": "原文单元 98",
+      "kind": "paragraph",
+      "excerpt": "同名生产活动数量3",
+      "location": "第 383 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-099",
+      "label": "原文单元 99",
+      "kind": "paragraph",
+      "excerpt": "相关关联 ID  数量7",
+      "location": "第 385 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-100",
+      "label": "原文单元 100",
+      "kind": "paragraph",
+      "excerpt": "相关数据集数量33 版本内 12 条",
+      "location": "第 387 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-101",
+      "label": "原文单元 101",
+      "kind": "paragraph",
+      "excerpt": "导出同名生产活动明细",
+      "location": "第 389 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-102",
+      "label": "原文单元 102",
+      "kind": "paragraph",
+      "excerpt": "同名生产活动已选 0/3 组",
+      "location": "第 391 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-103",
+      "label": "原文单元 103",
+      "kind": "paragraph",
+      "excerpt": "氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均涉及 3 个 关联 ID · 17 条数据集\n电力，天然气发电，中压涉及 2 个 关联 ID · 9 条数据集\n运输，货运，公路涉及 2 个 关联 ID · 7 条数据集",
+      "location": "第 393-395 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动\n</source-structure-context>"
+    },
+    {
+      "id": "S-104",
+      "label": "氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均",
+      "kind": "heading",
+      "excerpt": "## 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均",
+      "location": "第 397 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-105",
+      "label": "原文单元 105",
+      "kind": "paragraph",
+      "excerpt": "设置合并后统一关联 ID：",
+      "location": "第 399 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-106",
+      "label": "原文单元 106",
+      "kind": "paragraph",
+      "excerpt": "配置数据集合并范围：",
+      "location": "第 401 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-107",
+      "label": "原文单元 107",
+      "kind": "paragraph",
+      "excerpt": "默认合并工作区所有相关数据集，结果使用统一关联 ID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID 下。",
+      "location": "第 403 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-108",
+      "label": "原文单元 108",
+      "kind": "paragraph",
+      "excerpt": "已选 0/17 条清除选择",
+      "location": "第 405 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-109",
+      "label": "原文单元 109",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:42px]",
+      "location": "第 407 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-110",
+      "label": "原文单元 110",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:122px]",
+      "location": "第 409 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-111",
+      "label": "原文单元 111",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:144px]",
+      "location": "第 411 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-112",
+      "label": "原文单元 112",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:220px]",
+      "location": "第 413 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-113",
+      "label": "原文单元 113",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:140px]",
+      "location": "第 415 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-114",
+      "label": "原文单元 114",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:140px]",
+      "location": "第 417 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-115",
+      "label": "原文单元 115",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:140px]",
+      "location": "第 419 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-116",
+      "label": "原文单元 116",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width:140px]",
+      "location": "第 421 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-117",
+      "label": "原文单元 117",
+      "kind": "paragraph",
+      "excerpt": "|  | 关联 ID \n[图片：未命名]\n| 身份 ID \n[图片：复制当前结果身份 ID]\n| 数据集名称 \n[图片：未命名]\n| 参考产品 | 地理位置 | 系统模型 | 活动类型",
+      "location": "第 423-429 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-118",
+      "label": "原文单元 118",
+      "kind": "paragraph",
+      "excerpt": "跳过，继续生成版本确认合并生成版本",
+      "location": "第 431 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均\n</source-structure-context>"
+    },
+    {
+      "id": "S-119",
+      "label": "HTML 交互脚本源码（来源数据，未执行）",
+      "kind": "heading",
+      "excerpt": "### HTML 交互脚本源码（来源数据，未执行）",
+      "location": "第 433 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-120",
+      "label": "原文单元 120",
+      "kind": "paragraph",
+      "excerpt": "const groupData = [\n{\nname: '氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均',\nuuids: ['8c7d0507-2b6c-4155-b7ce-ca32a8ef9f6c5', 'c7b7690c-cb3c-4d83-8fcc-1b0e53a415c0', 'f9e87a21-6fc7-4718-996a-04ae0fe81bb2'],\ncount: 17,\nversionCount: 6,\nreference: '氧化铝',\nnames: ['铝精矿焙烧，回转窑', '铝精矿焙烧，流化床', '氧化铝生产，拜耳法'],\ngeographies: ['中国，山东省', '中国，河南省', '中国，广西壮族自治区'],\nmodels: ['CUT_OFF', 'CONSEQUENTIAL', 'ATTRIBUTIONAL']\n},\n{\nname: '电力，天然气发电，中压',\nuuids: ['2d31db78-e8bb-4417-b3de-50b78a6fb1c9', '5a872cef-b412-491f-a06f-271b3ec3c641'],\ncount: 9,\nversionCount: 4,\nreference: '中压电力',\nnames: ['天然气发电，中压', '联合循环天然气发电，中压'],\ngeographies: ['中国', '中国，安徽省'],\nmodels: ['CUT_OFF', 'CONSEQUENTIAL']\n},\n{\nname: '运输，货运，公路',\nuuids: ['7697bd3c-72c1-49fc-b895-3ed32925a2c3', 'ab2190b1-70a1-40e0-a641-df10a2783256'],\ncount: 7,\nversionCount: 2,\nreference: '公路货运',\nnames: ['公路货运，重型卡车', '公路货运，中型卡车'],\ngeographies: ['中国', '中国，华东地区'],\nmodels: ['CUT_OFF', 'ATTRIBUTIONAL']\n}\n];",
+      "location": "第 435-466 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-121",
+      "label": "原文单元 121",
+      "kind": "paragraph",
+      "excerpt": "const cards = [...document.querySelectorAll('.candidate-card')];\nconst groupChecks = cards.map(card => card.querySelector('.check'));\nconst groupCount = document.querySelector('.group-count');\nconst configurationPane = document.querySelector('.configuration-pane');\nconst activityTitle = document.querySelector('.activity-title');\nconst targetSelect = document.querySelector('.select-shell');\nconst tbody = document.querySelector('tbody');\nconst selectAll = document.querySelector('.table-select-all');\nconst datasetCount = document.querySelector('.dataset-count');\nconst clearSelection = document.querySelector('.clear-selection');\nconst confirmButton = document.querySelector('.confirm-button');\nconst toast = document.querySelector('.toast');\nconst tooltip = document.querySelector('.el-tooltip-popper');\nconst states = groupData.map(group => ({\nselected: false,\ninitialized: false,\nselectedRows: new Set(),\ntargetUuid: [...group.uuids].sort((left, right) => left.localeCompare(right))[0]\n}));\nlet activeIndex = 0;\nlet toastTimer;",
+      "location": "第 468-488 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-122",
+      "label": "原文单元 122",
+      "kind": "paragraph",
+      "excerpt": "function escapeHtml(value) {\nreturn String(value).replace(/[&<>\"']/g, character => ({\n'&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;'\n})[character]);\n}",
+      "location": "第 490-494 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-123",
+      "label": "原文单元 123",
+      "kind": "paragraph",
+      "excerpt": "function rowsForGroup(group, groupIndex) {\nreturn Array.from({ length: group.count }, (_, index) => ({\nkey: `${groupIndex}-${index}`,\nuuid: group.uuids[index % group.uuids.length],\nid: `${String(groupIndex + 1).padStart(2, '0')}${String(index + 1).padStart(2, '0')}d0507-2b6c-4155-b7ce-ca32a8ef9f6c5`,\nname: group.names[index % group.names.length],\nreference: group.reference,\ngeography: group.geographies[index % group.geographies.length],\nmodel: group.models[index % group.models.length],\ntype: index % 3 === 1 ? '消费混合' : '生产混合',\ninVersion: index < group.versionCount\n}));\n}",
+      "location": "第 496-508 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-124",
+      "label": "原文单元 124",
+      "kind": "paragraph",
+      "excerpt": "const rowsByGroup = groupData.map(rowsForGroup);",
+      "location": "第 510 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-125",
+      "label": "原文单元 125",
+      "kind": "paragraph",
+      "excerpt": "cards.forEach((card, index) => {\nconst name = card.querySelector('.candidate-name');\nname.textContent = groupData[index].name;\nname.dataset.tooltip = groupData[index].name;\n});",
+      "location": "第 512-516 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-126",
+      "label": "原文单元 126",
+      "kind": "paragraph",
+      "excerpt": "function hideTooltip() {\ntooltip.classList.remove('show');\ntooltip.removeAttribute('data-for');\n}",
+      "location": "第 518-521 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-127",
+      "label": "原文单元 127",
+      "kind": "paragraph",
+      "excerpt": "function showTooltip(target) {\nif (!target?.dataset.tooltip || target.scrollWidth <= target.clientWidth) {\nhideTooltip();\nreturn;\n}\ntooltip.textContent = target.dataset.tooltip;\ntooltip.classList.add('show');\ntooltip.dataset.for = target.dataset.tooltip;\nconst targetRect = target.getBoundingClientRect();\nconst tooltipRect = tooltip.getBoundingClientRect();\nconst left = Math.min(\nwindow.innerWidth - tooltipRect.width - 8,\nMath.max(8, targetRect.left + targetRect.width / 2 - tooltipRect.width / 2)\n);\nconst top = Math.max(8, targetRect.top - tooltipRect.height - 10);\ntooltip.style.left = `${left}px`;\ntooltip.style.top = `${top}px`;\n}",
+      "location": "第 523-540 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-128",
+      "label": "原文单元 128",
+      "kind": "paragraph",
+      "excerpt": "document.addEventListener('mouseover', event => {\nconst target = event.target.closest('[data-tooltip]');\nif (target) showTooltip(target);\n});\ndocument.addEventListener('mouseout', event => {\nconst target = event.target.closest('[data-tooltip]');\nif (target && !target.contains(event.relatedTarget)) hideTooltip();\n});\nwindow.addEventListener('resize', hideTooltip);\nwindow.addEventListener('scroll', hideTooltip, true);",
+      "location": "第 542-551 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-129",
+      "label": "原文单元 129",
+      "kind": "paragraph",
+      "excerpt": "function showToast(message) {\ntoast.textContent = message;\ntoast.classList.add('show');\nclearTimeout(toastTimer);\ntoastTimer = setTimeout(() => toast.classList.remove('show'), 1800);\n}",
+      "location": "第 553-558 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-130",
+      "label": "原文单元 130",
+      "kind": "paragraph",
+      "excerpt": "function updateConfirmState() {\nconfirmButton.disabled = !states.some(state => state.selected && state.selectedRows.size > 0);\n}",
+      "location": "第 560-562 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-131",
+      "label": "原文单元 131",
+      "kind": "paragraph",
+      "excerpt": "function updateGroupCount() {\nconst selected = states.filter(state => state.selected).length;\ngroupCount.textContent = `已选 ${selected}/${states.length} 组`;\ngroupChecks.forEach((box, index) => box.classList.toggle('checked', states[index].selected));\nupdateConfirmState();\n}",
+      "location": "第 564-569 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-132",
+      "label": "原文单元 132",
+      "kind": "paragraph",
+      "excerpt": "function updateDatasetSelection() {\nconst state = states[activeIndex];\nconst rows = rowsByGroup[activeIndex];\nconst selected = state.selectedRows.size;\ndatasetCount.textContent = `已选 ${selected}/${rows.length} 条`;\nselectAll.classList.toggle('checked', selected === rows.length && rows.length > 0);\nselectAll.classList.toggle('indeterminate', selected > 0 && selected < rows.length);\nselectAll.setAttribute('aria-checked', selected > 0 && selected < rows.length ? 'mixed' : String(selected === rows.length && rows.length > 0));\n[...tbody.querySelectorAll('tr')].forEach((row, index) => row.querySelector('.check').classList.toggle('checked', state.selectedRows.has(rows[index].key)));\nupdateConfirmState();\n}",
+      "location": "第 571-581 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-133",
+      "label": "原文单元 133",
+      "kind": "paragraph",
+      "excerpt": "function renderActiveGroup() {\nconst group = groupData[activeIndex];\nconst state = states[activeIndex];\nconst rows = rowsByGroup[activeIndex];\nactivityTitle.textContent = group.name;\nactivityTitle.dataset.tooltip = group.name;\nconfigurationPane.classList.toggle('is-disabled', !state.selected);\ntargetSelect.disabled = !state.selected;\ntargetSelect.innerHTML = group.uuids.map(uuid => `<option value=\"${escapeHtml(uuid)}\">${escapeHtml(uuid)}</option>`).join('');\ntargetSelect.value = state.targetUuid;\ntbody.innerHTML = rows.map(row => `\n<tr data-key=\"${row.key}\">\n<td class=\"selection-cell\"><span class=\"check\"></span></td>\n<td class=\"uuid-cell\" data-tooltip=\"${escapeHtml(row.uuid)}\">${escapeHtml(row.uuid)}</td>\n<td data-tooltip=\"${escapeHtml(row.id)}\">${escapeHtml(row.id)}</td>\n<td class=\"dataset-name-cell\"><span class=\"dataset-name-wrap\"><span class=\"link dataset-name-text\" data-tooltip=\"${escapeHtml(row.name)}\">${escapeHtml(row.name)}</span>${row.inVersion ? '<span class=\"tag-version table-version\">版本内</span>' : ''}</span></td>\n<td data-tooltip=\"${escapeHtml(row.reference)}\">${escapeHtml(row.reference)}</td>\n<td data-tooltip=\"${escapeHtml(row.geography)}\">${escapeHtml(row.geography)}</td>\n<td data-tooltip=\"${escapeHtml(row.model)}\">${escapeHtml(row.model)}</td>\n<td><span class=\"type-tag${row.type === '消费混合' ? ' consume' : ''}\">${row.type}</span></td>\n</tr>`).join('');\nupdateDatasetSelection();\n}",
+      "location": "第 583-605 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-134",
+      "label": "原文单元 134",
+      "kind": "paragraph",
+      "excerpt": "cards.forEach((card, index) => {\ncard.addEventListener('click', () => {\nactiveIndex = index;\ncards.forEach(item => item.classList.remove('active'));\ncard.classList.add('active');\nrenderActiveGroup();\n});\ngroupChecks[index].addEventListener('click', event => {\nevent.stopPropagation();\nconst state = states[index];\nstate.selected = !state.selected;\nif (state.selected && !state.initialized) {\nrowsByGroup[index].forEach(row => state.selectedRows.add(row.key));\nstate.initialized = true;\n}\nupdateGroupCount();\nif (activeIndex === index) renderActiveGroup();\n});\n});",
+      "location": "第 607-625 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-135",
+      "label": "原文单元 135",
+      "kind": "paragraph",
+      "excerpt": "tbody.addEventListener('click', event => {\nconst row = event.target.closest('tr');\nif (!row) return;\nif (event.target.closest('.link')) {\nshowToast(`将打开数据集详情：${row.querySelector('.link').textContent}`);\nreturn;\n}\nif (!states[activeIndex].selected || !event.target.closest('.selection-cell')) return;\nconst key = row.dataset.key;\nconst selectedRows = states[activeIndex].selectedRows;\nselectedRows.has(key) ? selectedRows.delete(key) : selectedRows.add(key);\nupdateDatasetSelection();\n});",
+      "location": "第 627-639 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-136",
+      "label": "原文单元 136",
+      "kind": "paragraph",
+      "excerpt": "selectAll.parentElement.addEventListener('click', () => {\nconst state = states[activeIndex];\nif (!state.selected) return;\nconst rows = rowsByGroup[activeIndex];\nconst shouldSelectAll = state.selectedRows.size !== rows.length;\nstate.selectedRows.clear();\nif (shouldSelectAll) rows.forEach(row => state.selectedRows.add(row.key));\nupdateDatasetSelection();\n});",
+      "location": "第 641-649 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-137",
+      "label": "原文单元 137",
+      "kind": "paragraph",
+      "excerpt": "clearSelection.addEventListener('click', () => {\nif (!states[activeIndex].selected) return;\nstates[activeIndex].selectedRows.clear();\nupdateDatasetSelection();\n});",
+      "location": "第 651-655 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-138",
+      "label": "原文单元 138",
+      "kind": "paragraph",
+      "excerpt": "targetSelect.addEventListener('change', () => {\nstates[activeIndex].targetUuid = targetSelect.value;\n});",
+      "location": "第 657-659 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-139",
+      "label": "原文单元 139",
+      "kind": "paragraph",
+      "excerpt": "document.querySelector('.close').addEventListener('click', () => showToast('已取消本次版本生成'));\ndocument.querySelector('.skip-button').addEventListener('click', () => showToast('将跳过合并并继续生成版本'));\nconfirmButton.addEventListener('click', () => showToast('将合并已选组并继续生成版本'));\ndocument.querySelector('.summary .button').addEventListener('click', () => showToast('将导出全部候选组的同名生产活动明细'));\ndocument.querySelector('.copy-ids').addEventListener('click', async () => {\nconst ids = rowsByGroup[activeIndex].map(row => row.id).join(',');\ntry {\nawait navigator.clipboard.writeText(ids);\n} catch {\nconst input = document.createElement('textarea');\ninput.value = ids;\ninput.style.position = 'fixed';\ninput.style.opacity = '0';\ndocument.body.appendChild(input);\ninput.select();\ndocument.execCommand('copy');\ninput.remove();\n}\nshowToast(`已复制 ${rowsByGroup[activeIndex].length} 个身份 ID`);\n});",
+      "location": "第 661-680 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-140",
+      "label": "原文单元 140",
+      "kind": "paragraph",
+      "excerpt": "updateGroupCount();\nrenderActiveGroup();",
+      "location": "第 682-683 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-141",
+      "label": "原文单元 141",
+      "kind": "paragraph",
+      "excerpt": "原型图",
+      "location": "第 685 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-142",
+      "label": "5.4.1 信息结构",
+      "kind": "heading",
+      "excerpt": "#### 5.4.1 信息结构",
+      "location": "第 687 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-143",
+      "label": "原文单元 143",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 50%]",
+      "location": "第 689 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-144",
+      "label": "原文单元 144",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 50%]",
+      "location": "第 691 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-145",
+      "label": "原文单元 145",
+      "kind": "paragraph",
+      "excerpt": "| 区域\n| 内容",
+      "location": "第 693-694 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-146",
+      "label": "原文单元 146",
+      "kind": "paragraph",
+      "excerpt": "| 汇总\n| 同名生产活动数量、相关关联 ID 数量、相关数据集数量并标注「版本内 n\n条」、“导出同名生产活动明细”按钮",
+      "location": "第 696-698 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-147",
+      "label": "原文单元 147",
+      "kind": "paragraph",
+      "excerpt": "| 左栏\n| 同名生产活动组、关联 ID\n数量、当前租户全量工作区内的相关未删除数据集数量、组选择",
+      "location": "第 700-702 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-148",
+      "label": "原文单元 148",
+      "kind": "paragraph",
+      "excerpt": "| 右栏\n| 当前组名称、目标关联 ID Select、已选数据量、数据集表格",
+      "location": "第 704-705 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-149",
+      "label": "原文单元 149",
+      "kind": "paragraph",
+      "excerpt": "| 底部\n| 「跳过，继续生成版本」「确认合并」；跳过或合并处理完成后均关闭合并提醒，再打开独立的生成版本确认弹窗，不直接触发版本生成",
+      "location": "第 707-708 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-150",
+      "label": "原文单元 150",
+      "kind": "paragraph",
+      "excerpt": "具体见原型文件。",
+      "location": "第 710 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-151",
+      "label": "原文单元 151",
+      "kind": "paragraph",
+      "excerpt": "原型用于说明主要页面结构和交互方向。若原型未覆盖、缺少或仅静态展示本\nPRD 已明确的功能与状态，实际开发与验收以本 PRD 为准补足。",
+      "location": "第 712-713 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-142] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-152",
+      "label": "5.4.2 选择规则",
+      "kind": "heading",
+      "excerpt": "#### 5.4.2 选择规则",
+      "location": "第 715 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-152] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-153",
+      "label": "原文单元 153",
+      "kind": "paragraph",
+      "excerpt": "- 同名生产活动组默认均不勾选；未勾选的组不执行；",
+      "location": "第 717 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-152] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-154",
+      "label": "原文单元 154",
+      "kind": "paragraph",
+      "excerpt": "- 选中某组后，默认选中该组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，用户可以排除部分数据；",
+      "location": "第 719-720 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-152] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-155",
+      "label": "原文单元 155",
+      "kind": "paragraph",
+      "excerpt": "- 切换当前组时，保留各组已经选择的目标关联 ID 和数据集范围；",
+      "location": "第 722 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-152] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-156",
+      "label": "原文单元 156",
+      "kind": "paragraph",
+      "excerpt": "- 「清除选择」清空当前组的数据集选择；",
+      "location": "第 724 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-152] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-157",
+      "label": "5.4.3 设置合并后统一关联 ID",
+      "kind": "heading",
+      "excerpt": "#### 5.4.3 设置合并后统一关联 ID",
+      "location": "第 726 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-157] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-158",
+      "label": "原文单元 158",
+      "kind": "paragraph",
+      "excerpt": "- 使用 Select 选择当前同名生产活动组合并后统一使用的关联 ID；",
+      "location": "第 728 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-157] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-159",
+      "label": "原文单元 159",
+      "kind": "paragraph",
+      "excerpt": "- Select 选项为当前组已有的全部关联 ID，默认选中按关联 ID\n字符串升序排序后的最小值；",
+      "location": "第 730-731 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-157] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-160",
+      "label": "原文单元 160",
+      "kind": "paragraph",
+      "excerpt": "- 用户可以分别修改每个已选组的目标关联 ID，切换组后保留已选结果；",
+      "location": "第 733 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-157] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-161",
+      "label": "原文单元 161",
+      "kind": "paragraph",
+      "excerpt": "- 不支持输入或新建关联 ID。",
+      "location": "第 735 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-157] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-162",
+      "label": "5.4.4 数据集表格",
+      "kind": "heading",
+      "excerpt": "#### 5.4.4 数据集表格",
+      "location": "第 737 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-163",
+      "label": "原文单元 163",
+      "kind": "paragraph",
+      "excerpt": "数据列依次包括：关联 ID、身份\nID、数据集名称、参考产品、地理位置、系统模型、活动类型。",
+      "location": "第 739-740 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-164",
+      "label": "原文单元 164",
+      "kind": "paragraph",
+      "excerpt": "- 数据列支持横向滚动，最左侧选择列固定在滚动内容上层；",
+      "location": "第 742 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-165",
+      "label": "原文单元 165",
+      "kind": "paragraph",
+      "excerpt": "- 支持按关联ID（筛选控件在关联 id 列表头）、是否在版本范围内筛选数据\n（筛选控件在数据集名称列表头）；",
+      "location": "第 744-745 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-166",
+      "label": "原文单元 166",
+      "kind": "paragraph",
+      "excerpt": "- 表头选择框选择或取消当前筛选结果中的全部数据，不限当前可视行；",
+      "location": "第 747 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-167",
+      "label": "原文单元 167",
+      "kind": "paragraph",
+      "excerpt": "- 不提供分页；",
+      "location": "第 749 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-168",
+      "label": "原文单元 168",
+      "kind": "paragraph",
+      "excerpt": "- 支持点击数据集名称跳转数据集详情，当前版本中的数据集名称右侧显示「版本内」Tag；",
+      "location": "第 751 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-169",
+      "label": "原文单元 169",
+      "kind": "paragraph",
+      "excerpt": "- 支持点击身份 ID 表头右侧的复制按钮，复制当前筛选结果中的全部身份\nID；复制内容使用英文逗号（,）分隔；",
+      "location": "第 753-754 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-170",
+      "label": "原文单元 170",
+      "kind": "paragraph",
+      "excerpt": "- 筛选条件变化后保留已有选择，并更新「已选 x/y 条」。",
+      "location": "第 756 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-171",
+      "label": "原文单元 171",
+      "kind": "paragraph",
+      "excerpt": "- 活动类型信息展示方式沿用现有数据集列表中的 Tag 展示方式。",
+      "location": "第 758 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-162] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-172",
+      "label": "5.4.5 生成版本确认",
+      "kind": "heading",
+      "excerpt": "#### 5.4.5 生成版本确认",
+      "location": "第 760 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-173",
+      "label": "原文单元 173",
+      "kind": "paragraph",
+      "excerpt": "- 合并处理完成或用户点击「跳过，继续生成版本」后，关闭合并提醒，再打开独立的生成版本确认弹窗；",
+      "location": "第 762 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-174",
+      "label": "原文单元 174",
+      "kind": "paragraph",
+      "excerpt": "- 合并提醒中的操作只处理是否合并，不同时触发版本生成；",
+      "location": "第 764 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-175",
+      "label": "原文单元 175",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「确认生成版本」后，系统单独触发异步版本生成；",
+      "location": "第 766 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-176",
+      "label": "原文单元 176",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「取消」后返回版本详情页，不生成版本；已完成的合并结果不回滚；",
+      "location": "第 768 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-177",
+      "label": "原文单元 177",
+      "kind": "paragraph",
+      "excerpt": "- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。",
+      "location": "第 770 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-172] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-178",
+      "label": "5.4.6 文案",
+      "kind": "heading",
+      "excerpt": "#### 5.4.6 文案",
+      "location": "第 772 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-178] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-179",
+      "label": "原文单元 179",
+      "kind": "paragraph",
+      "excerpt": "- 浮窗标题下提示：",
+      "location": "第 774 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-178] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-180",
+      "label": "原文单元 180",
+      "kind": "paragraph",
+      "excerpt": "当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID\n下的同名生产活动。 若确认属于同一生产活动，可合并使用统一关联\nID。如果只是名称相同，可不进行合并，不影响版本发布。",
+      "location": "第 776-778 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-178] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-181",
+      "label": "原文单元 181",
+      "kind": "paragraph",
+      "excerpt": "- 配置参与合并的数据集时提示：",
+      "location": "第 780 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-178] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-182",
+      "label": "原文单元 182",
+      "kind": "paragraph",
+      "excerpt": "默认合并候选关联 ID\n在当前租户全量工作区内的所有未删除数据集，结果使用统一关联\nID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID\n下。",
+      "location": "第 782-785 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-178] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-183",
+      "label": "5.4.7 导出",
+      "kind": "heading",
+      "excerpt": "#### 5.4.7 导出",
+      "location": "第 787 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-184",
+      "label": "原文单元 184",
+      "kind": "paragraph",
+      "excerpt": "「导出同名生产活动明细」导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集。Excel\n字段及规则如下：",
+      "location": "第 789-791 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-185",
+      "label": "原文单元 185",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 793 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-186",
+      "label": "原文单元 186",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 795 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-187",
+      "label": "原文单元 187",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 797 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-188",
+      "label": "原文单元 188",
+      "kind": "paragraph",
+      "excerpt": "| Excel 字段\n| 取值来源\n| 转换规则",
+      "location": "第 799-801 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-189",
+      "label": "原文单元 189",
+      "kind": "paragraph",
+      "excerpt": "| Production Activity Name\n| tb_activities.activity_name\n| 通过 tb_activities.activity_id = tw_processes.uuid\n取得并直接输出；不实时读取 tw_processes.name",
+      "location": "第 803-806 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-190",
+      "label": "原文单元 190",
+      "kind": "paragraph",
+      "excerpt": "| Activity ID\n| tw_processes.id\n| 直接输出数据集身份 ID",
+      "location": "第 808-810 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-191",
+      "label": "原文单元 191",
+      "kind": "paragraph",
+      "excerpt": "| Related UUID\n| tw_processes.uuid\n| 直接输出关联 UUID",
+      "location": "第 812-814 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-192",
+      "label": "原文单元 192",
+      "kind": "paragraph",
+      "excerpt": "| Activity Name\n| tw_processes.name\n| 直接输出数据集过程名称",
+      "location": "第 816-818 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-193",
+      "label": "原文单元 193",
+      "kind": "paragraph",
+      "excerpt": "| Included Version\n| te_datasource_version_dataset.version\n| 按数据集 ID\n查询全部有效版本关系；多个版本值使用英文逗号（,）拼接到同一单元格；没有版本关系时输出空",
+      "location": "第 820-823 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-194",
+      "label": "原文单元 194",
+      "kind": "paragraph",
+      "excerpt": "| Reference Product Name\n| tw_flows.name\n| 使用 tw_processes.reference_flow_id 关联\ntw_flows.id",
+      "location": "第 825-828 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-195",
+      "label": "原文单元 195",
+      "kind": "paragraph",
+      "excerpt": "| Unit\n| tw_units.name\n| 从 tw_process_doc.document.declaredUnitId 关联\ntw_units.id",
+      "location": "第 830-833 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-196",
+      "label": "原文单元 196",
+      "kind": "paragraph",
+      "excerpt": "| Special Activity Type\n| tw_processes.special_type\n| MARKET_TYPE → 消费混合；PRODUCT_TYPE → 生产混合",
+      "location": "第 835-837 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-197",
+      "label": "原文单元 197",
+      "kind": "paragraph",
+      "excerpt": "| System Model\n| tw_processes.from_data\n| 原值输出，不查询数据源名称或翻译",
+      "location": "第 839-841 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-198",
+      "label": "原文单元 198",
+      "kind": "paragraph",
+      "excerpt": "| Geography\n| tw_processes.location_id\n| 关联 tw_locations，输出当前语言下的\ni18nFullName；位置为空则输出空",
+      "location": "第 843-846 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-199",
+      "label": "原文单元 199",
+      "kind": "paragraph",
+      "excerpt": "| Editor\n| tw_process_doc.business_json.editor\n| 使用用户 ID 查询 SSO 用户，输出用户邮箱，不输出姓名",
+      "location": "第 848-850 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-200",
+      "label": "原文单元 200",
+      "kind": "paragraph",
+      "excerpt": "| Industries\n| tw_processes.industries\n| 数组中的字典 ID 分别转换为当前语言名称，使用英文逗号（,）拼接",
+      "location": "第 852-854 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-201",
+      "label": "原文单元 201",
+      "kind": "paragraph",
+      "excerpt": "| Calculation\n| tw_process_doc.business_json.isCalculated\n| 数值为 1 输出 Calculated；其他值或空值输出\nNot Calculated",
+      "location": "第 856-859 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-202",
+      "label": "原文单元 202",
+      "kind": "paragraph",
+      "excerpt": "| Review Status\n| tw_process_doc.business_json.processStatus\n| 状态字典 ID 转换为当前语言下的字典名称；空值输出空",
+      "location": "第 861-863 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-203",
+      "label": "原文单元 203",
+      "kind": "paragraph",
+      "excerpt": "其中：",
+      "location": "第 865 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-204",
+      "label": "原文单元 204",
+      "kind": "paragraph",
+      "excerpt": "- Production Activity Name 是生产活动关联名称，初始可能与 Activity\nName 相同，后续不保证一致；",
+      "location": "第 867-868 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n列表引导原文 [S-203]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-205",
+      "label": "原文单元 205",
+      "kind": "paragraph",
+      "excerpt": "- Included Version 表示该数据集被加入的全部版本，不读取\ntw_processes.version；",
+      "location": "第 870-871 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n列表引导原文 [S-203]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-206",
+      "label": "原文单元 206",
+      "kind": "paragraph",
+      "excerpt": "- 同一数据集存在多条有效版本关系时，将所有 version\n值使用英文逗号（,）拼接，例如 0.0.3,0.0.4,1.0.0；",
+      "location": "第 873-874 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-119] HTML 交互脚本源码（来源数据，未执行） → [S-183] 5.4.7 导出\n列表引导原文 [S-203]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-207",
+      "label": "5.5 合并与结果",
+      "kind": "heading",
+      "excerpt": "### 5.5 合并与结果",
+      "location": "第 876 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-208",
+      "label": "原文单元 208",
+      "kind": "paragraph",
+      "excerpt": "- 系统仅处理用户选中的组和数据集，将所选数据改为该组选择的目标关联\nID；未选数据保留原关联 ID。",
+      "location": "第 878-879 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-209",
+      "label": "原文单元 209",
+      "kind": "paragraph",
+      "excerpt": "- 执行前根据候选组各关联 ID\n在当前租户全量工作区内的最新未删除数据集重新校验。某同名组不再满足合并条件时，该组不执行，校验范围不限于数据集是否被勾选。",
+      "location": "第 881-882 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-210",
+      "label": "原文单元 210",
+      "kind": "paragraph",
+      "excerpt": "- 每组执行前基于当时最新的当前租户全量工作区内未删除数据集重新校验。执行期间出现并发修改并导致最终状态冲突时，该组全部失败，不保留部分修改。",
+      "location": "第 884 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-211",
+      "label": "原文单元 211",
+      "kind": "paragraph",
+      "excerpt": "- 单合并组内所选数据全部成功或全部失败；多组独立执行，一组失败不回滚其他成功组。",
+      "location": "第 886 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-212",
+      "label": "原文单元 212",
+      "kind": "paragraph",
+      "excerpt": "- 存在失败组时，提示部分组合并失败并展示失败组的生产活动名称；成功组保留结果。合并结果提示完成后关闭合并提醒，再进入独立的生成版本确认弹窗。",
+      "location": "第 888 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-213",
+      "label": "原文单元 213",
+      "kind": "paragraph",
+      "excerpt": "- 合并只修改所选数据集的关联 ID，不改变数据集\nID、数据集状态和版本数据集成员；当前位于版本外的未删除数据集不会因关联\nID 更新而加入当前版本。",
+      "location": "第 890-892 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-214",
+      "label": "原文单元 214",
+      "kind": "paragraph",
+      "excerpt": "- 目标关联 ID 保留自身现有的 Production Activity\nName，本功能不自动修改生产活动关联名称。",
+      "location": "第 894-895 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-215",
+      "label": "原文单元 215",
+      "kind": "paragraph",
+      "excerpt": "- 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时，保留该源生产活动关联关系；已无未删除数据集时，软删除对应的生产活动关联关系。",
+      "location": "第 897-898 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-216",
+      "label": "原文单元 216",
+      "kind": "paragraph",
+      "excerpt": "- 合并执行与版本生成分别触发、分别记录结果。合并成功但用户取消生成版本，或后续版本生成失败时，均不回滚已经完成的合并；版本生成失败时提示「关联\nID 合并已完成，但版本生成失败。合并结果已保留，请重新生成版本。」",
+      "location": "第 900-901 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-217",
+      "label": "原文单元 217",
+      "kind": "paragraph",
+      "excerpt": "- 再次点击「生成版本」时，系统基于最新版本范围重新检查；已经统一到目标关联\nID 的数据不重复处理，仍满足候选条件的其他数据可以再次提醒。",
+      "location": "第 903-904 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-218",
+      "label": "原文单元 218",
+      "kind": "paragraph",
+      "excerpt": "- 本功能仅允许具有版本管理权限且能够操作当前版本的用户使用；前端入口和后端执行均校验权限及当前租户范围，不新增独立的关联\nID 合并权限。",
+      "location": "第 906-907 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-104] 氧化铝，铝精矿焙烧，以三氧化二铝为主要成分的焙烧产物，原生，中国平均 → [S-207] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-219",
+      "label": "6. 验收标准",
+      "kind": "heading",
+      "excerpt": "## 6. 验收标准",
+      "location": "第 909 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-220",
+      "label": "原文单元 220",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 911 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-221",
+      "label": "原文单元 221",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 913 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-222",
+      "label": "原文单元 222",
+      "kind": "paragraph",
+      "excerpt": "[HTML col 排版属性：width: 33%]",
+      "location": "第 915 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-223",
+      "label": "原文单元 223",
+      "kind": "paragraph",
+      "excerpt": "| 编号\n| 场景\n| 预期结果",
+      "location": "第 917-919 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-224",
+      "label": "原文单元 224",
+      "kind": "paragraph",
+      "excerpt": "| AC-01\n| 用户点击「生成版本」\n| 基于当时的当前版本数据检查一次；无候选或检查失败时不展示合并提醒，进入原有生成版本确认弹窗",
+      "location": "第 921-923 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-225",
+      "label": "原文单元 225",
+      "kind": "paragraph",
+      "excerpt": "| AC-03\n| 名称存在空格、大小写或其他符号差异\n| 移除空格并忽略字母大小写；其他字符和符号按原值比较",
+      "location": "第 925-927 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-226",
+      "label": "原文单元 226",
+      "kind": "paragraph",
+      "excerpt": "| AC-04\n| 同名关联 ID 组进行候选校验\n| 使用组内各关联 ID\n在当前租户全量工作区内的全部未删除数据集，并按目标关联\nID、参考产品标识、地理位置标识、系统模型值和活动类型值的原始存储值判断；不能完整合并或该范围内已有完整键重复的组不展示",
+      "location": "第 929-933 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-227",
+      "label": "原文单元 227",
+      "kind": "paragraph",
+      "excerpt": "| AC-05\n| 用户查看提醒\n| 正确展示候选组、当前租户全量工作区内的相关未删除数据集数量和版本内数量；当前版本中的数据集显示「版本内」Tag",
+      "location": "第 935-937 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-228",
+      "label": "原文单元 228",
+      "kind": "paragraph",
+      "excerpt": "| AC-06\n| 用户配置候选组\n| 同名生产活动组默认不勾选；目标关联 ID\n默认选中按字符串升序排序后的最小值且可修改；选中组后默认选中该组各关联\nID 在当前租户全量工作区内的全部未删除数据集",
+      "location": "第 939-943 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-229",
+      "label": "原文单元 229",
+      "kind": "paragraph",
+      "excerpt": "| AC-07\n| 用户筛选、选择或复制数据集身份 ID\n| 可逐行选择、清除选择或通过表头选择全部筛选结果；横向滚动时选择列固定可见；复制当前筛选结果中的全部身份\nID 时使用英文逗号（,）分隔",
+      "location": "第 945-948 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-230",
+      "label": "原文单元 230",
+      "kind": "paragraph",
+      "excerpt": "| AC-08\n| 用户跳过合并或关闭提醒\n| 点击「跳过，继续生成版本」时不执行合并；关闭合并提醒后打开独立的生成版本确认弹窗。点击右上角关闭按钮时取消本次版本生成，不打开生成版本确认弹窗；再次点击时重新检查",
+      "location": "第 950-952 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-231",
+      "label": "原文单元 231",
+      "kind": "paragraph",
+      "excerpt": "| AC-09\n| 用户确认合并\n| 重新校验后仅修改所选组内所选数据，未选数据保留原关联\nID；完成后提示合并结果并进入独立的生成版本确认弹窗，不直接生成版本",
+      "location": "第 954-957 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-232",
+      "label": "原文单元 232",
+      "kind": "paragraph",
+      "excerpt": "| AC-10\n| 单组、多组合并或执行期间出现并发修改\n| 单组全部成功或全部失败；并发修改导致最终状态冲突时该组不保留部分修改；多组独立，一组失败不回滚其他成功组",
+      "location": "第 959-961 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-233",
+      "label": "原文单元 233",
+      "kind": "paragraph",
+      "excerpt": "| AC-11\n| 部分组合并失败\n| 展示失败组的生产活动名称并保留成功组结果；结果提示完成后进入独立的生成版本确认弹窗，不自动生成版本",
+      "location": "第 963-965 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-234",
+      "label": "原文单元 234",
+      "kind": "paragraph",
+      "excerpt": "| AC-12\n| 合并涉及当前租户全量工作区内位于版本外的未删除数据集\n| 数据集 ID、状态和版本成员不变，这些数据集不会加入当前版本",
+      "location": "第 967-969 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-235",
+      "label": "原文单元 235",
+      "kind": "paragraph",
+      "excerpt": "| AC-13\n| 用户导出明细\n| 导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集；Included\nVersion\n聚合该数据集全部有效版本关系，多个版本值使用英文逗号（,）拼接且不增加数据集行数；其他字段及转换结果符合\n5.4.7",
+      "location": "第 971-977 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-236",
+      "label": "原文单元 236",
+      "kind": "paragraph",
+      "excerpt": "| AC-14\n| 用户访问本功能\n| 具有版本管理权限且能够操作当前版本的用户可以使用；前端入口和后端执行均校验权限及当前租户范围，不增加独立合并权限",
+      "location": "第 979-981 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-237",
+      "label": "原文单元 237",
+      "kind": "paragraph",
+      "excerpt": "| AC-15\n| 判定字段存在空值\n| 同一字段均为 NULL\n时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较",
+      "location": "第 983-986 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-238",
+      "label": "原文单元 238",
+      "kind": "paragraph",
+      "excerpt": "| AC-16\n| 合并成功但生成版本失败\n| 已完成的合并结果不回滚，提示合并已完成且版本生成失败；用户可以重新生成版本",
+      "location": "第 988-990 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-239",
+      "label": "原文单元 239",
+      "kind": "paragraph",
+      "excerpt": "| AC-17\n| 合并后检查源生产活动关联关系\n| 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时保留关联关系；已无未删除数据集时软删除关联关系；目标关联\nID 的 Production Activity Name 不变",
+      "location": "第 992-996 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-240",
+      "label": "原文单元 240",
+      "kind": "paragraph",
+      "excerpt": "| AC-18\n| 合并完成后用户确认或取消生成版本\n| 点击「确认生成版本」时单独触发异步版本生成；点击「取消」时返回版本详情页且当前版本保持未生成，已经完成的合并结果保留",
+      "location": "第 998-1000 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-219] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-241",
+      "label": "7. 约束与风险",
+      "kind": "heading",
+      "excerpt": "## 7. 约束与风险",
+      "location": "第 1002 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-242",
+      "label": "原文单元 242",
+      "kind": "paragraph",
+      "excerpt": "- 范围一致性：候选来源基于当前版本；冲突校验覆盖候选组各关联\nID\n在当前租户全量工作区内的全部未删除数据集；执行只处理用户所选数据。页面数量和提交范围必须使用相同口径。",
+      "location": "第 1004-1006 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-243",
+      "label": "原文单元 243",
+      "kind": "paragraph",
+      "excerpt": "- 数据变化：候选检查与提交之间及执行期间数据可能变化，每组执行前必须按用户最终选择和最新数据重新校验，冲突组不得保留部分修改。",
+      "location": "第 1008 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-244",
+      "label": "原文单元 244",
+      "kind": "paragraph",
+      "excerpt": "- 大数据量选择：表头全选必须作用于完整筛选结果，不能只处理前端已显示的数据。",
+      "location": "第 1010 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-245",
+      "label": "原文单元 245",
+      "kind": "paragraph",
+      "excerpt": "- 字段空值：开发前必须确认判定字段中空字符串和纯空格的实际数据情况，并确定是否与\nNULL 统一处理。",
+      "location": "第 1012-1013 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-246",
+      "label": "原文单元 246",
+      "kind": "paragraph",
+      "excerpt": "- 现有合并能力边界：本需求只允许修改用户所选数据集的关联\nID，并按源关联 ID\n在当前租户全量工作区内剩余的未删除数据集处理生产活动关联关系；不得自动修改生产活动关联名称或将未选数据一并更新。",
+      "location": "第 1015-1017 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-247",
+      "label": "HTML 交互脚本源码（来源数据，未执行）",
+      "kind": "heading",
+      "excerpt": "### HTML 交互脚本源码（来源数据，未执行）",
+      "location": "第 1019 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险 → [S-247] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-248",
+      "label": "原文单元 248",
+      "kind": "paragraph",
+      "excerpt": "(function () {\nfunction resizePrototype(stage) {\nvar width = Number(stage.dataset.prototypeWidth);\nvar height = Number(stage.dataset.prototypeHeight);\nvar frame = stage.querySelector('iframe');\nvar scale = Math.min(stage.clientWidth / width, 1);\nframe.style.width = width + 'px';\nframe.style.height = height + 'px';\nframe.style.transform = 'scale(' + scale + ')';\nstage.style.height = Math.round(height * scale) + 'px';\n}\nfunction resizeAll() {\ndocument.querySelectorAll('.prototype-stage').forEach(resizePrototype);\n}\nvar links = Array.from(document.querySelectorAll('.sidebar a[href^=\"#\"]'));\nvar sections = links.map(function (link) {\ntry { return document.querySelector(link.getAttribute('href')); } catch (error) { return null; }\n}).filter(Boolean);\nfunction updateActive() {\nvar current = sections[0];\nsections.forEach(function (section) {\nif (section.getBoundingClientRect().top <= 120) current = section;\n});\nlinks.forEach(function (link) {\nlink.classList.toggle('active', current && link.getAttribute('href') === '#' + current.id);\n});\n}\nwindow.addEventListener('load', resizeAll);\nwindow.addEventListener('resize', resizeAll);\nwindow.addEventListener('scroll', updateActive, { passive: true });\nresizeAll();\nupdateActive();\n}());",
+      "location": "第 1021-1053 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-095] 发现可合并的同名生产活动 → [S-241] 7. 约束与风险 → [S-247] HTML 交互脚本源码（来源数据，未执行）\n</source-structure-context>"
+    },
+    {
+      "id": "S-249",
+      "kind": "attachment",
+      "label": "HTML 本地图片缺失或无法读取：assets/filter.svg",
+      "excerpt": "[HTML 本地图片缺失或无法读取：assets/filter.svg]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-250",
+      "kind": "attachment",
+      "label": "HTML 本地图片缺失或无法读取：assets/copy-document.svg",
+      "excerpt": "[HTML 本地图片缺失或无法读取：assets/copy-document.svg]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-251",
+      "kind": "attachment",
+      "label": "HTML 本地图片缺失或无法读取：assets/filter.svg",
+      "excerpt": "[HTML 本地图片缺失或无法读取：assets/filter.svg]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    }
+  ]
+}

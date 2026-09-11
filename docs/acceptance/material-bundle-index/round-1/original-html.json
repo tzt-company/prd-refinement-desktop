@@ -1,0 +1,120 @@
+{
+  "id": "B-21dea202-4e10-4cdb-893e-6490d9a8f7d0",
+  "name": "PRD-同名生产活动关联ID合并提醒_0826",
+  "revision": 2,
+  "state": "needs-materials",
+  "files": [
+    {
+      "id": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "logicalPath": "PRD-同名生产活动关联ID合并提醒_0826.html",
+      "role": "primary",
+      "revision": 1,
+      "size": 66206,
+      "hash": "03aa77752b175deb1fbeb22913071e1dc49bc41926ba53158de86677683c0fae",
+      "status": "blocked",
+      "reason": "5 项内容待处理",
+      "sourceCount": 380
+    }
+  ],
+  "references": [
+    {
+      "id": "REF-c1a03bc807ad7b1639b0973f",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "reference": "assets/checkbox-checked.svg",
+      "location": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 7 行第 3 列",
+      "state": "missing"
+    },
+    {
+      "id": "REF-869380fce1ad2f062b931298",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "reference": "assets/arrow-down.svg",
+      "location": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 7 行第 3 列",
+      "state": "missing"
+    },
+    {
+      "id": "REF-46d236c06d7583b5658c091f",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "reference": "assets/filter.svg",
+      "location": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 195 列",
+      "state": "missing"
+    },
+    {
+      "id": "REF-ce8b5b913ed0b2955d6c44b1",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "reference": "assets/copy-document.svg",
+      "location": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 280 列",
+      "state": "missing"
+    },
+    {
+      "id": "REF-bc5b65aa582975f2953ab220",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "reference": "assets/filter.svg",
+      "location": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 420 列",
+      "state": "missing"
+    }
+  ],
+  "issues": [
+    {
+      "id": "I-S-3d2b1277-042f-49bb-968a-50500d694ae3-v1-bundle-1-0118",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "message": "[引用未读取：assets/checkbox-checked.svg；引用缺少文件：assets/checkbox-checked.svg]"
+    },
+    {
+      "id": "I-S-3d2b1277-042f-49bb-968a-50500d694ae3-v1-bundle-1-0119",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "message": "[引用未读取：assets/arrow-down.svg；引用缺少文件：assets/arrow-down.svg]"
+    },
+    {
+      "id": "I-S-3d2b1277-042f-49bb-968a-50500d694ae3-v1-bundle-1-0155",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "message": "[引用未读取：assets/filter.svg；引用缺少文件：assets/filter.svg]"
+    },
+    {
+      "id": "I-S-3d2b1277-042f-49bb-968a-50500d694ae3-v1-bundle-1-0157",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "message": "[引用未读取：assets/copy-document.svg；引用缺少文件：assets/copy-document.svg]"
+    },
+    {
+      "id": "I-S-3d2b1277-042f-49bb-968a-50500d694ae3-v1-bundle-1-0160",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "message": "[引用未读取：assets/filter.svg；引用缺少文件：assets/filter.svg]"
+    },
+    {
+      "id": "I-REF-c1a03bc807ad7b1639b0973f",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "referenceId": "REF-c1a03bc807ad7b1639b0973f",
+      "message": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 7 行第 3 列：assets/checkbox-checked.svg（missing）"
+    },
+    {
+      "id": "I-REF-869380fce1ad2f062b931298",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "referenceId": "REF-869380fce1ad2f062b931298",
+      "message": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 7 行第 3 列：assets/arrow-down.svg（missing）"
+    },
+    {
+      "id": "I-REF-46d236c06d7583b5658c091f",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "referenceId": "REF-46d236c06d7583b5658c091f",
+      "message": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 195 列：assets/filter.svg（missing）"
+    },
+    {
+      "id": "I-REF-ce8b5b913ed0b2955d6c44b1",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "referenceId": "REF-ce8b5b913ed0b2955d6c44b1",
+      "message": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 280 列：assets/copy-document.svg（missing）"
+    },
+    {
+      "id": "I-REF-bc5b65aa582975f2953ab220",
+      "fileId": "F-3d2b1277-042f-49bb-968a-50500d694ae3",
+      "referenceId": "REF-bc5b65aa582975f2953ab220",
+      "message": "PRD-同名生产活动关联ID合并提醒_0826.html / HTML 第 369 行第 1 列 / iframe 生成版本前同名生产活动合并提醒原型 / HTML 第 54 行第 420 列：assets/filter.svg（missing）"
+    }
+  ],
+  "progress": {
+    "completed": 1,
+    "total": 1,
+    "phase": "等待补充资料"
+  },
+  "updatedAt": "2026-09-10T13:49:45.523Z",
+  "indexedRevision": 2
+}

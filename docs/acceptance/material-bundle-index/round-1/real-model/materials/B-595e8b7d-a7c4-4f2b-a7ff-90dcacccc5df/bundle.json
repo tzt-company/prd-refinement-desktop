@@ -1,0 +1,42 @@
+{
+  "id": "B-595e8b7d-a7c4-4f2b-a7ff-90dcacccc5df",
+  "name": "main",
+  "revision": 3,
+  "state": "ready",
+  "files": [
+    {
+      "id": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "logicalPath": "main.txt",
+      "role": "primary",
+      "revision": 1,
+      "size": 48,
+      "hash": "9541fed54745c959a65dcb9a0383663824f98e27276ac7f81887b1fe4348777e",
+      "status": "read",
+      "originalPath": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-model\\main.txt",
+      "blob": "9541fed54745c959a65dcb9a0383663824f98e27276ac7f81887b1fe4348777e.txt",
+      "sourceCount": 1
+    },
+    {
+      "id": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "logicalPath": "supplement.txt",
+      "role": "supplement",
+      "revision": 1,
+      "size": 45,
+      "hash": "431171fb39f5c1bf1499f129cb7a88450a47ef4244c7942b5a594cec9daef974",
+      "status": "read",
+      "originalPath": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-model\\supplement.txt",
+      "blob": "431171fb39f5c1bf1499f129cb7a88450a47ef4244c7942b5a594cec9daef974.txt",
+      "sourceCount": 1
+    }
+  ],
+  "references": [],
+  "issues": [],
+  "bindings": {},
+  "progress": {
+    "completed": 2,
+    "total": 2,
+    "phase": "索引就绪"
+  },
+  "updatedAt": "2026-09-10T13:48:27.393Z",
+  "indexedRevision": 3
+}

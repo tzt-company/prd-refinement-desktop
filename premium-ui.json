@@ -1,0 +1,21 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["src"],
+  "locale": "zh-CN",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Scrollbar", "Select/Listbox"],
+  "ownership": {
+    "File upload": "authored",
+    "Search": "authored",
+    "Scrollbar": "authored",
+    "Select/Listbox": "native"
+  },
+  "requiredCommands": ["unit", "premium"],
+  "commands": {
+    "unit": "npm test",
+    "premium": "npm run verify:premium"
+  },
+  "evidence": {
+    "failurePaths": "UX-CONTRACT.md"
+  }
+}

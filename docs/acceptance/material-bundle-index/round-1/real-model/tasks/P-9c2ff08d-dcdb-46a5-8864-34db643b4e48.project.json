@@ -1,0 +1,118 @@
+{
+  "id": "P-9c2ff08d-dcdb-46a5-8864-34db643b4e48",
+  "name": "main",
+  "sourceName": "main.txt",
+  "sourceHash": "b4ef0d29f6e22a8cec8e2afa801b9b887ec99cfcb6b763bab590f45868a69184",
+  "revision": 3,
+  "importedAt": "2026-09-10T13:48:27.414Z",
+  "rawText": "新增订单备注功能，备注最多100字。\n\n订单备注保存后重新打开仍显示。",
+  "stage": "review",
+  "sourceUnits": [
+    {
+      "id": "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+      "label": "原文单元 1",
+      "kind": "paragraph",
+      "excerpt": "新增订单备注功能，备注最多100字。",
+      "location": "main.txt · v1 · 第 1 行",
+      "status": "processed",
+      "fileId": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "fileRevision": 1,
+      "logicalPath": "main.txt",
+      "sourceRole": "primary",
+      "context": "资料角色：主 PRD。冲突需记录待澄清。\n"
+    },
+    {
+      "id": "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001",
+      "label": "原文单元 1",
+      "kind": "paragraph",
+      "excerpt": "订单备注保存后重新打开仍显示。",
+      "location": "supplement.txt · v1 · 第 1 行",
+      "status": "processed",
+      "fileId": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "fileRevision": 1,
+      "logicalPath": "supplement.txt",
+      "sourceRole": "supplement",
+      "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n"
+    }
+  ],
+  "sourceDocuments": [
+    {
+      "fileId": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "revision": 1,
+      "logicalPath": "main.txt",
+      "role": "primary",
+      "rawText": "新增订单备注功能，备注最多100字。"
+    },
+    {
+      "fileId": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "revision": 1,
+      "logicalPath": "supplement.txt",
+      "role": "supplement",
+      "rawText": "订单备注保存后重新打开仍显示。"
+    }
+  ],
+  "materialBundle": {
+    "id": "B-595e8b7d-a7c4-4f2b-a7ff-90dcacccc5df",
+    "revision": 3
+  },
+  "rules": [],
+  "features": [
+    {
+      "id": "F-001",
+      "name": "订单备注",
+      "goal": "新增订单备注功能，备注最多100字；保存后重新打开订单时仍显示已保存的备注。",
+      "sourceUnitIds": [
+        "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+        "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001"
+      ],
+      "ruleIds": [],
+      "requirementIds": [
+        "R-0001"
+      ],
+      "kind": "function",
+      "state": "draft",
+      "appliesToFeatureIds": []
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R-0001",
+      "title": "订单备注",
+      "behavior": "新增订单备注功能，备注最多100字；订单备注保存后重新打开订单仍显示。",
+      "conditions": [],
+      "constraints": [
+        "备注最多100字"
+      ],
+      "explicitAcceptanceConditions": [],
+      "sourceUnitIds": [
+        "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+        "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001"
+      ],
+      "ruleIds": [],
+      "state": "draft"
+    }
+  ],
+  "clarifications": [],
+  "sourceDispositions": [
+    {
+      "sourceUnitId": "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+      "kind": "requirement",
+      "reason": "明确提出新增订单备注功能及备注字数上限。",
+      "featureIds": [
+        "F-001"
+      ]
+    },
+    {
+      "sourceUnitId": "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001",
+      "kind": "requirement",
+      "reason": "明确描述订单备注保存后重新打开仍显示的业务行为。",
+      "featureIds": [
+        "F-001"
+      ]
+    }
+  ],
+  "audit": {
+    "passed": true,
+    "issues": []
+  }
+}

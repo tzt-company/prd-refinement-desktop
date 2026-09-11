@@ -1,0 +1,176 @@
+{
+  "bundle": {
+    "id": "B-a02abdf9-bf01-437e-8547-75c6898c5c2d",
+    "name": "主文档",
+    "revision": 4,
+    "state": "ready",
+    "files": [
+      {
+        "id": "F-6108ecea-9075-47a9-8ada-04c9e8a3af8e",
+        "logicalPath": "主文档.html",
+        "role": "primary",
+        "revision": 1,
+        "size": 96,
+        "hash": "5193fa2d9b38d90456b57a122606b13ea752359196aa199843da23bfec934de5",
+        "status": "read",
+        "sourceCount": 2
+      },
+      {
+        "id": "F-93a5a67d-4aae-4405-8c10-97fa284c0bfc",
+        "logicalPath": "assets/补充.md",
+        "role": "supplement",
+        "revision": 1,
+        "size": 51,
+        "hash": "504507fd880e2c0908a7db89ce8dbe47b6b7d29ee747deba8435b5e5e1c5d3fb",
+        "status": "read",
+        "sourceCount": 2
+      },
+      {
+        "id": "F-d393f961-25f6-43b8-b12f-1bfb41f172df",
+        "logicalPath": "拖放.txt",
+        "role": "supplement",
+        "revision": 1,
+        "size": 42,
+        "hash": "d5399d71b5da2e08ec5fb84b29dc7940af04fa6faf62a41181ed7caeea17054a",
+        "status": "read",
+        "sourceCount": 1
+      }
+    ],
+    "references": [],
+    "issues": [],
+    "progress": {
+      "completed": 3,
+      "total": 3,
+      "phase": "索引就绪"
+    },
+    "updatedAt": "2026-09-11T01:35:02.755Z",
+    "indexedRevision": 4
+  },
+  "project": {
+    "id": "P-44e19854-c308-4d17-bda5-234aa6bb7256",
+    "name": "主文档",
+    "sourceName": "主文档.html",
+    "sourceHash": "a0719f91e2831cdbeefc745a175e3cade94badc0f646f83b66838479433df427",
+    "revision": 4,
+    "importedAt": "2026-09-11T01:35:04.049Z",
+    "rawText": "# 订单合并提醒\n\n同名活动合并前必须确认。\n\n# 补充规则\n取消合并后保留原始关联。\n\n关联成功后展示来源活动名称。",
+    "stage": "inventory",
+    "sourceUnits": [
+      {
+        "id": "S-6108ecea-9075-47a9-8ada-04c9e8a3af8e-v1-bundle-1-0001",
+        "kind": "heading",
+        "label": "# 订单合并提醒",
+        "excerpt": "# 订单合并提醒",
+        "location": "主文档.html · v1 · 主文档.html / HTML 第 1 行第 17 列",
+        "status": "processed",
+        "context": "资料角色：主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：[S-6108ecea-9075-47a9-8ada-04c9e8a3af8e-v1-bundle-1-0001] 订单合并提醒\n</source-structure-context>",
+        "fileId": "F-6108ecea-9075-47a9-8ada-04c9e8a3af8e",
+        "fileRevision": 1,
+        "logicalPath": "主文档.html",
+        "sourceRole": "primary"
+      },
+      {
+        "id": "S-6108ecea-9075-47a9-8ada-04c9e8a3af8e-v1-bundle-1-0002",
+        "kind": "paragraph",
+        "label": "同名活动合并前必须确认。",
+        "excerpt": "同名活动合并前必须确认。",
+        "location": "主文档.html · v1 · 主文档.html / HTML 第 1 行第 31 列",
+        "status": "processed",
+        "context": "资料角色：主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：[S-6108ecea-9075-47a9-8ada-04c9e8a3af8e-v1-bundle-1-0001] 订单合并提醒\n</source-structure-context>",
+        "fileId": "F-6108ecea-9075-47a9-8ada-04c9e8a3af8e",
+        "fileRevision": 1,
+        "logicalPath": "主文档.html",
+        "sourceRole": "primary"
+      },
+      {
+        "id": "S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0001",
+        "label": "补充规则",
+        "kind": "heading",
+        "excerpt": "# 补充规则",
+        "location": "assets/补充.md · v1 · 第 1 行",
+        "status": "processed",
+        "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：[S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0001] 补充规则\n</source-structure-context>",
+        "fileId": "F-93a5a67d-4aae-4405-8c10-97fa284c0bfc",
+        "fileRevision": 1,
+        "logicalPath": "assets/补充.md",
+        "sourceRole": "supplement"
+      },
+      {
+        "id": "S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0002",
+        "label": "原文单元 2",
+        "kind": "paragraph",
+        "excerpt": "取消合并后保留原始关联。",
+        "location": "assets/补充.md · v1 · 第 2 行",
+        "status": "processed",
+        "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：[S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0001] 补充规则\n</source-structure-context>",
+        "fileId": "F-93a5a67d-4aae-4405-8c10-97fa284c0bfc",
+        "fileRevision": 1,
+        "logicalPath": "assets/补充.md",
+        "sourceRole": "supplement"
+      },
+      {
+        "id": "S-d393f961-25f6-43b8-b12f-1bfb41f172df-v1-bundle-1-0001",
+        "label": "原文单元 1",
+        "kind": "paragraph",
+        "excerpt": "关联成功后展示来源活动名称。",
+        "location": "拖放.txt · v1 · 第 1 行",
+        "status": "processed",
+        "fileId": "F-d393f961-25f6-43b8-b12f-1bfb41f172df",
+        "fileRevision": 1,
+        "logicalPath": "拖放.txt",
+        "sourceRole": "supplement",
+        "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n"
+      }
+    ],
+    "sourceDocuments": [
+      {
+        "fileId": "F-6108ecea-9075-47a9-8ada-04c9e8a3af8e",
+        "revision": 1,
+        "logicalPath": "主文档.html",
+        "role": "primary",
+        "rawText": "# 订单合并提醒\n\n同名活动合并前必须确认。"
+      },
+      {
+        "fileId": "F-93a5a67d-4aae-4405-8c10-97fa284c0bfc",
+        "revision": 1,
+        "logicalPath": "assets/补充.md",
+        "role": "supplement",
+        "rawText": "# 补充规则\n取消合并后保留原始关联。"
+      },
+      {
+        "fileId": "F-d393f961-25f6-43b8-b12f-1bfb41f172df",
+        "revision": 1,
+        "logicalPath": "拖放.txt",
+        "role": "supplement",
+        "rawText": "关联成功后展示来源活动名称。"
+      }
+    ],
+    "materialBundle": {
+      "id": "B-a02abdf9-bf01-437e-8547-75c6898c5c2d",
+      "revision": 4
+    },
+    "rules": [],
+    "features": [],
+    "requirements": [],
+    "clarifications": []
+  },
+  "query": {
+    "items": [
+      {
+        "id": "S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0002",
+        "label": "原文单元 2",
+        "kind": "paragraph",
+        "excerpt": "取消合并后保留原始关联。",
+        "location": "assets/补充.md · v1 · 第 2 行",
+        "status": "processed",
+        "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n<source-structure-context>\n章节路径：[S-93a5a67d-4aae-4405-8c10-97fa284c0bfc-v1-bundle-1-0001] 补充规则\n</source-structure-context>",
+        "fileId": "F-93a5a67d-4aae-4405-8c10-97fa284c0bfc",
+        "fileRevision": 1,
+        "logicalPath": "assets/补充.md",
+        "sourceRole": "supplement"
+      }
+    ],
+    "total": 1,
+    "revision": 4
+  }
+}

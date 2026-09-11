@@ -1,0 +1,63 @@
+{
+  "bundleId": "B-89b5d51c-ffda-4234-a4d8-69c237bbc827",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "nodeProfiles": {
+      "imageReading": {
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low"
+      }
+    },
+    "maxParallel": 1,
+    "maxNodeParallel": 1
+  },
+  "firstState": "ready",
+  "firstRevision": 3,
+  "secondState": "ready",
+  "secondRevision": 4,
+  "image": {
+    "id": "S-a3ba490e-868e-4631-8401-513cad7cf69b-v1-bundle-1-0001",
+    "kind": "image",
+    "label": "image.png",
+    "excerpt": "[图片资产：image.png]",
+    "location": "supplement.png · v1 · 图片文件",
+    "status": "processed",
+    "asset": {
+      "path": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-vision\\profile\\materials\\B-89b5d51c-ffda-4234-a4d8-69c237bbc827\\parsed\\F-a3ba490e-868e-4631-8401-513cad7cf69b\\fc25c27f-50ac-4d7e-933e-4e0d0a52fd0d\\image.png",
+      "mimeType": "image/png",
+      "sha256": "80b154cfc9488bc01e23b80fc5902798ca8db6028e7109cf857f8b5bc0a0f12d",
+      "readStatus": "read",
+      "extractedText": "订单备注最多100字"
+    },
+    "synthetic": true,
+    "fileId": "F-a3ba490e-868e-4631-8401-513cad7cf69b",
+    "fileRevision": 1,
+    "logicalPath": "supplement.png",
+    "sourceRole": "supplement",
+    "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n"
+  },
+  "cacheBefore": [
+    {
+      "name": "89d841f794534c523791704c220f0682650517c273746348df31a7fc61c06174.json",
+      "mtimeMs": 1789048419331.3376,
+      "text": "{\n  \"readable\": true,\n  \"text\": \"订单备注最多100字\"\n}"
+    }
+  ],
+  "cacheAfter": [
+    {
+      "name": "89d841f794534c523791704c220f0682650517c273746348df31a7fc61c06174.json",
+      "mtimeMs": 1789048419331.3376,
+      "text": "{\n  \"readable\": true,\n  \"text\": \"订单备注最多100字\"\n}"
+    }
+  ],
+  "visionSessionsBefore": [
+    "9dd6b477-24bb-4418-ab83-39023331df3c"
+  ],
+  "visionSessionsAfter": [
+    "9dd6b477-24bb-4418-ab83-39023331df3c"
+  ],
+  "checks": "真实main IPC+真实图像模型回调；转录含100；重建版本递增；缓存内容/mtime未变，未新增模型会话目录"
+}

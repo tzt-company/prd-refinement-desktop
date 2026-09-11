@@ -1,0 +1,39 @@
+{
+  "id": "B-168e3a48-18ec-446f-8f00-57903e84b17a",
+  "name": "main",
+  "revision": 3,
+  "state": "draft",
+  "files": [
+    {
+      "id": "F-44d0130c-2473-450e-b7a1-31915be6fc83",
+      "logicalPath": "main.txt",
+      "role": "primary",
+      "revision": 1,
+      "size": 48,
+      "hash": "9541fed54745c959a65dcb9a0383663824f98e27276ac7f81887b1fe4348777e",
+      "status": "registered",
+      "originalPath": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-model\\main.txt",
+      "blob": "9541fed54745c959a65dcb9a0383663824f98e27276ac7f81887b1fe4348777e.txt"
+    },
+    {
+      "id": "F-a205d029-b1d8-471a-902b-2844f2204a6e",
+      "logicalPath": "supplement.txt",
+      "role": "supplement",
+      "revision": 1,
+      "size": 45,
+      "hash": "431171fb39f5c1bf1499f129cb7a88450a47ef4244c7942b5a594cec9daef974",
+      "status": "registered",
+      "originalPath": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-model\\supplement.txt",
+      "blob": "431171fb39f5c1bf1499f129cb7a88450a47ef4244c7942b5a594cec9daef974.txt"
+    }
+  ],
+  "references": [],
+  "issues": [],
+  "bindings": {},
+  "progress": {
+    "completed": 0,
+    "total": 2,
+    "phase": "等待识别"
+  },
+  "updatedAt": "2026-09-10T13:48:13.591Z"
+}

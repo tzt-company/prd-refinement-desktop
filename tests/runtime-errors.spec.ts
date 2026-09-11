@@ -1,0 +1,53 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
+const mocks=vi.hoisted(()=>({spawn:vi.fn(),execFile:vi.fn()}));
+vi.mock('node:child_process',()=>({spawn:mocks.spawn,execFile:mocks.execFile}));
+vi.mock('node:fs/promises',()=>({access:vi.fn(async()=>{}),mkdir:vi.fn(async()=>{}),readFile:vi.fn(),readdir:vi.fn(async()=>['1.0']),writeFile:vi.fn()}));
+import { CodexCliRuntime, inspectRuntime } from '../electron/runtime';
+import type { RuntimeConfig } from '../src/types';
+const config:RuntimeConfig={adapter:'codex-oauth',provider:'',model:'fake',reasoningEffort:'low',maxParallel:1,apiKey:'CONFIG-SECRET'};
+function child(){return Object.assign(new EventEmitter(),{stdin:new PassThrough(),stdout:new PassThrough(),stderr:new PassThrough(),kill:vi.fn()})}
+beforeEach(()=>mocks.spawn.mockReset());
+async function started(){const runtime=new CodexCliRuntime();await runtime.start('test-runtime',config);return runtime}
+async function flushSpawn(){for(let i=0;i<10;i++)await Promise.resolve()}
+describe('Codex 每调用结构化错误',()=>{
+  it('中间重连error后turn.completed和答案成功不误判失败',async()=>{
+    const process=child();mocks.spawn.mockReturnValue(process);const runtime=await started();const pending=runtime.promptAndWait('s','prompt');await flushSpawn();
+    for(const event of [{type:'error',message:'temporary reconnect'},{type:'item.completed',item:{type:'agent_message',text:'OK'}},{type:'turn.completed',usage:{input_tokens:10,output_tokens:1}}])process.stdout.write(JSON.stringify(event)+'\n');process.emit('close',0);
+    expect(await pending).toBe('OK');expect(runtime.diagnostics()).toBe('');expect(runtime.metrics()[0].inputTokens).toBe(10);
+  });
+  it('明确turn.failed即使退出码为0也失败',async()=>{
+    const process=child();mocks.spawn.mockReturnValue(process);const runtime=await started();const pending=runtime.promptAndWait('s','prompt');const rejected=expect(pending).rejects.toThrow('terminal failure');await flushSpawn();process.stdout.write(JSON.stringify({type:'turn.failed',error:{message:'terminal failure'}})+'\n');process.emit('close',0);await rejected;
+  });
+  it('退出错误包含turn.failed具体原因，处理无结尾换行并屏蔽敏感字段',async()=>{
+    const process=child();mocks.spawn.mockReturnValue(process);const runtime=await started();const pending=runtime.promptAndWait('s','prompt');const rejection=expect(pending).rejects.toThrow('额度不足');await flushSpawn();
+    process.stderr.write('raw stderr SECRET-STDERR');process.stdout.write(JSON.stringify({type:'turn.failed',error:{message:'额度不足 token原因 CONFIG-SECRET api_key=EXPOSED Bearer abc.def user@example.com https://x.test/?token=URLSECRET'}}));process.emit('close',1);await rejection;
+    expect(runtime.diagnostics()).not.toMatch(/SECRET|EXPOSED|abc\.def|user@example|x\.test/);expect(runtime.diagnostics()).toContain('额度不足');
+  });
+  it('并发失败原因只属于对应调用，不串联其他调用或stderr',async()=>{
+    const a=child(),b=child();mocks.spawn.mockReturnValueOnce(a).mockReturnValueOnce(b);const runtime=await started();const first=runtime.promptAndWait('a','a').catch(e=>e as Error),second=runtime.promptAndWait('b','b').catch(e=>e as Error);await flushSpawn();
+    a.stdout.write(JSON.stringify({type:'error',message:'A rate limit'})+'\n');b.stdout.write(JSON.stringify({type:'turn.failed',error:{message:'B unavailable'}})+'\n');a.emit('close',1);b.emit('close',1);
+    expect((await first as Error).message).toContain('A rate limit');expect((await first as Error).message).not.toContain('B unavailable');expect((await second as Error).message).toContain('B unavailable');expect((await second as Error).message).not.toContain('A rate limit');
+  });
+  it('没有结构化错误时不暴露原始stderr，成功调用不继承历史错误',async()=>{
+    const a=child(),b=child();mocks.spawn.mockReturnValueOnce(a).mockReturnValueOnce(b);const runtime=await started();const failure=runtime.promptAndWait('a','a');const rejected=expect(failure).rejects.toThrow(/^Codex 已退出（1）$/);await flushSpawn();a.stderr.write('private prompt secret');a.emit('close',1);await rejected;
+    const success=runtime.promptAndWait('b','b');await flushSpawn();b.stdout.write(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'OK'}})+'\n');b.emit('close',0);expect(await success).toBe('OK');expect(runtime.diagnostics()).toBe('');
+  });
+});
+describe('Codex CLI 状态检查',()=>{
+  it.each([
+    [null,'Logged in using ChatGPT','authenticated'],
+    [new Error('exit 1'),'Not logged in','unauthenticated'],
+    [new Error('timeout'),'','error'],
+    [null,'unrecognized output','error'],
+  ])('认证状态不混淆 %s %s',async(error,output,expected)=>{
+    mocks.execFile.mockImplementation((_bin,args,_options,callback)=>{if(args[0]==='--version')callback(null,'codex-cli 0.153.4','');else callback(error,'',output)});
+    const result=await inspectRuntime(config);
+    expect(result.version).toBe('0.153.4');expect(result.authStatus).toBe(expected);expect(result.available).toBe(true);expect(result.routeReady).toBeUndefined();expect(JSON.stringify(result)).not.toContain('Logged in');
+  });
+  it('版本命令失败不把目录名当作版本',async()=>{
+    mocks.execFile.mockImplementation((_bin,_args,_options,callback)=>callback(new Error('failed'),'','private data'));
+    const result=await inspectRuntime(config);expect(result.version).toBeUndefined();expect(result.reason).toBe('CLI 版本检查失败');expect(JSON.stringify(result)).not.toContain('private data');
+  });
+});

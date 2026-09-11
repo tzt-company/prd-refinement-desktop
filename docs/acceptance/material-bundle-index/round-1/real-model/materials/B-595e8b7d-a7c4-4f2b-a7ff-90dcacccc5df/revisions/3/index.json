@@ -1,0 +1,48 @@
+{
+  "revision": 3,
+  "units": [
+    {
+      "id": "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+      "label": "原文单元 1",
+      "kind": "paragraph",
+      "excerpt": "新增订单备注功能，备注最多100字。",
+      "location": "main.txt · v1 · 第 1 行",
+      "status": "processed",
+      "fileId": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "fileRevision": 1,
+      "logicalPath": "main.txt",
+      "sourceRole": "primary",
+      "context": "资料角色：主 PRD。冲突需记录待澄清。\n"
+    },
+    {
+      "id": "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001",
+      "label": "原文单元 1",
+      "kind": "paragraph",
+      "excerpt": "订单备注保存后重新打开仍显示。",
+      "location": "supplement.txt · v1 · 第 1 行",
+      "status": "processed",
+      "fileId": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "fileRevision": 1,
+      "logicalPath": "supplement.txt",
+      "sourceRole": "supplement",
+      "context": "资料角色：补充参考，不自动覆盖主 PRD。冲突需记录待澄清。\n"
+    }
+  ],
+  "documents": [
+    {
+      "fileId": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "revision": 1,
+      "logicalPath": "main.txt",
+      "role": "primary",
+      "rawText": "新增订单备注功能，备注最多100字。"
+    },
+    {
+      "fileId": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "revision": 1,
+      "logicalPath": "supplement.txt",
+      "role": "supplement",
+      "rawText": "订单备注保存后重新打开仍显示。"
+    }
+  ],
+  "manifestHash": "b4ef0d29f6e22a8cec8e2afa801b9b887ec99cfcb6b763bab590f45868a69184"
+}

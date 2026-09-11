@@ -1,0 +1,87 @@
+# UX Contract
+
+## Product context
+
+- Audience：产品、研发、测试和需求评审人员。
+- Primary jobs：导入 PRD，确认材料范围，审阅功能点，逐项检查需求明细、原文明示验收条件和待确认事项问题。平台不生成测试用例或验收场景。
+- Active locales：zh-CN。
+- Accessibility target：WCAG 2.2 AA。
+
+## Business-context sources
+
+| Domain / scope | Authoritative source | Source type | Reviewed date |
+|---|---|---|---|
+| 一期需求细化范围 | `D:\baibu-agent\docs\spec\prd-refinement-delivery-design.md` | Product spec | 2026-09-09 |
+
+## Visual contract
+
+- Project `DESIGN.md`：项目根目录 `DESIGN.md`。
+- Token ownership：DESIGN.md 定义意图和值，`src/styles.css` 映射运行时 CSS 变量。
+- Supported themes：一期只支持浅色。
+
+## Canonical UI Map
+
+| Capability | Canonical owner | Source of truth | Allowed variants | Verification |
+|---|---|---|---|---|
+| File upload | `src/App.tsx` 的 `UploadScreen` 与 `electron/main.ts` 的 `projects:import` | `electron/main.ts` | docx / pdf / md / txt | component + E2E |
+| Search | `src/App.tsx` 的 `RequirementTable` | `src/App.tsx` | 需求明细本地过滤 | keyboard + E2E |
+| Select/Listbox | native | `src/styles.css` | Runtime 配置、资料包恢复、资料用途和来源文件 | keyboard + E2E |
+| Toast | 暂不适用 | 本契约 | 后续统一实现 | n/a |
+| Scrollbar | `src/styles.css` | DESIGN.md | panel scroll | browser inspection |
+
+## Flow ledger
+
+| Operation | Trigger | Pending | Success destination | Failure recovery |
+|---|---|---|---|---|
+| 导入 PRD | 选择文件 | 显示所选文件并进入执行页 | 开始原文建账 | 显示具体文件读取错误并允许重选 |
+| 开始识别 | 文件读取完成 | 逐阶段显示当前处理内容 | 结果汇总 | 保留检查点并允许重试 |
+| 搜索明细 | 输入查询词 | 即时本地过滤 | 当前列表 | 清空恢复全量 |
+| 取得产物 | 分析完成 | 自动生成 Excel 到项目结果目录 | 用户选择“打开结果目录” | 生成失败时显示失败阶段并允许重试 |
+
+## Async and resilience
+
+- Harness 进程由 Electron 主进程持有；渲染进程不能直接启动程序或访问文件系统。
+- 每次分析保存输入 revision、attempt 和来源包/功能级检查点；候选检查与返工预算同时保存。Runtime 进程退出不删除已验收结果。
+- 取消分析时使当前 attempt 失效并结束 Runtime；迟到结果不能提交到已取消任务。
+- 导入项目保存在 Electron userData 下，写入前保持结构完整。
+
+## Verification
+
+- Required static commands：`npm run typecheck`、`npm test`、`npm run build`、`npm run verify:premium`。
+- Browser/device matrix：1440×900 和 1100×720，键盘焦点与长文本。
+- Project audit：frontend-design-premium strict audit。
+
+## Scale contract
+
+- 单份 PRD 的目标规模为 20–100 个功能点、100–1000 个需求明细。
+- 主路径固定为上传文件、查看执行过程、审阅结果汇总；不在单页同时展开全部层级。
+- 汇总、功能清单、需求明细、待确认事项和需求审查问题是结果页的独立标签；单条详情仅在用户选择时打开。
+- Excel 是用户交付物，应用内部 JSON 只用于恢复任务和结果页面。
+- 顶部“任务”是所有分析任务的统一入口；任务列表展示状态、当前阶段、进度、总耗时和创建时间。
+- 多个运行中任务彼此独立推进；最大并行数用于真实 Harness 调度，超限任务进入排队。
+- 执行详情的每个阶段显示完成耗时、当前执行时长或等待状态。
+- Runtime 配置拥有独立页面，快速模型、关键模型和各自推理深度的变更只影响新任务。
+- 候选识别和简单细化走快速模型；独立完整性检查、功能统一、复杂细化、全量来源审计和返工默认 Sol/low。
+- 九个模型配置分别控制图片、候选、候选返工、候选检查、统一、简单细化、复杂细化、审计、局部修正；确定性脚本不显示模型配置。
+- 节点 2/3 按来源包流水并行；共享写集合的修正合并，独立修正并行计算并串行提交。每任务及全局调用上限共同约束并发。
+- Excel 功能清单区分业务功能和跨功能约束，明确显示约束适用功能；每条需求只有一个主归属。旧版检查点仅供查看，不能用新契约续跑。
+- 失败任务提供“从检查点重试”；逐功能细化和审计提供 1–6 的单任务节点并发设置。
+
+
+业务结果默认显示五个阅读入口，来源处置只保留为 Excel 隐藏追溯表。机器整理与人工确认分开；审查问题只显示未修复项。需求详情抽屉为非模态补充阅读区域，支持 Escape 关闭。桌面本地阅读的筛选暂存于页面组件，不写入 URL。
+
+## 资料包工作流（2026-09-10）
+
+- 资料创建、文件/目录选择、拖放、路径/角色编辑、排除与移除的唯一 UI 入口为 `src/MaterialWorkspace.tsx`，后端真值为 `window.prdApp.materials`。取代上述旧单文件上传流程。
+- 新建任务首先显示原上传页式的单一主 PRD 选择卡片；首次选择时在后台创建资料包，不增加“先新建资料包”的前置步骤。主 PRD 保存成功后才展示补充资料、索引和来源管理。
+- 选择一个主 PRD，补充文件可标记补充资料或历史参考；目录添加前可指定挂载路径，留空使用目录名，添加后可调整文件逻辑路径。
+- 原生 select/input 沿用 Runtime 设置页控件；保存需要显式点击，成功由 IPC 返回后显示。输入失败保留当前编辑值；移除有内联确认，原始文件不删除。
+- 文件与引用每页 20 项，内容索引每页 25 项。搜索明确显示结果总量和分页，来源全文按 ID 读取。
+- 草稿可从本页选择恢复；索引进行中每秒读取实际进度，离开页面不取消后台任务。取消按钮明确结束索引；错误保留资料并可刷新重试。
+- 写操作加同步锁，阻止重复点击；请求代次与当前资料 ID 防止迟到结果覆盖。索引期间禁止改输入，取消完成后允许补件。
+- 只有当前版本 ready 时可开始分析；资料变更后索引失效，旧内容不冒充当前版本。
+- 缺件逐项显示文件路径、引用位置，支持明确绑定或带理由排除。索引完成不能推出需求语义完整。
+- 主 PRD 选中后的页面按“主文档 → 可选补充 → 下一步 → 缺件 → 明细”排列，内容与操作使用同一 1040px 阅读轴，不再保留居中大标题造成的空白区。
+- 一个引用文件在多处出现时，摘要分别显示唯一缺件数和未读取引用数；摘要只提供概览与“处理缺件”入口，完整位置和处置动作在“引用与缺件”视图中完成。
+- 当资料尚未就绪时，“识别与建立索引”是唯一主操作；资料就绪后，“开始需求分析”成为唯一主操作。
+- 来源预览不渲染 HTML，使用纯文本；支持 Escape 关闭。所有状态同时用文字表达。

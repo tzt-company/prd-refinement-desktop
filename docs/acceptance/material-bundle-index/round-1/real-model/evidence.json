@@ -1,0 +1,220 @@
+{
+  "taskId": "T-C74B2F93",
+  "status": "completed",
+  "steps": [
+    {
+      "id": "inventory",
+      "name": "原文建账",
+      "note": "登记原文、结构、位置与缺失材料",
+      "status": "completed",
+      "completedAt": 1789048107427,
+      "durationMs": 2
+    },
+    {
+      "id": "candidates",
+      "name": "功能候选识别",
+      "note": "已识别 2/2 个来源包",
+      "status": "completed",
+      "runs": 2,
+      "durationMs": 17464,
+      "completedAt": 1789048139180
+    },
+    {
+      "id": "coverage",
+      "name": "功能候选完整性检查",
+      "note": "已检查 2/2 个来源包",
+      "status": "completed",
+      "runs": 2,
+      "durationMs": 16196,
+      "completedAt": 1789048139180
+    },
+    {
+      "id": "unify",
+      "name": "功能清单统一",
+      "note": "按显式候选映射统一功能及跨功能约束",
+      "status": "completed",
+      "runs": 1,
+      "durationMs": 12279,
+      "completedAt": 1789048151476
+    },
+    {
+      "id": "details",
+      "name": "逐功能细化",
+      "note": "已细化 1/1 个功能",
+      "status": "completed",
+      "runs": 1,
+      "durationMs": 18919,
+      "completedAt": 1789048170428
+    },
+    {
+      "id": "audit",
+      "name": "完整性与忠实性检查",
+      "note": "已审计 2/2 个来源包",
+      "status": "completed",
+      "runs": 2,
+      "durationMs": 16715,
+      "completedAt": 1789048187167
+    },
+    {
+      "id": "repair",
+      "name": "局部修正",
+      "note": "修改问题涉及条目并独立复核",
+      "status": "completed",
+      "completedAt": 1789048187180,
+      "durationMs": 7
+    },
+    {
+      "id": "delivery",
+      "name": "交付",
+      "note": "校验全部关系并生成 Excel",
+      "status": "completed",
+      "completedAt": 1789048187370,
+      "durationMs": 184
+    }
+  ],
+  "materialBundle": {
+    "id": "B-595e8b7d-a7c4-4f2b-a7ff-90dcacccc5df",
+    "revision": 3
+  },
+  "sourceDocuments": [
+    {
+      "fileId": "F-ec2c95b5-920b-4393-8fe0-a2373c40802f",
+      "revision": 1,
+      "logicalPath": "main.txt",
+      "role": "primary"
+    },
+    {
+      "fileId": "F-91c8562a-2dab-4cb0-8c9f-a23288edd966",
+      "revision": 1,
+      "logicalPath": "supplement.txt",
+      "role": "supplement"
+    }
+  ],
+  "metrics": [
+    {
+      "sessionId": "prd-T-C74B2F93-a1-candidate-1-2-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "low",
+      "startedAt": 1789048107437,
+      "completedAt": 1789048122956,
+      "durationMs": 15519,
+      "inputTokens": 15700,
+      "cachedInputTokens": 0,
+      "outputTokens": 208
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-candidate-0-1-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "low",
+      "startedAt": 1789048107463,
+      "completedAt": 1789048124894,
+      "durationMs": 17431,
+      "inputTokens": 15694,
+      "cachedInputTokens": 0,
+      "outputTokens": 215
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-coverage-1-3-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "low",
+      "startedAt": 1789048122983,
+      "completedAt": 1789048136716,
+      "durationMs": 13733,
+      "inputTokens": 17410,
+      "cachedInputTokens": 0,
+      "outputTokens": 8
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-coverage-0-4-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "low",
+      "startedAt": 1789048124909,
+      "completedAt": 1789048139164,
+      "durationMs": 14255,
+      "inputTokens": 17394,
+      "cachedInputTokens": 11904,
+      "outputTokens": 8
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-unify-5-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-terra",
+      "reasoningEffort": "low",
+      "startedAt": 1789048139214,
+      "completedAt": 1789048151472,
+      "durationMs": 12258,
+      "inputTokens": 17706,
+      "cachedInputTokens": 0,
+      "outputTokens": 106
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-details-F-001-6-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "low",
+      "startedAt": 1789048151506,
+      "completedAt": 1789048170413,
+      "durationMs": 18907,
+      "inputTokens": 15823,
+      "cachedInputTokens": 0,
+      "outputTokens": 193
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-audit-1-8-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "low",
+      "startedAt": 1789048171533,
+      "completedAt": 1789048184048,
+      "durationMs": 12515,
+      "inputTokens": 17669,
+      "cachedInputTokens": 11904,
+      "outputTokens": 8
+    },
+    {
+      "sessionId": "prd-T-C74B2F93-a1-audit-0-7-try1",
+      "adapter": "codex-oauth",
+      "model": "gpt-5.6-sol",
+      "reasoningEffort": "low",
+      "startedAt": 1789048170466,
+      "completedAt": 1789048187159,
+      "durationMs": 16693,
+      "inputTokens": 17670,
+      "cachedInputTokens": 11904,
+      "outputTokens": 65
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R-0001",
+      "title": "订单备注",
+      "behavior": "新增订单备注功能，备注最多100字；订单备注保存后重新打开订单仍显示。",
+      "conditions": [],
+      "constraints": [
+        "备注最多100字"
+      ],
+      "explicitAcceptanceConditions": [],
+      "sourceUnitIds": [
+        "S-ec2c95b5-920b-4393-8fe0-a2373c40802f-v1-bundle-1-0001",
+        "S-91c8562a-2dab-4cb0-8c9f-a23288edd966-v1-bundle-1-0001"
+      ],
+      "ruleIds": [],
+      "state": "draft"
+    }
+  ],
+  "clarifications": [],
+  "audit": {
+    "passed": true,
+    "issues": []
+  },
+  "excel": "D:\\project\\prd-refinement-desktop\\docs\\acceptance\\material-bundle-index\\round-1\\real-model\\tasks\\T-C74B2F93\\result\\main-需求细化.xlsx",
+  "tracePaths": [
+    "main.txt",
+    "supplement.txt"
+  ],
+  "excelChecks": "两文件路径、100字约束、重新打开要求均真实回读通过"
+}

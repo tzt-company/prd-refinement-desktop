@@ -1,0 +1,1781 @@
+{
+  "id": "b46d72b0-f176-4ff2-a4a0-bae9e4cbde68",
+  "name": "PRD-同名生产活动关联ID合并提醒_0826",
+  "sourceName": "PRD-同名生产活动关联ID合并提醒_0826.html",
+  "sourceHash": "03aa77752b175deb1fbeb22913071e1dc49bc41926ba53158de86677683c0fae",
+  "revision": 1,
+  "importedAt": "2026-09-10T13:13:55.969Z",
+  "rawText": "目录\n\nV1.5 · 正式版\n\n- 1. 概要\n\n- 2. 背景\n\n- 3. 目标与范围\n\n- 3.1 目标\n\n- 3.2 本期范围\n\n- 3.3 边界\n\n- 4. 用户与场景\n\n- 5. 方案\n\n- 5.1 核心规则\n\n- 5.2 检查范围\n\n- 5.3 用户流程\n\n- 5.4 页面与交互\n\n- 5.5 合并与结果\n\n- 6. 验收标准\n\n- 7. 约束与风险\n\n# PRD：同名生产活动关联 ID 合并提醒\n\n当前版本：V1.5（正式版）\n\n## 1. 概要\n\n在「版本管理 >\n版本详情」中，用户点击「生成版本」后，系统检查当前版本内是否存在名称相同、关联\nID\n不同且能够安全合并的生产活动。存在候选时，系统在生成版本前提醒一次。\n\n用户可以选择要处理的同名生产活动组、合并后统一使用的关联\nID，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，也可以暂不合并。合并提醒仅处理关联\nID\n合并；合并完成或暂不合并后，系统再通过独立弹窗询问是否生成版本。合并不改变当前版本的数据集成员。\n\n## 2. 背景\n\n当前租户全量工作区内的未删除数据集中，可能存在本应使用同一关联 ID\n的生产活动，但由于录入、导入或维护操作被分散到多个关联 ID\n下，增加后续查询和维护成本。\n\n用户准备生成版本时，需要判断这些同名数据是否确实属于同一生产活动。候选来自当前版本，而关联\nID 合并可能影响候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，因此用户需要同时看见当前版本涉及范围和当前租户全量工作区内未删除数据集的实际影响范围。\n\n## 3. 目标与范围\n\n### 3.1 目标\n\n- 用户点击「生成版本」时，可以发现当前版本范围内可合并的同名生产活动。\n\n- 用户可以查看影响范围，并选择同名生产活动组、目标关联 ID\n和参与合并的数据集。\n\n- 用户完成合并或暂不合并后，通过独立确认决定是否生成版本；取消生成版本时，已完成的合并结果保留，当前版本保持未生成状态。\n\n### 3.2 本期范围\n\n- 检查并展示可完整合并的同名生产活动组；\n\n- 双栏展示候选组，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集；\n\n- 支持选择同名生产活动组、筛选数据集、筛选结果全选、逐行选择和明细导出；\n\n- 按组执行合并并反馈失败组的生产活动名称；\n\n- 具有版本管理权限的用户可以使用本功能。\n\n### 3.3 边界\n\n- 合并是可选操作，不作为生成版本的阻断条件；\n\n- 不能整组通过冲突校验的同名组不展示；\n\n- 校验和可选范围仅包含候选关联 ID\n在当前租户全量工作区内的未删除数据集；\n\n- 不新建关联 ID，不改造独立「关联 ID\n合并」页面，也不新增独立合并权限；\n\n- 不改变数据集 ID\n和版本数据集成员；版本生成完成后的导出和发布流程保持不变。\n\n- 数据集自身仅修改关联 ID；生产活动关联名称不随合并自动修改。源关联 ID\n在当前租户全量工作区内已无未删除数据集时，软删除对应的生产活动关联关系。\n\n## 4. 用户与场景\n\n具有版本管理权限的用户完成计算任务数据选择后，点击「生成版本」。若系统发现候选，用户判断哪些同名生产活动属于同一活动、统一使用哪个关联\nID、候选关联 ID\n在当前租户全量工作区内的哪些未删除数据集参与合并，并选择确认合并或暂不合并。合并提醒关闭后，用户在独立的生成版本确认弹窗中决定是否触发版本生成。\n\n## 5. 方案\n\n### 5.1 核心规则\n\n| 规则\n| 定义\n\n| 同名匹配\n| 移除生产活动名称中的空格后，不区分字母大小写；其他字符和符号按原值比较\n\n| 候选组\n| 当前版本范围实际数据集中出现过、同名匹配且包含两个及以上关联 ID\n的同名生产活动关联 ID 组\n\n| 可完整合并\n| 将候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集模拟统一到同一目标关联 ID\n后，不存在「目标关联\nID＋参考产品标识＋地理位置标识＋系统模型值＋活动类型值」全部相同的两条及以上数据集\n\n| 目标关联 ID\n| 从候选组已有的关联 ID 中选择；默认选中按关联 ID\n字符串升序排序后的最小值，用户可以修改\n\n| 参与合并的数据集\n| 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集；用户未选中的数据保留原关联\nID\n\n安全合并使用以下字段原始存储值进行判断，不使用页面展示名称或翻译值：\n\n| 产品字段\n| 判定字段\n| 判定规则\n\n| 目标关联 ID\n| tw_processes.uuid\n| 将候选组相关数据模拟为用户选择的目标关联 ID\n\n| 参考产品\n| tw_processes.reference_flow_id\n| 按标识原值比较\n\n| 地理位置\n| tw_processes.location_id\n| 按标识原值比较\n\n| 系统模型\n| tw_processes.from_data\n| 按系统模型原始存储值比较\n\n| 活动类型\n| tw_processes.special_type\n| 按枚举原值比较\n\n空值和重复记录按以下规则处理：\n\n- 同一判定字段均为数据库空值（NULL）时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较；\n\n- 开发前需统计上述字段是否存在空字符串或纯空格，并由技术评审确认是否统一按空值处理；\n\n- 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集中已经存在完整键重复时，该组不作为可合并候选；\n\n- 用户确认后重新校验发现完整键重复时，该组整体失败，不修改部分数据。\n\n### 5.2 检查范围\n\n| 环节\n| 范围\n\n| 候选关联 ID 来源\n| 当前版本实际包含的数据集中出现过的关联 ID\n\n| 同名分组\n| 仅在上述关联 ID 中按同名规则分组\n\n| 冲突校验\n| 每组关联 ID 在当前租户全量工作区内的全部未删除数据集\n\n| 提醒\n| 仅展示能够完整合并的组\n\n| 合并执行\n| 用户选中组内勾选的数据集\n\n### 5.3 用户流程\n\n- 用户在版本详情页进入第二步点击「生成版本」时，系统基于当时的当前版本数据执行一次候选检查。\n\n- 没有候选或检查失败时，不展示本提醒，进入原有生成版本确认弹窗；检查失败不增加提示。\n\n- 存在候选时，打开「发现可合并的同名生产活动」弹窗。\n\n- 用户选择同名生产活动组、目标关联 ID 和参与合并的数据集。\n\n- 用户点击「跳过，继续生成版本」时，不执行合并；关闭合并提醒后，打开独立的生成版本确认弹窗。\n\n- 用户点击右上角关闭按钮时，取消本次版本生成；再次点击「生成版本」时重新检查。\n\n- 用户点击「确认合并」时，系统重新校验并按组执行。处理结束后提示合并结果，关闭合并提醒，再打开独立的生成版本确认弹窗；该按钮不触发版本生成。\n\n- 用户在生成版本确认弹窗中点击「确认生成版本」时，单独触发异步版本生成；点击「取消」时，不生成版本，保留已完成的合并结果并返回版本详情页。\n\n- 合并成功但版本生成失败时，保留已经完成的合并结果并提示用户重新生成版本。\n\n- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。\n\n### 5.4 页面与交互\n\n原型图\n\n#### 5.4.1 信息结构\n\n| 区域\n| 内容\n\n| 汇总\n| 同名生产活动数量、相关关联 ID 数量、相关数据集数量并标注「版本内 n\n条」、“导出同名生产活动明细”按钮\n\n| 左栏\n| 同名生产活动组、关联 ID\n数量、当前租户全量工作区内的相关未删除数据集数量、组选择\n\n| 右栏\n| 当前组名称、目标关联 ID Select、已选数据量、数据集表格\n\n| 底部\n| 「跳过，继续生成版本」「确认合并」；跳过或合并处理完成后均关闭合并提醒，再打开独立的生成版本确认弹窗，不直接触发版本生成\n\n具体见原型文件。\n\n原型用于说明主要页面结构和交互方向。若原型未覆盖、缺少或仅静态展示本\nPRD 已明确的功能与状态，实际开发与验收以本 PRD 为准补足。\n\n#### 5.4.2 选择规则\n\n- 同名生产活动组默认均不勾选；未勾选的组不执行；\n\n- 选中某组后，默认选中该组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，用户可以排除部分数据；\n\n- 切换当前组时，保留各组已经选择的目标关联 ID 和数据集范围；\n\n- 「清除选择」清空当前组的数据集选择；\n\n#### 5.4.3 设置合并后统一关联 ID\n\n- 使用 Select 选择当前同名生产活动组合并后统一使用的关联 ID；\n\n- Select 选项为当前组已有的全部关联 ID，默认选中按关联 ID\n字符串升序排序后的最小值；\n\n- 用户可以分别修改每个已选组的目标关联 ID，切换组后保留已选结果；\n\n- 不支持输入或新建关联 ID。\n\n#### 5.4.4 数据集表格\n\n数据列依次包括：关联 ID、身份\nID、数据集名称、参考产品、地理位置、系统模型、活动类型。\n\n- 数据列支持横向滚动，最左侧选择列固定在滚动内容上层；\n\n- 支持按关联ID（筛选控件在关联 id 列表头）、是否在版本范围内筛选数据\n（筛选控件在数据集名称列表头）；\n\n- 表头选择框选择或取消当前筛选结果中的全部数据，不限当前可视行；\n\n- 不提供分页；\n\n- 支持点击数据集名称跳转数据集详情，当前版本中的数据集名称右侧显示「版本内」Tag；\n\n- 支持点击身份 ID 表头右侧的复制按钮，复制当前筛选结果中的全部身份\nID；复制内容使用英文逗号（,）分隔；\n\n- 筛选条件变化后保留已有选择，并更新「已选 x/y 条」。\n\n- 活动类型信息展示方式沿用现有数据集列表中的 Tag 展示方式。\n\n#### 5.4.5 生成版本确认\n\n- 合并处理完成或用户点击「跳过，继续生成版本」后，关闭合并提醒，再打开独立的生成版本确认弹窗；\n\n- 合并提醒中的操作只处理是否合并，不同时触发版本生成；\n\n- 用户点击「确认生成版本」后，系统单独触发异步版本生成；\n\n- 用户点击「取消」后返回版本详情页，不生成版本；已完成的合并结果不回滚；\n\n- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。\n\n#### 5.4.6 文案\n\n- 浮窗标题下提示：\n\n当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID\n下的同名生产活动。 若确认属于同一生产活动，可合并使用统一关联\nID。如果只是名称相同，可不进行合并，不影响版本发布。\n\n- 配置参与合并的数据集时提示：\n\n默认合并候选关联 ID\n在当前租户全量工作区内的所有未删除数据集，结果使用统一关联\nID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID\n下。\n\n#### 5.4.7 导出\n\n「导出同名生产活动明细」导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集。Excel\n字段及规则如下：\n\n| Excel 字段\n| 取值来源\n| 转换规则\n\n| Production Activity Name\n| tb_activities.activity_name\n| 通过 tb_activities.activity_id = tw_processes.uuid\n取得并直接输出；不实时读取 tw_processes.name\n\n| Activity ID\n| tw_processes.id\n| 直接输出数据集身份 ID\n\n| Related UUID\n| tw_processes.uuid\n| 直接输出关联 UUID\n\n| Activity Name\n| tw_processes.name\n| 直接输出数据集过程名称\n\n| Included Version\n| te_datasource_version_dataset.version\n| 按数据集 ID\n查询全部有效版本关系；多个版本值使用英文逗号（,）拼接到同一单元格；没有版本关系时输出空\n\n| Reference Product Name\n| tw_flows.name\n| 使用 tw_processes.reference_flow_id 关联\ntw_flows.id\n\n| Unit\n| tw_units.name\n| 从 tw_process_doc.document.declaredUnitId 关联\ntw_units.id\n\n| Special Activity Type\n| tw_processes.special_type\n| MARKET_TYPE → 消费混合；PRODUCT_TYPE → 生产混合\n\n| System Model\n| tw_processes.from_data\n| 原值输出，不查询数据源名称或翻译\n\n| Geography\n| tw_processes.location_id\n| 关联 tw_locations，输出当前语言下的\ni18nFullName；位置为空则输出空\n\n| Editor\n| tw_process_doc.business_json.editor\n| 使用用户 ID 查询 SSO 用户，输出用户邮箱，不输出姓名\n\n| Industries\n| tw_processes.industries\n| 数组中的字典 ID 分别转换为当前语言名称，使用英文逗号（,）拼接\n\n| Calculation\n| tw_process_doc.business_json.isCalculated\n| 数值为 1 输出 Calculated；其他值或空值输出\nNot Calculated\n\n| Review Status\n| tw_process_doc.business_json.processStatus\n| 状态字典 ID 转换为当前语言下的字典名称；空值输出空\n\n其中：\n\n- Production Activity Name 是生产活动关联名称，初始可能与 Activity\nName 相同，后续不保证一致；\n\n- Included Version 表示该数据集被加入的全部版本，不读取\ntw_processes.version；\n\n- 同一数据集存在多条有效版本关系时，将所有 version\n值使用英文逗号（,）拼接，例如 0.0.3,0.0.4,1.0.0；\n\n### 5.5 合并与结果\n\n- 系统仅处理用户选中的组和数据集，将所选数据改为该组选择的目标关联\nID；未选数据保留原关联 ID。\n\n- 执行前根据候选组各关联 ID\n在当前租户全量工作区内的最新未删除数据集重新校验。某同名组不再满足合并条件时，该组不执行，校验范围不限于数据集是否被勾选。\n\n- 每组执行前基于当时最新的当前租户全量工作区内未删除数据集重新校验。执行期间出现并发修改并导致最终状态冲突时，该组全部失败，不保留部分修改。\n\n- 单合并组内所选数据全部成功或全部失败；多组独立执行，一组失败不回滚其他成功组。\n\n- 存在失败组时，提示部分组合并失败并展示失败组的生产活动名称；成功组保留结果。合并结果提示完成后关闭合并提醒，再进入独立的生成版本确认弹窗。\n\n- 合并只修改所选数据集的关联 ID，不改变数据集\nID、数据集状态和版本数据集成员；当前位于版本外的未删除数据集不会因关联\nID 更新而加入当前版本。\n\n- 目标关联 ID 保留自身现有的 Production Activity\nName，本功能不自动修改生产活动关联名称。\n\n- 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时，保留该源生产活动关联关系；已无未删除数据集时，软删除对应的生产活动关联关系。\n\n- 合并执行与版本生成分别触发、分别记录结果。合并成功但用户取消生成版本，或后续版本生成失败时，均不回滚已经完成的合并；版本生成失败时提示「关联\nID 合并已完成，但版本生成失败。合并结果已保留，请重新生成版本。」\n\n- 再次点击「生成版本」时，系统基于最新版本范围重新检查；已经统一到目标关联\nID 的数据不重复处理，仍满足候选条件的其他数据可以再次提醒。\n\n- 本功能仅允许具有版本管理权限且能够操作当前版本的用户使用；前端入口和后端执行均校验权限及当前租户范围，不新增独立的关联\nID 合并权限。\n\n## 6. 验收标准\n\n| 编号\n| 场景\n| 预期结果\n\n| AC-01\n| 用户点击「生成版本」\n| 基于当时的当前版本数据检查一次；无候选或检查失败时不展示合并提醒，进入原有生成版本确认弹窗\n\n| AC-03\n| 名称存在空格、大小写或其他符号差异\n| 移除空格并忽略字母大小写；其他字符和符号按原值比较\n\n| AC-04\n| 同名关联 ID 组进行候选校验\n| 使用组内各关联 ID\n在当前租户全量工作区内的全部未删除数据集，并按目标关联\nID、参考产品标识、地理位置标识、系统模型值和活动类型值的原始存储值判断；不能完整合并或该范围内已有完整键重复的组不展示\n\n| AC-05\n| 用户查看提醒\n| 正确展示候选组、当前租户全量工作区内的相关未删除数据集数量和版本内数量；当前版本中的数据集显示「版本内」Tag\n\n| AC-06\n| 用户配置候选组\n| 同名生产活动组默认不勾选；目标关联 ID\n默认选中按字符串升序排序后的最小值且可修改；选中组后默认选中该组各关联\nID 在当前租户全量工作区内的全部未删除数据集\n\n| AC-07\n| 用户筛选、选择或复制数据集身份 ID\n| 可逐行选择、清除选择或通过表头选择全部筛选结果；横向滚动时选择列固定可见；复制当前筛选结果中的全部身份\nID 时使用英文逗号（,）分隔\n\n| AC-08\n| 用户跳过合并或关闭提醒\n| 点击「跳过，继续生成版本」时不执行合并；关闭合并提醒后打开独立的生成版本确认弹窗。点击右上角关闭按钮时取消本次版本生成，不打开生成版本确认弹窗；再次点击时重新检查\n\n| AC-09\n| 用户确认合并\n| 重新校验后仅修改所选组内所选数据，未选数据保留原关联\nID；完成后提示合并结果并进入独立的生成版本确认弹窗，不直接生成版本\n\n| AC-10\n| 单组、多组合并或执行期间出现并发修改\n| 单组全部成功或全部失败；并发修改导致最终状态冲突时该组不保留部分修改；多组独立，一组失败不回滚其他成功组\n\n| AC-11\n| 部分组合并失败\n| 展示失败组的生产活动名称并保留成功组结果；结果提示完成后进入独立的生成版本确认弹窗，不自动生成版本\n\n| AC-12\n| 合并涉及当前租户全量工作区内位于版本外的未删除数据集\n| 数据集 ID、状态和版本成员不变，这些数据集不会加入当前版本\n\n| AC-13\n| 用户导出明细\n| 导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集；Included\nVersion\n聚合该数据集全部有效版本关系，多个版本值使用英文逗号（,）拼接且不增加数据集行数；其他字段及转换结果符合\n5.4.7\n\n| AC-14\n| 用户访问本功能\n| 具有版本管理权限且能够操作当前版本的用户可以使用；前端入口和后端执行均校验权限及当前租户范围，不增加独立合并权限\n\n| AC-15\n| 判定字段存在空值\n| 同一字段均为 NULL\n时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较\n\n| AC-16\n| 合并成功但生成版本失败\n| 已完成的合并结果不回滚，提示合并已完成且版本生成失败；用户可以重新生成版本\n\n| AC-17\n| 合并后检查源生产活动关联关系\n| 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时保留关联关系；已无未删除数据集时软删除关联关系；目标关联\nID 的 Production Activity Name 不变\n\n| AC-18\n| 合并完成后用户确认或取消生成版本\n| 点击「确认生成版本」时单独触发异步版本生成；点击「取消」时返回版本详情页且当前版本保持未生成，已经完成的合并结果保留\n\n## 7. 约束与风险\n\n- 范围一致性：候选来源基于当前版本；冲突校验覆盖候选组各关联\nID\n在当前租户全量工作区内的全部未删除数据集；执行只处理用户所选数据。页面数量和提交范围必须使用相同口径。\n\n- 数据变化：候选检查与提交之间及执行期间数据可能变化，每组执行前必须按用户最终选择和最新数据重新校验，冲突组不得保留部分修改。\n\n- 大数据量选择：表头全选必须作用于完整筛选结果，不能只处理前端已显示的数据。\n\n- 字段空值：开发前必须确认判定字段中空字符串和纯空格的实际数据情况，并确定是否与\nNULL 统一处理。\n\n- 现有合并能力边界：本需求只允许修改用户所选数据集的关联\nID，并按源关联 ID\n在当前租户全量工作区内剩余的未删除数据集处理生产活动关联关系；不得自动修改生产活动关联名称或将未选数据一并更新。",
+  "stage": "inventory",
+  "sourceUnits": [
+    {
+      "id": "S-001",
+      "label": "原文单元 1",
+      "kind": "paragraph",
+      "excerpt": "目录",
+      "location": "第 1 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-002",
+      "label": "原文单元 2",
+      "kind": "paragraph",
+      "excerpt": "V1.5 · 正式版",
+      "location": "第 3 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-003",
+      "label": "原文单元 3",
+      "kind": "paragraph",
+      "excerpt": "- 1. 概要",
+      "location": "第 5 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-004",
+      "label": "原文单元 4",
+      "kind": "paragraph",
+      "excerpt": "- 2. 背景",
+      "location": "第 7 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-005",
+      "label": "原文单元 5",
+      "kind": "paragraph",
+      "excerpt": "- 3. 目标与范围",
+      "location": "第 9 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-006",
+      "label": "原文单元 6",
+      "kind": "paragraph",
+      "excerpt": "- 3.1 目标",
+      "location": "第 11 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-007",
+      "label": "原文单元 7",
+      "kind": "paragraph",
+      "excerpt": "- 3.2 本期范围",
+      "location": "第 13 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-008",
+      "label": "原文单元 8",
+      "kind": "paragraph",
+      "excerpt": "- 3.3 边界",
+      "location": "第 15 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-009",
+      "label": "原文单元 9",
+      "kind": "paragraph",
+      "excerpt": "- 4. 用户与场景",
+      "location": "第 17 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-010",
+      "label": "原文单元 10",
+      "kind": "paragraph",
+      "excerpt": "- 5. 方案",
+      "location": "第 19 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-011",
+      "label": "原文单元 11",
+      "kind": "paragraph",
+      "excerpt": "- 5.1 核心规则",
+      "location": "第 21 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-012",
+      "label": "原文单元 12",
+      "kind": "paragraph",
+      "excerpt": "- 5.2 检查范围",
+      "location": "第 23 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-013",
+      "label": "原文单元 13",
+      "kind": "paragraph",
+      "excerpt": "- 5.3 用户流程",
+      "location": "第 25 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-014",
+      "label": "原文单元 14",
+      "kind": "paragraph",
+      "excerpt": "- 5.4 页面与交互",
+      "location": "第 27 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-015",
+      "label": "原文单元 15",
+      "kind": "paragraph",
+      "excerpt": "- 5.5 合并与结果",
+      "location": "第 29 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-016",
+      "label": "原文单元 16",
+      "kind": "paragraph",
+      "excerpt": "- 6. 验收标准",
+      "location": "第 31 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-017",
+      "label": "原文单元 17",
+      "kind": "paragraph",
+      "excerpt": "- 7. 约束与风险",
+      "location": "第 33 行",
+      "status": "processed"
+    },
+    {
+      "id": "S-018",
+      "label": "PRD：同名生产活动关联 ID 合并提醒",
+      "kind": "heading",
+      "excerpt": "# PRD：同名生产活动关联 ID 合并提醒",
+      "location": "第 35 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒\n</source-structure-context>"
+    },
+    {
+      "id": "S-019",
+      "label": "原文单元 19",
+      "kind": "paragraph",
+      "excerpt": "当前版本：V1.5（正式版）",
+      "location": "第 37 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒\n</source-structure-context>"
+    },
+    {
+      "id": "S-020",
+      "label": "1. 概要",
+      "kind": "heading",
+      "excerpt": "## 1. 概要",
+      "location": "第 39 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-020] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-021",
+      "label": "原文单元 21",
+      "kind": "paragraph",
+      "excerpt": "在「版本管理 >\n版本详情」中，用户点击「生成版本」后，系统检查当前版本内是否存在名称相同、关联\nID\n不同且能够安全合并的生产活动。存在候选时，系统在生成版本前提醒一次。",
+      "location": "第 41-44 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-020] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-022",
+      "label": "原文单元 22",
+      "kind": "paragraph",
+      "excerpt": "用户可以选择要处理的同名生产活动组、合并后统一使用的关联\nID，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，也可以暂不合并。合并提醒仅处理关联\nID\n合并；合并完成或暂不合并后，系统再通过独立弹窗询问是否生成版本。合并不改变当前版本的数据集成员。",
+      "location": "第 46-50 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-020] 1. 概要\n</source-structure-context>"
+    },
+    {
+      "id": "S-023",
+      "label": "2. 背景",
+      "kind": "heading",
+      "excerpt": "## 2. 背景",
+      "location": "第 52 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-023] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-024",
+      "label": "原文单元 24",
+      "kind": "paragraph",
+      "excerpt": "当前租户全量工作区内的未删除数据集中，可能存在本应使用同一关联 ID\n的生产活动，但由于录入、导入或维护操作被分散到多个关联 ID\n下，增加后续查询和维护成本。",
+      "location": "第 54-56 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-023] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-025",
+      "label": "原文单元 25",
+      "kind": "paragraph",
+      "excerpt": "用户准备生成版本时，需要判断这些同名数据是否确实属于同一生产活动。候选来自当前版本，而关联\nID 合并可能影响候选关联 ID\n在当前租户全量工作区内的相关未删除数据集，因此用户需要同时看见当前版本涉及范围和当前租户全量工作区内未删除数据集的实际影响范围。",
+      "location": "第 58-60 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-023] 2. 背景\n</source-structure-context>"
+    },
+    {
+      "id": "S-026",
+      "label": "3. 目标与范围",
+      "kind": "heading",
+      "excerpt": "## 3. 目标与范围",
+      "location": "第 62 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-027",
+      "label": "3.1 目标",
+      "kind": "heading",
+      "excerpt": "### 3.1 目标",
+      "location": "第 64 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-027] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-028",
+      "label": "原文单元 28",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「生成版本」时，可以发现当前版本范围内可合并的同名生产活动。",
+      "location": "第 66 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-027] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-029",
+      "label": "原文单元 29",
+      "kind": "paragraph",
+      "excerpt": "- 用户可以查看影响范围，并选择同名生产活动组、目标关联 ID\n和参与合并的数据集。",
+      "location": "第 68-69 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-027] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-030",
+      "label": "原文单元 30",
+      "kind": "paragraph",
+      "excerpt": "- 用户完成合并或暂不合并后，通过独立确认决定是否生成版本；取消生成版本时，已完成的合并结果保留，当前版本保持未生成状态。",
+      "location": "第 71 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-027] 3.1 目标\n</source-structure-context>"
+    },
+    {
+      "id": "S-031",
+      "label": "3.2 本期范围",
+      "kind": "heading",
+      "excerpt": "### 3.2 本期范围",
+      "location": "第 73 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-032",
+      "label": "原文单元 32",
+      "kind": "paragraph",
+      "excerpt": "- 检查并展示可完整合并的同名生产活动组；",
+      "location": "第 75 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-033",
+      "label": "原文单元 33",
+      "kind": "paragraph",
+      "excerpt": "- 双栏展示候选组，以及候选关联 ID\n在当前租户全量工作区内的相关未删除数据集；",
+      "location": "第 77-78 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-034",
+      "label": "原文单元 34",
+      "kind": "paragraph",
+      "excerpt": "- 支持选择同名生产活动组、筛选数据集、筛选结果全选、逐行选择和明细导出；",
+      "location": "第 80 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-035",
+      "label": "原文单元 35",
+      "kind": "paragraph",
+      "excerpt": "- 按组执行合并并反馈失败组的生产活动名称；",
+      "location": "第 82 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-036",
+      "label": "原文单元 36",
+      "kind": "paragraph",
+      "excerpt": "- 具有版本管理权限的用户可以使用本功能。",
+      "location": "第 84 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-031] 3.2 本期范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-037",
+      "label": "3.3 边界",
+      "kind": "heading",
+      "excerpt": "### 3.3 边界",
+      "location": "第 86 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-038",
+      "label": "原文单元 38",
+      "kind": "paragraph",
+      "excerpt": "- 合并是可选操作，不作为生成版本的阻断条件；",
+      "location": "第 88 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-039",
+      "label": "原文单元 39",
+      "kind": "paragraph",
+      "excerpt": "- 不能整组通过冲突校验的同名组不展示；",
+      "location": "第 90 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-040",
+      "label": "原文单元 40",
+      "kind": "paragraph",
+      "excerpt": "- 校验和可选范围仅包含候选关联 ID\n在当前租户全量工作区内的未删除数据集；",
+      "location": "第 92-93 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-041",
+      "label": "原文单元 41",
+      "kind": "paragraph",
+      "excerpt": "- 不新建关联 ID，不改造独立「关联 ID\n合并」页面，也不新增独立合并权限；",
+      "location": "第 95-96 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-042",
+      "label": "原文单元 42",
+      "kind": "paragraph",
+      "excerpt": "- 不改变数据集 ID\n和版本数据集成员；版本生成完成后的导出和发布流程保持不变。",
+      "location": "第 98-99 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-043",
+      "label": "原文单元 43",
+      "kind": "paragraph",
+      "excerpt": "- 数据集自身仅修改关联 ID；生产活动关联名称不随合并自动修改。源关联 ID\n在当前租户全量工作区内已无未删除数据集时，软删除对应的生产活动关联关系。",
+      "location": "第 101-102 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-026] 3. 目标与范围 → [S-037] 3.3 边界\n</source-structure-context>"
+    },
+    {
+      "id": "S-044",
+      "label": "4. 用户与场景",
+      "kind": "heading",
+      "excerpt": "## 4. 用户与场景",
+      "location": "第 104 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-044] 4. 用户与场景\n</source-structure-context>"
+    },
+    {
+      "id": "S-045",
+      "label": "原文单元 45",
+      "kind": "paragraph",
+      "excerpt": "具有版本管理权限的用户完成计算任务数据选择后，点击「生成版本」。若系统发现候选，用户判断哪些同名生产活动属于同一活动、统一使用哪个关联\nID、候选关联 ID\n在当前租户全量工作区内的哪些未删除数据集参与合并，并选择确认合并或暂不合并。合并提醒关闭后，用户在独立的生成版本确认弹窗中决定是否触发版本生成。",
+      "location": "第 106-108 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-044] 4. 用户与场景\n</source-structure-context>"
+    },
+    {
+      "id": "S-046",
+      "label": "5. 方案",
+      "kind": "heading",
+      "excerpt": "## 5. 方案",
+      "location": "第 110 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案\n</source-structure-context>"
+    },
+    {
+      "id": "S-047",
+      "label": "5.1 核心规则",
+      "kind": "heading",
+      "excerpt": "### 5.1 核心规则",
+      "location": "第 112 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-048",
+      "label": "原文单元 48",
+      "kind": "paragraph",
+      "excerpt": "| 规则\n| 定义",
+      "location": "第 114-115 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-049",
+      "label": "原文单元 49",
+      "kind": "paragraph",
+      "excerpt": "| 同名匹配\n| 移除生产活动名称中的空格后，不区分字母大小写；其他字符和符号按原值比较",
+      "location": "第 117-118 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-050",
+      "label": "原文单元 50",
+      "kind": "paragraph",
+      "excerpt": "| 候选组\n| 当前版本范围实际数据集中出现过、同名匹配且包含两个及以上关联 ID\n的同名生产活动关联 ID 组",
+      "location": "第 120-122 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-051",
+      "label": "原文单元 51",
+      "kind": "paragraph",
+      "excerpt": "| 可完整合并\n| 将候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集模拟统一到同一目标关联 ID\n后，不存在「目标关联\nID＋参考产品标识＋地理位置标识＋系统模型值＋活动类型值」全部相同的两条及以上数据集",
+      "location": "第 124-128 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-052",
+      "label": "原文单元 52",
+      "kind": "paragraph",
+      "excerpt": "| 目标关联 ID\n| 从候选组已有的关联 ID 中选择；默认选中按关联 ID\n字符串升序排序后的最小值，用户可以修改",
+      "location": "第 130-132 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-053",
+      "label": "原文单元 53",
+      "kind": "paragraph",
+      "excerpt": "| 参与合并的数据集\n| 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集；用户未选中的数据保留原关联\nID",
+      "location": "第 134-137 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-054",
+      "label": "原文单元 54",
+      "kind": "paragraph",
+      "excerpt": "安全合并使用以下字段原始存储值进行判断，不使用页面展示名称或翻译值：",
+      "location": "第 139 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-055",
+      "label": "原文单元 55",
+      "kind": "paragraph",
+      "excerpt": "| 产品字段\n| 判定字段\n| 判定规则",
+      "location": "第 141-143 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-056",
+      "label": "原文单元 56",
+      "kind": "paragraph",
+      "excerpt": "| 目标关联 ID\n| tw_processes.uuid\n| 将候选组相关数据模拟为用户选择的目标关联 ID",
+      "location": "第 145-147 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-057",
+      "label": "原文单元 57",
+      "kind": "paragraph",
+      "excerpt": "| 参考产品\n| tw_processes.reference_flow_id\n| 按标识原值比较",
+      "location": "第 149-151 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-058",
+      "label": "原文单元 58",
+      "kind": "paragraph",
+      "excerpt": "| 地理位置\n| tw_processes.location_id\n| 按标识原值比较",
+      "location": "第 153-155 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-059",
+      "label": "原文单元 59",
+      "kind": "paragraph",
+      "excerpt": "| 系统模型\n| tw_processes.from_data\n| 按系统模型原始存储值比较",
+      "location": "第 157-159 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-060",
+      "label": "原文单元 60",
+      "kind": "paragraph",
+      "excerpt": "| 活动类型\n| tw_processes.special_type\n| 按枚举原值比较",
+      "location": "第 161-163 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-061",
+      "label": "原文单元 61",
+      "kind": "paragraph",
+      "excerpt": "空值和重复记录按以下规则处理：",
+      "location": "第 165 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-062",
+      "label": "原文单元 62",
+      "kind": "paragraph",
+      "excerpt": "- 同一判定字段均为数据库空值（NULL）时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较；",
+      "location": "第 167 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n列表引导原文 [S-061]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-063",
+      "label": "原文单元 63",
+      "kind": "paragraph",
+      "excerpt": "- 开发前需统计上述字段是否存在空字符串或纯空格，并由技术评审确认是否统一按空值处理；",
+      "location": "第 169 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n列表引导原文 [S-061]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-064",
+      "label": "原文单元 64",
+      "kind": "paragraph",
+      "excerpt": "- 候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集中已经存在完整键重复时，该组不作为可合并候选；",
+      "location": "第 171-172 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n列表引导原文 [S-061]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-065",
+      "label": "原文单元 65",
+      "kind": "paragraph",
+      "excerpt": "- 用户确认后重新校验发现完整键重复时，该组整体失败，不修改部分数据。",
+      "location": "第 174 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-047] 5.1 核心规则\n列表引导原文 [S-061]：空值和重复记录按以下规则处理：\n</source-structure-context>"
+    },
+    {
+      "id": "S-066",
+      "label": "5.2 检查范围",
+      "kind": "heading",
+      "excerpt": "### 5.2 检查范围",
+      "location": "第 176 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-067",
+      "label": "原文单元 67",
+      "kind": "paragraph",
+      "excerpt": "| 环节\n| 范围",
+      "location": "第 178-179 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-068",
+      "label": "原文单元 68",
+      "kind": "paragraph",
+      "excerpt": "| 候选关联 ID 来源\n| 当前版本实际包含的数据集中出现过的关联 ID",
+      "location": "第 181-182 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-069",
+      "label": "原文单元 69",
+      "kind": "paragraph",
+      "excerpt": "| 同名分组\n| 仅在上述关联 ID 中按同名规则分组",
+      "location": "第 184-185 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-070",
+      "label": "原文单元 70",
+      "kind": "paragraph",
+      "excerpt": "| 冲突校验\n| 每组关联 ID 在当前租户全量工作区内的全部未删除数据集",
+      "location": "第 187-188 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-071",
+      "label": "原文单元 71",
+      "kind": "paragraph",
+      "excerpt": "| 提醒\n| 仅展示能够完整合并的组",
+      "location": "第 190-191 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-072",
+      "label": "原文单元 72",
+      "kind": "paragraph",
+      "excerpt": "| 合并执行\n| 用户选中组内勾选的数据集",
+      "location": "第 193-194 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-066] 5.2 检查范围\n</source-structure-context>"
+    },
+    {
+      "id": "S-073",
+      "label": "5.3 用户流程",
+      "kind": "heading",
+      "excerpt": "### 5.3 用户流程",
+      "location": "第 196 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-074",
+      "label": "原文单元 74",
+      "kind": "paragraph",
+      "excerpt": "- 用户在版本详情页进入第二步点击「生成版本」时，系统基于当时的当前版本数据执行一次候选检查。",
+      "location": "第 198 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-075",
+      "label": "原文单元 75",
+      "kind": "paragraph",
+      "excerpt": "- 没有候选或检查失败时，不展示本提醒，进入原有生成版本确认弹窗；检查失败不增加提示。",
+      "location": "第 200 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-076",
+      "label": "原文单元 76",
+      "kind": "paragraph",
+      "excerpt": "- 存在候选时，打开「发现可合并的同名生产活动」弹窗。",
+      "location": "第 202 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-077",
+      "label": "原文单元 77",
+      "kind": "paragraph",
+      "excerpt": "- 用户选择同名生产活动组、目标关联 ID 和参与合并的数据集。",
+      "location": "第 204 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-078",
+      "label": "原文单元 78",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「跳过，继续生成版本」时，不执行合并；关闭合并提醒后，打开独立的生成版本确认弹窗。",
+      "location": "第 206 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-079",
+      "label": "原文单元 79",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击右上角关闭按钮时，取消本次版本生成；再次点击「生成版本」时重新检查。",
+      "location": "第 208 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-080",
+      "label": "原文单元 80",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「确认合并」时，系统重新校验并按组执行。处理结束后提示合并结果，关闭合并提醒，再打开独立的生成版本确认弹窗；该按钮不触发版本生成。",
+      "location": "第 210 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-081",
+      "label": "原文单元 81",
+      "kind": "paragraph",
+      "excerpt": "- 用户在生成版本确认弹窗中点击「确认生成版本」时，单独触发异步版本生成；点击「取消」时，不生成版本，保留已完成的合并结果并返回版本详情页。",
+      "location": "第 212 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-082",
+      "label": "原文单元 82",
+      "kind": "paragraph",
+      "excerpt": "- 合并成功但版本生成失败时，保留已经完成的合并结果并提示用户重新生成版本。",
+      "location": "第 214 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-083",
+      "label": "原文单元 83",
+      "kind": "paragraph",
+      "excerpt": "- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。",
+      "location": "第 216 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-073] 5.3 用户流程\n</source-structure-context>"
+    },
+    {
+      "id": "S-084",
+      "label": "5.4 页面与交互",
+      "kind": "heading",
+      "excerpt": "### 5.4 页面与交互",
+      "location": "第 218 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互\n</source-structure-context>"
+    },
+    {
+      "id": "S-085",
+      "label": "原文单元 85",
+      "kind": "paragraph",
+      "excerpt": "原型图",
+      "location": "第 220 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互\n</source-structure-context>"
+    },
+    {
+      "id": "S-086",
+      "label": "5.4.1 信息结构",
+      "kind": "heading",
+      "excerpt": "#### 5.4.1 信息结构",
+      "location": "第 222 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-087",
+      "label": "原文单元 87",
+      "kind": "paragraph",
+      "excerpt": "| 区域\n| 内容",
+      "location": "第 224-225 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-088",
+      "label": "原文单元 88",
+      "kind": "paragraph",
+      "excerpt": "| 汇总\n| 同名生产活动数量、相关关联 ID 数量、相关数据集数量并标注「版本内 n\n条」、“导出同名生产活动明细”按钮",
+      "location": "第 227-229 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-089",
+      "label": "原文单元 89",
+      "kind": "paragraph",
+      "excerpt": "| 左栏\n| 同名生产活动组、关联 ID\n数量、当前租户全量工作区内的相关未删除数据集数量、组选择",
+      "location": "第 231-233 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-090",
+      "label": "原文单元 90",
+      "kind": "paragraph",
+      "excerpt": "| 右栏\n| 当前组名称、目标关联 ID Select、已选数据量、数据集表格",
+      "location": "第 235-236 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-091",
+      "label": "原文单元 91",
+      "kind": "paragraph",
+      "excerpt": "| 底部\n| 「跳过，继续生成版本」「确认合并」；跳过或合并处理完成后均关闭合并提醒，再打开独立的生成版本确认弹窗，不直接触发版本生成",
+      "location": "第 238-239 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-092",
+      "label": "原文单元 92",
+      "kind": "paragraph",
+      "excerpt": "具体见原型文件。",
+      "location": "第 241 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-093",
+      "label": "原文单元 93",
+      "kind": "paragraph",
+      "excerpt": "原型用于说明主要页面结构和交互方向。若原型未覆盖、缺少或仅静态展示本\nPRD 已明确的功能与状态，实际开发与验收以本 PRD 为准补足。",
+      "location": "第 243-244 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-086] 5.4.1 信息结构\n</source-structure-context>"
+    },
+    {
+      "id": "S-094",
+      "label": "5.4.2 选择规则",
+      "kind": "heading",
+      "excerpt": "#### 5.4.2 选择规则",
+      "location": "第 246 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-094] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-095",
+      "label": "原文单元 95",
+      "kind": "paragraph",
+      "excerpt": "- 同名生产活动组默认均不勾选；未勾选的组不执行；",
+      "location": "第 248 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-094] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-096",
+      "label": "原文单元 96",
+      "kind": "paragraph",
+      "excerpt": "- 选中某组后，默认选中该组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，用户可以排除部分数据；",
+      "location": "第 250-251 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-094] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-097",
+      "label": "原文单元 97",
+      "kind": "paragraph",
+      "excerpt": "- 切换当前组时，保留各组已经选择的目标关联 ID 和数据集范围；",
+      "location": "第 253 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-094] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-098",
+      "label": "原文单元 98",
+      "kind": "paragraph",
+      "excerpt": "- 「清除选择」清空当前组的数据集选择；",
+      "location": "第 255 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-094] 5.4.2 选择规则\n</source-structure-context>"
+    },
+    {
+      "id": "S-099",
+      "label": "5.4.3 设置合并后统一关联 ID",
+      "kind": "heading",
+      "excerpt": "#### 5.4.3 设置合并后统一关联 ID",
+      "location": "第 257 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-099] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-100",
+      "label": "原文单元 100",
+      "kind": "paragraph",
+      "excerpt": "- 使用 Select 选择当前同名生产活动组合并后统一使用的关联 ID；",
+      "location": "第 259 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-099] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-101",
+      "label": "原文单元 101",
+      "kind": "paragraph",
+      "excerpt": "- Select 选项为当前组已有的全部关联 ID，默认选中按关联 ID\n字符串升序排序后的最小值；",
+      "location": "第 261-262 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-099] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-102",
+      "label": "原文单元 102",
+      "kind": "paragraph",
+      "excerpt": "- 用户可以分别修改每个已选组的目标关联 ID，切换组后保留已选结果；",
+      "location": "第 264 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-099] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-103",
+      "label": "原文单元 103",
+      "kind": "paragraph",
+      "excerpt": "- 不支持输入或新建关联 ID。",
+      "location": "第 266 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-099] 5.4.3 设置合并后统一关联 ID\n</source-structure-context>"
+    },
+    {
+      "id": "S-104",
+      "label": "5.4.4 数据集表格",
+      "kind": "heading",
+      "excerpt": "#### 5.4.4 数据集表格",
+      "location": "第 268 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-105",
+      "label": "原文单元 105",
+      "kind": "paragraph",
+      "excerpt": "数据列依次包括：关联 ID、身份\nID、数据集名称、参考产品、地理位置、系统模型、活动类型。",
+      "location": "第 270-271 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-106",
+      "label": "原文单元 106",
+      "kind": "paragraph",
+      "excerpt": "- 数据列支持横向滚动，最左侧选择列固定在滚动内容上层；",
+      "location": "第 273 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-107",
+      "label": "原文单元 107",
+      "kind": "paragraph",
+      "excerpt": "- 支持按关联ID（筛选控件在关联 id 列表头）、是否在版本范围内筛选数据\n（筛选控件在数据集名称列表头）；",
+      "location": "第 275-276 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-108",
+      "label": "原文单元 108",
+      "kind": "paragraph",
+      "excerpt": "- 表头选择框选择或取消当前筛选结果中的全部数据，不限当前可视行；",
+      "location": "第 278 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-109",
+      "label": "原文单元 109",
+      "kind": "paragraph",
+      "excerpt": "- 不提供分页；",
+      "location": "第 280 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-110",
+      "label": "原文单元 110",
+      "kind": "paragraph",
+      "excerpt": "- 支持点击数据集名称跳转数据集详情，当前版本中的数据集名称右侧显示「版本内」Tag；",
+      "location": "第 282 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-111",
+      "label": "原文单元 111",
+      "kind": "paragraph",
+      "excerpt": "- 支持点击身份 ID 表头右侧的复制按钮，复制当前筛选结果中的全部身份\nID；复制内容使用英文逗号（,）分隔；",
+      "location": "第 284-285 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-112",
+      "label": "原文单元 112",
+      "kind": "paragraph",
+      "excerpt": "- 筛选条件变化后保留已有选择，并更新「已选 x/y 条」。",
+      "location": "第 287 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-113",
+      "label": "原文单元 113",
+      "kind": "paragraph",
+      "excerpt": "- 活动类型信息展示方式沿用现有数据集列表中的 Tag 展示方式。",
+      "location": "第 289 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-104] 5.4.4 数据集表格\n</source-structure-context>"
+    },
+    {
+      "id": "S-114",
+      "label": "5.4.5 生成版本确认",
+      "kind": "heading",
+      "excerpt": "#### 5.4.5 生成版本确认",
+      "location": "第 291 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-115",
+      "label": "原文单元 115",
+      "kind": "paragraph",
+      "excerpt": "- 合并处理完成或用户点击「跳过，继续生成版本」后，关闭合并提醒，再打开独立的生成版本确认弹窗；",
+      "location": "第 293 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-116",
+      "label": "原文单元 116",
+      "kind": "paragraph",
+      "excerpt": "- 合并提醒中的操作只处理是否合并，不同时触发版本生成；",
+      "location": "第 295 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-117",
+      "label": "原文单元 117",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「确认生成版本」后，系统单独触发异步版本生成；",
+      "location": "第 297 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-118",
+      "label": "原文单元 118",
+      "kind": "paragraph",
+      "excerpt": "- 用户点击「取消」后返回版本详情页，不生成版本；已完成的合并结果不回滚；",
+      "location": "第 299 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-119",
+      "label": "原文单元 119",
+      "kind": "paragraph",
+      "excerpt": "- 用户之后再次点击「生成版本」时，系统基于最新版本范围重新执行候选检查和提醒。",
+      "location": "第 301 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-114] 5.4.5 生成版本确认\n</source-structure-context>"
+    },
+    {
+      "id": "S-120",
+      "label": "5.4.6 文案",
+      "kind": "heading",
+      "excerpt": "#### 5.4.6 文案",
+      "location": "第 303 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-120] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-121",
+      "label": "原文单元 121",
+      "kind": "paragraph",
+      "excerpt": "- 浮窗标题下提示：",
+      "location": "第 305 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-120] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-122",
+      "label": "原文单元 122",
+      "kind": "paragraph",
+      "excerpt": "当前版本范围内发现可能属于同一生产活动、但分散在不同关联 ID\n下的同名生产活动。 若确认属于同一生产活动，可合并使用统一关联\nID。如果只是名称相同，可不进行合并，不影响版本发布。",
+      "location": "第 307-309 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-120] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-123",
+      "label": "原文单元 123",
+      "kind": "paragraph",
+      "excerpt": "- 配置参与合并的数据集时提示：",
+      "location": "第 311 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-120] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-124",
+      "label": "原文单元 124",
+      "kind": "paragraph",
+      "excerpt": "默认合并候选关联 ID\n在当前租户全量工作区内的所有未删除数据集，结果使用统一关联\nID；可配置参与合并的数据集范围，不参与合并的数据集将保留在原关联 ID\n下。",
+      "location": "第 313-316 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-120] 5.4.6 文案\n</source-structure-context>"
+    },
+    {
+      "id": "S-125",
+      "label": "5.4.7 导出",
+      "kind": "heading",
+      "excerpt": "#### 5.4.7 导出",
+      "location": "第 318 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-126",
+      "label": "原文单元 126",
+      "kind": "paragraph",
+      "excerpt": "「导出同名生产活动明细」导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集。Excel\n字段及规则如下：",
+      "location": "第 320-322 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-127",
+      "label": "原文单元 127",
+      "kind": "paragraph",
+      "excerpt": "| Excel 字段\n| 取值来源\n| 转换规则",
+      "location": "第 324-326 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-128",
+      "label": "原文单元 128",
+      "kind": "paragraph",
+      "excerpt": "| Production Activity Name\n| tb_activities.activity_name\n| 通过 tb_activities.activity_id = tw_processes.uuid\n取得并直接输出；不实时读取 tw_processes.name",
+      "location": "第 328-331 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-129",
+      "label": "原文单元 129",
+      "kind": "paragraph",
+      "excerpt": "| Activity ID\n| tw_processes.id\n| 直接输出数据集身份 ID",
+      "location": "第 333-335 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-130",
+      "label": "原文单元 130",
+      "kind": "paragraph",
+      "excerpt": "| Related UUID\n| tw_processes.uuid\n| 直接输出关联 UUID",
+      "location": "第 337-339 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-131",
+      "label": "原文单元 131",
+      "kind": "paragraph",
+      "excerpt": "| Activity Name\n| tw_processes.name\n| 直接输出数据集过程名称",
+      "location": "第 341-343 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-132",
+      "label": "原文单元 132",
+      "kind": "paragraph",
+      "excerpt": "| Included Version\n| te_datasource_version_dataset.version\n| 按数据集 ID\n查询全部有效版本关系；多个版本值使用英文逗号（,）拼接到同一单元格；没有版本关系时输出空",
+      "location": "第 345-348 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-133",
+      "label": "原文单元 133",
+      "kind": "paragraph",
+      "excerpt": "| Reference Product Name\n| tw_flows.name\n| 使用 tw_processes.reference_flow_id 关联\ntw_flows.id",
+      "location": "第 350-353 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-134",
+      "label": "原文单元 134",
+      "kind": "paragraph",
+      "excerpt": "| Unit\n| tw_units.name\n| 从 tw_process_doc.document.declaredUnitId 关联\ntw_units.id",
+      "location": "第 355-358 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-135",
+      "label": "原文单元 135",
+      "kind": "paragraph",
+      "excerpt": "| Special Activity Type\n| tw_processes.special_type\n| MARKET_TYPE → 消费混合；PRODUCT_TYPE → 生产混合",
+      "location": "第 360-362 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-136",
+      "label": "原文单元 136",
+      "kind": "paragraph",
+      "excerpt": "| System Model\n| tw_processes.from_data\n| 原值输出，不查询数据源名称或翻译",
+      "location": "第 364-366 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-137",
+      "label": "原文单元 137",
+      "kind": "paragraph",
+      "excerpt": "| Geography\n| tw_processes.location_id\n| 关联 tw_locations，输出当前语言下的\ni18nFullName；位置为空则输出空",
+      "location": "第 368-371 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-138",
+      "label": "原文单元 138",
+      "kind": "paragraph",
+      "excerpt": "| Editor\n| tw_process_doc.business_json.editor\n| 使用用户 ID 查询 SSO 用户，输出用户邮箱，不输出姓名",
+      "location": "第 373-375 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-139",
+      "label": "原文单元 139",
+      "kind": "paragraph",
+      "excerpt": "| Industries\n| tw_processes.industries\n| 数组中的字典 ID 分别转换为当前语言名称，使用英文逗号（,）拼接",
+      "location": "第 377-379 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-140",
+      "label": "原文单元 140",
+      "kind": "paragraph",
+      "excerpt": "| Calculation\n| tw_process_doc.business_json.isCalculated\n| 数值为 1 输出 Calculated；其他值或空值输出\nNot Calculated",
+      "location": "第 381-384 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-141",
+      "label": "原文单元 141",
+      "kind": "paragraph",
+      "excerpt": "| Review Status\n| tw_process_doc.business_json.processStatus\n| 状态字典 ID 转换为当前语言下的字典名称；空值输出空",
+      "location": "第 386-388 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-142",
+      "label": "原文单元 142",
+      "kind": "paragraph",
+      "excerpt": "其中：",
+      "location": "第 390 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n</source-structure-context>"
+    },
+    {
+      "id": "S-143",
+      "label": "原文单元 143",
+      "kind": "paragraph",
+      "excerpt": "- Production Activity Name 是生产活动关联名称，初始可能与 Activity\nName 相同，后续不保证一致；",
+      "location": "第 392-393 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n列表引导原文 [S-142]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-144",
+      "label": "原文单元 144",
+      "kind": "paragraph",
+      "excerpt": "- Included Version 表示该数据集被加入的全部版本，不读取\ntw_processes.version；",
+      "location": "第 395-396 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n列表引导原文 [S-142]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-145",
+      "label": "原文单元 145",
+      "kind": "paragraph",
+      "excerpt": "- 同一数据集存在多条有效版本关系时，将所有 version\n值使用英文逗号（,）拼接，例如 0.0.3,0.0.4,1.0.0；",
+      "location": "第 398-399 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-084] 5.4 页面与交互 → [S-125] 5.4.7 导出\n列表引导原文 [S-142]：其中：\n</source-structure-context>"
+    },
+    {
+      "id": "S-146",
+      "label": "5.5 合并与结果",
+      "kind": "heading",
+      "excerpt": "### 5.5 合并与结果",
+      "location": "第 401 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-147",
+      "label": "原文单元 147",
+      "kind": "paragraph",
+      "excerpt": "- 系统仅处理用户选中的组和数据集，将所选数据改为该组选择的目标关联\nID；未选数据保留原关联 ID。",
+      "location": "第 403-404 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-148",
+      "label": "原文单元 148",
+      "kind": "paragraph",
+      "excerpt": "- 执行前根据候选组各关联 ID\n在当前租户全量工作区内的最新未删除数据集重新校验。某同名组不再满足合并条件时，该组不执行，校验范围不限于数据集是否被勾选。",
+      "location": "第 406-407 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-149",
+      "label": "原文单元 149",
+      "kind": "paragraph",
+      "excerpt": "- 每组执行前基于当时最新的当前租户全量工作区内未删除数据集重新校验。执行期间出现并发修改并导致最终状态冲突时，该组全部失败，不保留部分修改。",
+      "location": "第 409 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-150",
+      "label": "原文单元 150",
+      "kind": "paragraph",
+      "excerpt": "- 单合并组内所选数据全部成功或全部失败；多组独立执行，一组失败不回滚其他成功组。",
+      "location": "第 411 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-151",
+      "label": "原文单元 151",
+      "kind": "paragraph",
+      "excerpt": "- 存在失败组时，提示部分组合并失败并展示失败组的生产活动名称；成功组保留结果。合并结果提示完成后关闭合并提醒，再进入独立的生成版本确认弹窗。",
+      "location": "第 413 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-152",
+      "label": "原文单元 152",
+      "kind": "paragraph",
+      "excerpt": "- 合并只修改所选数据集的关联 ID，不改变数据集\nID、数据集状态和版本数据集成员；当前位于版本外的未删除数据集不会因关联\nID 更新而加入当前版本。",
+      "location": "第 415-417 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-153",
+      "label": "原文单元 153",
+      "kind": "paragraph",
+      "excerpt": "- 目标关联 ID 保留自身现有的 Production Activity\nName，本功能不自动修改生产活动关联名称。",
+      "location": "第 419-420 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-154",
+      "label": "原文单元 154",
+      "kind": "paragraph",
+      "excerpt": "- 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时，保留该源生产活动关联关系；已无未删除数据集时，软删除对应的生产活动关联关系。",
+      "location": "第 422-423 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-155",
+      "label": "原文单元 155",
+      "kind": "paragraph",
+      "excerpt": "- 合并执行与版本生成分别触发、分别记录结果。合并成功但用户取消生成版本，或后续版本生成失败时，均不回滚已经完成的合并；版本生成失败时提示「关联\nID 合并已完成，但版本生成失败。合并结果已保留，请重新生成版本。」",
+      "location": "第 425-426 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-156",
+      "label": "原文单元 156",
+      "kind": "paragraph",
+      "excerpt": "- 再次点击「生成版本」时，系统基于最新版本范围重新检查；已经统一到目标关联\nID 的数据不重复处理，仍满足候选条件的其他数据可以再次提醒。",
+      "location": "第 428-429 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-157",
+      "label": "原文单元 157",
+      "kind": "paragraph",
+      "excerpt": "- 本功能仅允许具有版本管理权限且能够操作当前版本的用户使用；前端入口和后端执行均校验权限及当前租户范围，不新增独立的关联\nID 合并权限。",
+      "location": "第 431-432 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-046] 5. 方案 → [S-146] 5.5 合并与结果\n</source-structure-context>"
+    },
+    {
+      "id": "S-158",
+      "label": "6. 验收标准",
+      "kind": "heading",
+      "excerpt": "## 6. 验收标准",
+      "location": "第 434 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-159",
+      "label": "原文单元 159",
+      "kind": "paragraph",
+      "excerpt": "| 编号\n| 场景\n| 预期结果",
+      "location": "第 436-438 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-160",
+      "label": "原文单元 160",
+      "kind": "paragraph",
+      "excerpt": "| AC-01\n| 用户点击「生成版本」\n| 基于当时的当前版本数据检查一次；无候选或检查失败时不展示合并提醒，进入原有生成版本确认弹窗",
+      "location": "第 440-442 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-161",
+      "label": "原文单元 161",
+      "kind": "paragraph",
+      "excerpt": "| AC-03\n| 名称存在空格、大小写或其他符号差异\n| 移除空格并忽略字母大小写；其他字符和符号按原值比较",
+      "location": "第 444-446 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-162",
+      "label": "原文单元 162",
+      "kind": "paragraph",
+      "excerpt": "| AC-04\n| 同名关联 ID 组进行候选校验\n| 使用组内各关联 ID\n在当前租户全量工作区内的全部未删除数据集，并按目标关联\nID、参考产品标识、地理位置标识、系统模型值和活动类型值的原始存储值判断；不能完整合并或该范围内已有完整键重复的组不展示",
+      "location": "第 448-452 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-163",
+      "label": "原文单元 163",
+      "kind": "paragraph",
+      "excerpt": "| AC-05\n| 用户查看提醒\n| 正确展示候选组、当前租户全量工作区内的相关未删除数据集数量和版本内数量；当前版本中的数据集显示「版本内」Tag",
+      "location": "第 454-456 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-164",
+      "label": "原文单元 164",
+      "kind": "paragraph",
+      "excerpt": "| AC-06\n| 用户配置候选组\n| 同名生产活动组默认不勾选；目标关联 ID\n默认选中按字符串升序排序后的最小值且可修改；选中组后默认选中该组各关联\nID 在当前租户全量工作区内的全部未删除数据集",
+      "location": "第 458-462 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-165",
+      "label": "原文单元 165",
+      "kind": "paragraph",
+      "excerpt": "| AC-07\n| 用户筛选、选择或复制数据集身份 ID\n| 可逐行选择、清除选择或通过表头选择全部筛选结果；横向滚动时选择列固定可见；复制当前筛选结果中的全部身份\nID 时使用英文逗号（,）分隔",
+      "location": "第 464-467 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-166",
+      "label": "原文单元 166",
+      "kind": "paragraph",
+      "excerpt": "| AC-08\n| 用户跳过合并或关闭提醒\n| 点击「跳过，继续生成版本」时不执行合并；关闭合并提醒后打开独立的生成版本确认弹窗。点击右上角关闭按钮时取消本次版本生成，不打开生成版本确认弹窗；再次点击时重新检查",
+      "location": "第 469-471 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-167",
+      "label": "原文单元 167",
+      "kind": "paragraph",
+      "excerpt": "| AC-09\n| 用户确认合并\n| 重新校验后仅修改所选组内所选数据，未选数据保留原关联\nID；完成后提示合并结果并进入独立的生成版本确认弹窗，不直接生成版本",
+      "location": "第 473-476 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-168",
+      "label": "原文单元 168",
+      "kind": "paragraph",
+      "excerpt": "| AC-10\n| 单组、多组合并或执行期间出现并发修改\n| 单组全部成功或全部失败；并发修改导致最终状态冲突时该组不保留部分修改；多组独立，一组失败不回滚其他成功组",
+      "location": "第 478-480 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-169",
+      "label": "原文单元 169",
+      "kind": "paragraph",
+      "excerpt": "| AC-11\n| 部分组合并失败\n| 展示失败组的生产活动名称并保留成功组结果；结果提示完成后进入独立的生成版本确认弹窗，不自动生成版本",
+      "location": "第 482-484 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-170",
+      "label": "原文单元 170",
+      "kind": "paragraph",
+      "excerpt": "| AC-12\n| 合并涉及当前租户全量工作区内位于版本外的未删除数据集\n| 数据集 ID、状态和版本成员不变，这些数据集不会加入当前版本",
+      "location": "第 486-488 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-171",
+      "label": "原文单元 171",
+      "kind": "paragraph",
+      "excerpt": "| AC-13\n| 用户导出明细\n| 导出本次候选组各关联 ID\n在当前租户全量工作区内的全部未删除数据集，一行对应一条数据集；Included\nVersion\n聚合该数据集全部有效版本关系，多个版本值使用英文逗号（,）拼接且不增加数据集行数；其他字段及转换结果符合\n5.4.7",
+      "location": "第 490-496 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-172",
+      "label": "原文单元 172",
+      "kind": "paragraph",
+      "excerpt": "| AC-14\n| 用户访问本功能\n| 具有版本管理权限且能够操作当前版本的用户可以使用；前端入口和后端执行均校验权限及当前租户范围，不增加独立合并权限",
+      "location": "第 498-500 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-173",
+      "label": "原文单元 173",
+      "kind": "paragraph",
+      "excerpt": "| AC-15\n| 判定字段存在空值\n| 同一字段均为 NULL\n时视为相同；一个为空、一个非空时视为不同；非空值按原始存储值比较",
+      "location": "第 502-505 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-174",
+      "label": "原文单元 174",
+      "kind": "paragraph",
+      "excerpt": "| AC-16\n| 合并成功但生成版本失败\n| 已完成的合并结果不回滚，提示合并已完成且版本生成失败；用户可以重新生成版本",
+      "location": "第 507-509 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-175",
+      "label": "原文单元 175",
+      "kind": "paragraph",
+      "excerpt": "| AC-17\n| 合并后检查源生产活动关联关系\n| 源关联 ID\n在当前租户全量工作区内仍有未迁移的未删除数据集时保留关联关系；已无未删除数据集时软删除关联关系；目标关联\nID 的 Production Activity Name 不变",
+      "location": "第 511-515 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-176",
+      "label": "原文单元 176",
+      "kind": "paragraph",
+      "excerpt": "| AC-18\n| 合并完成后用户确认或取消生成版本\n| 点击「确认生成版本」时单独触发异步版本生成；点击「取消」时返回版本详情页且当前版本保持未生成，已经完成的合并结果保留",
+      "location": "第 517-519 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-158] 6. 验收标准\n</source-structure-context>"
+    },
+    {
+      "id": "S-177",
+      "label": "7. 约束与风险",
+      "kind": "heading",
+      "excerpt": "## 7. 约束与风险",
+      "location": "第 521 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-178",
+      "label": "原文单元 178",
+      "kind": "paragraph",
+      "excerpt": "- 范围一致性：候选来源基于当前版本；冲突校验覆盖候选组各关联\nID\n在当前租户全量工作区内的全部未删除数据集；执行只处理用户所选数据。页面数量和提交范围必须使用相同口径。",
+      "location": "第 523-525 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-179",
+      "label": "原文单元 179",
+      "kind": "paragraph",
+      "excerpt": "- 数据变化：候选检查与提交之间及执行期间数据可能变化，每组执行前必须按用户最终选择和最新数据重新校验，冲突组不得保留部分修改。",
+      "location": "第 527 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-180",
+      "label": "原文单元 180",
+      "kind": "paragraph",
+      "excerpt": "- 大数据量选择：表头全选必须作用于完整筛选结果，不能只处理前端已显示的数据。",
+      "location": "第 529 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-181",
+      "label": "原文单元 181",
+      "kind": "paragraph",
+      "excerpt": "- 字段空值：开发前必须确认判定字段中空字符串和纯空格的实际数据情况，并确定是否与\nNULL 统一处理。",
+      "location": "第 531-532 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-182",
+      "label": "原文单元 182",
+      "kind": "paragraph",
+      "excerpt": "- 现有合并能力边界：本需求只允许修改用户所选数据集的关联\nID，并按源关联 ID\n在当前租户全量工作区内剩余的未删除数据集处理生产活动关联关系；不得自动修改生产活动关联名称或将未选数据一并更新。",
+      "location": "第 534-536 行",
+      "status": "processed",
+      "context": "<source-structure-context>\n章节路径：[S-018] PRD：同名生产活动关联 ID 合并提醒 → [S-177] 7. 约束与风险\n</source-structure-context>"
+    },
+    {
+      "id": "S-183",
+      "kind": "attachment",
+      "label": "HTML 头部脚本或样式资源需核对",
+      "excerpt": "[HTML 头部脚本或样式资源需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-184",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-185",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-186",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-187",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-188",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-189",
+      "kind": "attachment",
+      "label": "HTML iframe 内容需另行读取",
+      "excerpt": "[HTML iframe 内容需另行读取]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-190",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-191",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-192",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-193",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-194",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-195",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-196",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-197",
+      "kind": "attachment",
+      "label": "HTML col 的样式或替代内容需核对",
+      "excerpt": "[HTML col 的样式或替代内容需核对]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    },
+    {
+      "id": "S-198",
+      "kind": "attachment",
+      "label": "HTML script 内容需另行读取",
+      "excerpt": "[HTML script 内容需另行读取]",
+      "location": "HTML 文档",
+      "status": "blocked",
+      "synthetic": true
+    }
+  ],
+  "rules": [],
+  "features": [],
+  "requirements": [],
+  "clarifications": []
+}

@@ -1,0 +1,14 @@
+{
+  "taskStatuses": [
+    {
+      "id": "T-36AB17B1",
+      "status": "failed"
+    }
+  ],
+  "width": 1455,
+  "viewport": 1466,
+  "script": "file:///D:/project/prd-refinement-desktop/dist/assets/index-D5__lGAk.js",
+  "heading": "新建任务 · 资料准备准备分析资料确认主 PRD，按需补充相关材料，然后建立索引。",
+  "primaryColumns": "52px 802.542px 96.125px",
+  "issueSummary": "还缺 4 个文件5 处引用尚未读取：assets/checkbox-checked.svg、assets/arrow-down.svg、assets/filter.svg 等 4 个文件处理缺件"
+}

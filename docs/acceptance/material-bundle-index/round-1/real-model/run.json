@@ -1,0 +1,60 @@
+{
+  "taskId": "T-C74B2F93",
+  "bundleId": "B-595e8b7d-a7c4-4f2b-a7ff-90dcacccc5df",
+  "startedAt": "2026-09-10T13:48:27.420Z",
+  "runtime": {
+    "available": true,
+    "adapter": "codex-oauth",
+    "launcher": "C:\\Users\\64554\\AppData\\Local\\OpenAI\\Codex\\bin\\8e5b6932251c2c1c\\codex.exe",
+    "version": "0.153.4",
+    "authStatus": "authenticated"
+  },
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "fastModel": "gpt-5.6-luna",
+    "fastReasoningEffort": "low",
+    "nodeProfiles": {
+      "imageReading": {
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low"
+      },
+      "featureCandidates": {
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low"
+      },
+      "featureCandidateRepair": {
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "low"
+      },
+      "featureGlobal": {
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "low"
+      },
+      "featureCoverage": {
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "low"
+      },
+      "detailsFast": {
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low"
+      },
+      "details": {
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "low"
+      },
+      "audit": {
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "low"
+      },
+      "repair": {
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "low"
+      }
+    },
+    "maxParallel": 1,
+    "maxNodeParallel": 2
+  }
+}
