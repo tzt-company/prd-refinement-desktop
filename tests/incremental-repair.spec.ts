@@ -1,11 +1,12 @@
 import { describe,expect,it } from 'vitest';
 import { acceptRequirementPatch,applyRequirementPatch,classifyIssues,planDetailRepairs } from '../electron/audit-repair';
-import type { AuditIssue,PrdProject,RequirementDetail } from '../src/types';
+import type { AuditIssue,Clarification,PrdProject,RequirementDetail } from '../src/types';
 
 const requirement=(id:string,source:string):RequirementDetail=>({id,title:id,behavior:'原文明示行为',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:[source],ruleIds:[],state:'draft'});
 function project():PrdProject{return{id:'P',name:'P',sourceName:'p.md',sourceHash:'x',revision:1,importedAt:'',rawText:'',stage:'review',sourceUnits:['S1','S2','S3'].map(id=>({id,label:id,excerpt:'原文明示行为',kind:'paragraph',location:id,status:'processed'})),sourceDispositions:['S1','S2','S3'].map(sourceUnitId=>({sourceUnitId,kind:'requirement',reason:'明确要求',featureIds:[sourceUnitId==='S3'?'F2':'F1']})),features:[{id:'F1',name:'F1',goal:'F1',sourceUnitIds:['S1','S2'],requirementIds:['R-0001','R-0009'],ruleIds:[],state:'draft'},{id:'F2',name:'F2',goal:'F2',sourceUnitIds:['S3'],requirementIds:['R-0010'],ruleIds:[],state:'draft'}],requirements:[requirement('R-0001','S1'),requirement('R-0009','S2'),requirement('R-0010','S3')],clarifications:[]}}
 const issue=(id:string,affectedIds:string[],sourceUnitIds=['S1']):AuditIssue=>({id,affectedIds,sourceUnitIds,direction:'forward',type:'遗漏',detail:id,category:'detail-mismatch',disposition:'open'});
 const empty=()=>({requirements:[],deleteRequirementIds:[],clarifications:[],deleteClarificationIds:[]});
+const clarification=(overrides:Partial<Clarification>={}):Clarification=>({id:'LOCAL-Q1',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level:'blocking',knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测业务规则',sourceRefs:[{sourceUnitId:'S1'}],affectedIds:['LOCAL-R1'],state:'open',...overrides});
 
 describe('增量修正写集合与提交',()=>{
   it('独立范围可依次补各自缺口，范围外已有缺口不阻挡提交',()=>{
@@ -40,7 +41,7 @@ describe('增量修正写集合与提交',()=>{
   it('来源无法唯一定位功能时保留未决，澄清引用补足证据及写冲突',()=>{
     const p=project();p.features[1].sourceUnitIds.push('S1');
     expect(planDetailRepairs([issue('A',[])],p)).toEqual([]);
-    p.clarifications.push({id:'Q-0005',question:'问题',reason:'未明确',affectedIds:['R-0001','S2'],state:'open'});
+    p.clarifications.push(clarification({id:'Q-0005',affectedIds:['R-0001','S2']}));
     const scope=planDetailRepairs([issue('A',['Q-0005'])],p)[0];
     expect(scope.requirementIds).toEqual(['R-0001']);expect(scope.sourceUnitIds).toEqual(['S1','S2']);expect(scope.clarificationIds).toEqual(['Q-0005']);
   });
@@ -53,7 +54,7 @@ describe('增量修正写集合与提交',()=>{
   });
   it('预览保留LOCAL，提交从全局最大编号分配并重映射澄清引用',()=>{
     const p=project(),original=structuredClone(p),scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];
-    const patch=acceptRequirementPatch({...empty(),requirements:[{...p.requirements[0],id:'LOCAL-R1'}],clarifications:[{id:'LOCAL-Q1',question:'需要确认',reason:'未明确',state:'open',affectedIds:['LOCAL-R1']}]},p,scope);
+    const patch=acceptRequirementPatch({...empty(),requirements:[{...p.requirements[0],id:'LOCAL-R1'}],clarifications:[clarification()]},p,scope);
     const preview=applyRequirementPatch(p,scope,patch,false);expect(preview.requirements.at(-1)?.id).toBe('LOCAL-R1');
     const result=applyRequirementPatch(p,scope,patch,true);expect(result.requirements.at(-1)?.id).toBe('R-0011');expect(result.clarifications[0].affectedIds).toEqual(['R-0011']);expect(result.features[0].requirementIds).toContain('R-0011');
     expect(result.requirements.find(item=>item.id==='R-0009')).toEqual(p.requirements[1]);expect(p).toEqual(original);
@@ -61,7 +62,7 @@ describe('增量修正写集合与提交',()=>{
     expect(()=>applyRequirementPatch(result,scope,patch,true)).toThrow('复制了范围外需求');
   });
   it('删除需求必须保持来源覆盖并显式修正所有引用它的澄清',()=>{
-    const p=project();p.clarifications.push({id:'Q-0005',question:'问题',reason:'未明确',affectedIds:['R-0001'],state:'open'});
+    const p=project();p.clarifications.push(clarification({id:'Q-0005',affectedIds:['R-0001']}));
     const scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];
     const delta={...empty(),requirements:[{...p.requirements[0],id:'LOCAL-R1'}],deleteRequirementIds:['R-0001']};
     const patch=acceptRequirementPatch(delta,p,scope);
@@ -72,7 +73,7 @@ describe('增量修正写集合与提交',()=>{
     expect(()=>applyRequirementPatch(p,scope,noCoverage,true)).toThrow('未覆盖');
   });
   it('既有澄清保留只读需求引用，但不扩大写集合或允许新建关联',()=>{
-    const p=project();p.clarifications.push({id:'Q-0005',question:'共享问题',reason:'未明确',affectedIds:['R-0001','R-0009'],state:'open'});
+    const p=project();p.clarifications.push(clarification({id:'Q-0005',question:'共享字段采用哪一种业务处理口径？',affectedIds:['R-0001','R-0009']}));
     const scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];
     expect(scope.requirementIds).toEqual(['R-0001']);expect(scope.readOnlyRequirementIds).toEqual(['R-0009']);expect(scope.sourceUnitIds).toContain('S2');
     const delta={...empty(),requirements:[{...p.requirements[0],id:'LOCAL-R1'}],deleteRequirementIds:['R-0001'],clarifications:[{...p.clarifications[0],affectedIds:['R-0009']}]};

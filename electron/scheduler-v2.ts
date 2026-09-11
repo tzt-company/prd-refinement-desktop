@@ -2,7 +2,7 @@ import { SourceIndex } from './source-index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { AnalysisTask, AuditIssue, DeliveryAssessment, Feature, ModelNodeId, PrdProject, RuntimeConfig, RuntimeConfigSnapshot, SourceDisposition, SourceUnit } from '../src/types.js';
+import type { AnalysisTask, AuditIssue, Clarification, DeliveryAssessment, Feature, ModelNodeId, PrdProject, RuntimeConfig, RuntimeConfigSnapshot, SourceDisposition, SourceUnit } from '../src/types.js';
 import { applyRequirementPatch, acceptRequirementPatch, classifyIssues, planDetailRepairs } from './audit-repair.js';
 import { acceptCandidateClassificationIssues, acceptDirectAuditIssues, acceptDirectDetails, acceptDirectFeatureBatch, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from './domain.js';
 import { writeAgentPackage } from './export-agent-package.js';
@@ -30,8 +30,10 @@ const stages = [
 const featureSchema = '{"id":"LOCAL-F1","kind":"function|constraint","sourceRefs":[{"sourceUnitId":"S-001","quote":"原文中的连续且唯一文字；引用整块时省略quote"}],"appliesToFeatureIds":[],"state":"draft"}';
 const unifiedFeatureSchema = '{"id":"LOCAL-F1","kind":"function|constraint","appliesToFeatureIds":[],"state":"draft"}';
 const candidateSchema = `{"features":[${featureSchema}],"sourceDispositions":[{"sourceUnitId":"S-001","kind":"requirement|clarification|context|example|summary|out-of-scope","reason":"...","featureIds":["LOCAL-F1"]}]}`;
-const detailSchema = '{"requirements":[{"id":"LOCAL-R1","title":"...","behavior":"...","conditions":[],"constraints":[],"explicitAcceptanceConditions":[],"sourceUnitIds":["S-001"],"evidenceBindings":{"behavior":[{"sourceUnitId":"S-001"}],"conditions":[],"constraints":[],"explicitAcceptanceConditions":[]},"state":"draft"}],"clarifications":[{"id":"LOCAL-Q1","question":"...","reason":"会导致哪种业务行为存在多个结果","affectedIds":["S-001"],"state":"open"}]}';
-const auditSchema = '{"issues":[{"id":"LOCAL-A1","direction":"forward|reverse|cross","type":"...","category":"source-ambiguity|feature-boundary|detail-mismatch|unclassified","owner":"feature-grouping|requirement-detail|requirement-relation|source-decision|runtime-output","sourceUnitIds":["S-001"],"affectedIds":["S-001"],"detail":"..."}],"relations":[{"id":"LOCAL-REL-1","sourceRequirementId":"R-0001","targetRequirementId":"R-0002","kind":"depends-on|affects|exception-to","sourceRefs":[{"sourceUnitId":"S-001"}]}]}。每个问题的sourceUnitIds和affectedIds均须非空且引用输入中的真实编号。已有条目错误引用其R/Q/F编号；整项遗漏尚无需求编号或原文歧义没有对应条目时，affectedIds直接引用相关S原文编号，不得返回空数组或虚构编号。只在原文明示业务前置、联动或例外时返回关系；共享来源、名称相似或开发顺序均不是关系依据';
+const clarificationSchema = '{"id":"LOCAL-Q1","question":"包含业务对象、触发条件和待决定规则的完整问题","reason":"为什么原文仍不能得到唯一结论","level":"blocking|suggestion|ignorable","knownFacts":"原文已经明确的事实","unresolvedPoint":"唯一待决定点","impact":"不处理会怎样影响 Agent 实施或为什么不影响","levelReason":"为什么属于该级别","defaultResolution":"仅 suggestion 必填：暂不处理时沿用的明确原文口径","sourceRefs":[{"sourceUnitId":"S-001","quote":"直接支撑问题的连续原文；整块引用可省略quote"}],"affectedIds":["S-001"],"state":"open"}';
+const clarificationContract = '澄清分为三级：blocking 表示不回答会迫使 Agent 猜测业务行为、数据判定、权限、状态或验收口径，必须阻断；suggestion 表示已有明确依据可实施但值得确认以降低理解风险，必须给出暂不处理时沿用的 defaultResolution；ignorable 仅限不改变业务含义、实施结果或验收的轻微表述/文档形式，不需要用户作决定。不能把重复项、平台整理失败、缺少内部函数名或纯技术选型包装为澄清或可忽略项。每项必须合并完整语义上下文，写清已知事实、唯一未决点、影响和级别理由；不得输出 NULL、半句话、无指代的“上述/该内容”或“请人工整理原文”。同一业务决定跨多个来源只输出一项；一个来源包含两个独立决定时分别输出。';
+const detailSchema = `{"requirements":[{"id":"LOCAL-R1","title":"...","behavior":"...","conditions":[],"constraints":[],"explicitAcceptanceConditions":[],"sourceUnitIds":["S-001"],"evidenceBindings":{"behavior":[{"sourceUnitId":"S-001"}],"conditions":[],"constraints":[],"explicitAcceptanceConditions":[]},"state":"draft"}],"clarifications":[${clarificationSchema}]}`;
+const auditSchema = `{"issues":[{"id":"LOCAL-A1","direction":"forward|reverse|cross","type":"...","category":"source-ambiguity|feature-boundary|detail-mismatch|unclassified","owner":"feature-grouping|requirement-detail|requirement-relation|source-decision|runtime-output","sourceUnitIds":["S-001"],"affectedIds":["S-001"],"detail":"...","clarification":${clarificationSchema}}],"relations":[{"id":"LOCAL-REL-1","sourceRequirementId":"R-0001","targetRequirementId":"R-0002","kind":"depends-on|affects|exception-to","sourceRefs":[{"sourceUnitId":"S-001"}]}]}。每个问题的sourceUnitIds和affectedIds均须非空且引用输入中的真实编号。已有条目错误引用其R/Q/F编号；整项遗漏尚无需求编号或原文歧义没有对应条目时，affectedIds直接引用相关S原文编号，不得返回空数组或虚构编号。category 为 source-ambiguity 时必须包含 clarification 并遵循三级澄清契约；其他问题不得包含 clarification。只在原文明示业务前置、联动或例外时返回关系；共享来源、名称相似或开发顺序均不是关系依据`;
 const fastNodes = new Set<ModelNodeId>(['featureCandidates', 'detailsFast']);
 const sourceClassificationContract = '统一来源分类契约：仅数量统计或章节索引、未表达具体业务行为的摘要归为 context，不需要独立功能，检查不得要求为其创建功能，统一不得因其未独立成项重复反馈。摘要若包含正文未展开的具体业务要求，必须保留并关联实际功能；不能因位于摘要就丢弃。文档记法和纯表头归为 context；标题或摘要明确的新增模块、字段重命名等业务要求必须保留。';
 const nodeStep: Record<ModelNodeId, number> = { imageReading: 0, featureCandidates: 1, featureCandidateRepair: 1, featureCoverage: 2, featureGlobal: 3, detailsFast: 4, details: 4, audit: 5, repair: 6 };
@@ -105,13 +107,30 @@ function nextId(prefix: string, items: Array<{ id: string }>, width: number) {
   const maximum = items.reduce((n, item) => Math.max(n, Number(item.id.startsWith(prefix) ? item.id.slice(prefix.length) : 0) || 0), 0);
   return `${prefix}${String(maximum + 1).padStart(width, '0')}`;
 }
+const normalizedDecision = (item:Clarification) => (item.unresolvedPoint??item.question).replace(/\s+/g,'').toLocaleLowerCase('zh-CN');
+const clarificationSources = (item:Clarification,project:PrdProject) => new Set([
+  ...(item.sourceRefs??[]).map(ref=>ref.sourceUnitId),
+  ...item.affectedIds.flatMap(id=>project.requirements.find(requirement=>requirement.id===id)?.sourceUnitIds??(id.startsWith('S-')?[id]:[]))
+]);
+function addClarification(project:PrdProject,item:Clarification,auditIssueId?:string){
+  const sources=clarificationSources(item,project),decision=normalizedDecision(item);
+  const existing=project.clarifications.find(candidate=>normalizedDecision(candidate)===decision&&[...clarificationSources(candidate,project)].some(id=>sources.has(id)));
+  if(existing){existing.affectedIds=[...new Set([...existing.affectedIds,...item.affectedIds])];existing.sourceRefs=[...new Map([...(existing.sourceRefs??[]),...(item.sourceRefs??[])].map(ref=>[JSON.stringify(ref),ref])).values()];if(auditIssueId)existing.auditIssueIds=[...new Set([...(existing.auditIssueIds??[]),auditIssueId])];return existing}
+  const created={...item,id:nextId('Q-',project.clarifications,4),auditIssueIds:auditIssueId?[auditIssueId]:item.auditIssueIds};project.clarifications.push(created);return created;
+}
+function attachAuditClarifications(project:PrdProject,issues:AuditIssue[]){
+  for(const issue of issues.filter(item=>item.category==='source-ambiguity')){
+    if(!issue.clarificationDraft){issue.owner='runtime-output';issue.disposition='open';issue.detail=`业务歧义尚未整理成可回答的问题：${issue.detail}`;continue}
+    const clarification=addClarification(project,issue.clarificationDraft,issue.id);issue.clarificationId=clarification.id;issue.disposition='needs-confirmation';delete issue.clarificationDraft;
+  }
+}
 const featureContent = (f: Feature) => JSON.stringify([f.kind ?? 'function', [...(f.sourceRefs??f.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})))].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))), [...(f.appliesToFeatureIds ?? [])].sort()]);
 const deliveryProjection = (p:PrdProject) => ({sourceHash:p.sourceHash,revision:p.revision,features:p.features,requirements:p.requirements,relations:p.relations??[],clarifications:p.clarifications,audit:p.audit,sourceDispositions:p.sourceDispositions});
 const assessDelivery = (p:PrdProject):DeliveryAssessment => {
-  const issues=(p.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'),open=p.clarifications.filter(q=>q.state==='open');
+  const issues=(p.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId)),open=p.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
   const unverified=p.audit?[]:['audit'];
   const state=issues.length||open.length?'blocked':unverified.length||!p.audit?.passed?'unchecked':'ready';
-  return{state,inputHash:p.sourceHash,resultHash:createHash('sha256').update(JSON.stringify(deliveryProjection(p))).digest('hex'),issueIds:[...issues.map(i=>i.id),...open.map(q=>q.id)],unverifiedScopeIds:unverified,policyVersion:1};
+  return{state,inputHash:p.sourceHash,resultHash:createHash('sha256').update(JSON.stringify(deliveryProjection(p))).digest('hex'),issueIds:[...issues.map(i=>i.id),...open.map(q=>q.id)],unverifiedScopeIds:unverified,policyVersion:2};
 };
 
 export class AnalysisTaskScheduler {
@@ -132,7 +151,7 @@ export class AnalysisTaskScheduler {
       let task: AnalysisTask;
       try { task = JSON.parse(await readFile(path.join(this.root, file), 'utf8')) as AnalysisTask; } catch { continue; }
       if (!task.id || !task.project || !Array.isArray(task.steps)) continue;
-      if (task.checkpoint?.pipelineVersion !== 4 && task.status !== 'completed') {
+      if (task.checkpoint?.pipelineVersion !== 5 && task.status !== 'completed') {
         task.status = 'failed'; task.error = '旧版检查点仅供查看，请用原始材料创建新任务';
       } else if (task.status === 'running') {
         task.status = 'queued'; task.error = '应用退出后从最近检查点恢复';
@@ -149,7 +168,7 @@ export class AnalysisTaskScheduler {
     const config = await this.getConfig(), now = Date.now();
     const task: AnalysisTask = {
       id: `T-${randomUUID().slice(0, 8).toUpperCase()}`, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
-      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 4, detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairIssueIds: [], relationBatches: [] },
+      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 5, detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairIssueIds: [], relationBatches: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
     this.tasks.set(task.id, task); this.queue.push(task.id); await this.publish(task); void this.pump(); return structuredClone(task);
@@ -164,7 +183,7 @@ export class AnalysisTaskScheduler {
   }
   async retry(id: string) {
     const task = this.tasks.get(id); if (!task || task.status !== 'failed') return;
-    if (task.checkpoint?.pipelineVersion !== 4) throw new Error('旧版检查点不可续跑，请创建新任务');
+    if (task.checkpoint?.pipelineVersion !== 5) throw new Error('旧版检查点不可续跑，请创建新任务');
     task.attempt++; task.status = 'queued'; task.error = undefined; task.completedAt = undefined;
     for (const step of task.steps) if (step.status === 'failed') { step.status = 'pending'; step.startedAt = undefined; }
     if (!this.queue.includes(id)) this.queue.push(id);
@@ -356,7 +375,7 @@ export class AnalysisTaskScheduler {
           await mapPool(task.project.features.filter(f => !results[f.id]), pool, async feature => {
             const applicableConstraints = task.project.features.filter(f => f.kind === 'constraint' && f.appliesToFeatureIds?.includes(feature.id));
             const units = sourceUnits([...feature.sourceUnitIds, ...applicableConstraints.flatMap(f => f.sourceUnitIds)]);
-            const result = await call(detailIsComplex(feature, units) ? 'details' : 'detailsFast', `details-${feature.id}`, '逐功能细化', `忠实细化该功能选区及适用约束。一个条目表达完整业务要求；同对象字段属性合并，能分别漏做的行为才拆分。不得输出功能概述。applicableConstraints仅用于保留当前要求的适用条件，不重复创建约束本身的条目。不自行增加常识、实现方案或测试；未指定内部函数、类结构、索引或代码目录不是业务待确认。只有缺少决定业务行为所必需的信息或原文冲突时才记录问题，并说明会导致哪种业务行为出现多个结果。不能把已明确要求改成待确认。保留必须/可选/建议、否定、单位、新旧数据范围；原文明示验收条件只能摘录原句。每个非空业务字段用evidenceBindings关联真实来源。输出 ${detailSchema}`, { feature, applicableConstraints, sourceUnits: units }, v => acceptDirectDetails(v.requirements, v.clarifications, units));
+            const result = await call(detailIsComplex(feature, units) ? 'details' : 'detailsFast', `details-${feature.id}`, '逐功能细化', `忠实细化该功能选区及适用约束。一个条目表达完整业务要求；同对象字段属性合并，能分别漏做的行为才拆分。不得输出功能概述。applicableConstraints仅用于保留当前要求的适用条件，不重复创建约束本身的条目。不自行增加常识、实现方案或测试；未指定内部函数、类结构、索引或代码目录不是业务待确认。只有缺少决定业务行为所必需的信息或原文冲突时才记录问题。不能把已明确要求改成待确认。${clarificationContract} 保留必须/可选/建议、否定、单位、新旧数据范围；原文明示验收条件只能摘录原句。每个非空业务字段用evidenceBindings关联真实来源。输出 ${detailSchema}`, { feature, applicableConstraints, sourceUnits: units }, v => acceptDirectDetails(v.requirements, v.clarifications, units));
             results[feature.id] = result; cp.detailedFeatureIds = Object.keys(results);
             task.steps[4].note = `已细化 ${cp.detailedFeatureIds.length}/${task.project.features.length} 个功能`; await checkpoint();
           });
@@ -368,15 +387,17 @@ export class AnalysisTaskScheduler {
               const id = nextId('R-', task.project.requirements, 4); remap.set(r.id, id); task.project.requirements.push({ ...r, id }); feature.requirementIds.push(id);
             }
             const questionIds: string[] = [];
-            for (const q of result.clarifications) { const id = nextId('Q-', task.project.clarifications, 4); questionIds.push(id); task.project.clarifications.push({ ...q, id, affectedIds: q.affectedIds.map(id => remap.get(id) ?? id) }); }
+            for (const q of result.clarifications) { const added=addClarification(task.project,{...q,affectedIds:q.affectedIds.map(id=>remap.get(id)??id)});questionIds.push(added.id); }
             (cp.featureClarificationIds ??= {})[feature.id] = questionIds;
             materialized.add(feature.id);
           }
           cp.materializedFeatureIds = [...materialized];
-          // 无主功能的原文待确认项逐字保留，不为其制造功能。
-          for (const d of task.project.sourceDispositions ?? []) if (d.kind === 'clarification' && !d.featureIds.length && !task.project.clarifications.some(q => q.affectedIds.includes(d.sourceUnitId))) {
-            const unit = sourceUnits([d.sourceUnitId])[0];
-            task.project.clarifications.push({ id: nextId('Q-', task.project.clarifications, 4), question: unit.asset?.extractedText ?? unit.excerpt, reason: 'PRD 原文明确保留的待确认内容', affectedIds: [unit.id], state: 'open' });
+          // 无主功能的待确认来源仍需按完整上下文归并和改写，不能把文本碎片逐字复制成问题。
+          const orphanUnits=sourceUnits((task.project.sourceDispositions??[]).filter(d=>d.kind==='clarification'&&!d.featureIds.length&&!task.project.clarifications.some(q=>q.affectedIds.includes(d.sourceUnitId))).map(d=>d.sourceUnitId));
+          for(const [index,units] of batches(orphanUnits).entries()){
+            const result=await call('details',`orphan-clarifications-${index}`,'独立待澄清整理',`这些来源没有所属功能。只整理真实业务未决点，不创建需求或功能。结合相邻上下文、表头和同批来源，把被行内标签或表格拆开的句子还原后判断；同一业务决定只输出一次。${clarificationContract} 输出 ${detailSchema}`,{sourceUnits:units},v=>acceptDirectDetails(v.requirements,v.clarifications,units));
+            if(result.requirements.length)throw new ModelOutputValidationError('独立待澄清整理不得创建需求',result.requirements);
+            for(const q of result.clarifications)addClarification(task.project,q);
           }
           await checkpoint();
           const missing = graph().uncovered;
@@ -387,14 +408,14 @@ export class AnalysisTaskScheduler {
             assigned.add(d.sourceUnitId); return true;
           }).map(d => d.sourceUnitId)) })).filter(x => x.units.length);
           const supplements = await mapPool(targets, pool, async ({ feature, units }) => {
-            const result = await call('details', `details-repair-${feature.id}`, '逐功能细化·定点补漏', `仅输出缺失原文要求的新条目或真实待澄清事项，不重复已有条目。输出 ${detailSchema}`, { feature, sourceUnits: units, existingRequirements: task.project.requirements.filter(r => feature.requirementIds.includes(r.id)) }, v => acceptDirectDetails(v.requirements, v.clarifications, units));
+            const result = await call('details', `details-repair-${feature.id}`, '逐功能细化·定点补漏', `仅输出缺失原文要求的新条目或真实待澄清事项，不重复已有条目。${clarificationContract} 输出 ${detailSchema}`, { feature, sourceUnits: units, existingRequirements: task.project.requirements.filter(r => feature.requirementIds.includes(r.id)) }, v => acceptDirectDetails(v.requirements, v.clarifications, units));
             return { feature, result };
           });
           this.assert(task, attempt);
           for (const { feature, result } of supplements) {
             const remap = new Map<string, string>();
             for (const r of result.requirements) { const id = nextId('R-', task.project.requirements, 4); remap.set(r.id, id); task.project.requirements.push({ ...r, id }); feature.requirementIds.push(id); }
-            for (const q of result.clarifications) { const id = nextId('Q-', task.project.clarifications, 4); (cp.featureClarificationIds![feature.id] ??= []).push(id); task.project.clarifications.push({ ...q, id, affectedIds: q.affectedIds.map(id => remap.get(id) ?? id) }); }
+            for (const q of result.clarifications) { const added=addClarification(task.project,{...q,affectedIds:q.affectedIds.map(id=>remap.get(id)??id)});(cp.featureClarificationIds![feature.id]??=[]).push(added.id); }
           }
           // 未落实来源继续交独立审计定位；不在此声明覆盖完成，交付仍须全图覆盖。
           graph();
@@ -406,7 +427,7 @@ export class AnalysisTaskScheduler {
             const ids = new Set(units.map(u => u.id)), requirements = task.project.requirements.filter(r => r.sourceUnitIds.some(id => ids.has(id))), features = task.project.features.filter(f => f.sourceUnitIds.some(id => ids.has(id)));
             const clarifications = task.project.clarifications.filter(q => q.affectedIds.some(id => ids.has(id) || requirements.some(r => r.id === id)));
             const evidence = sourceUnits([...ids, ...requirements.flatMap(r => r.sourceUnitIds), ...clarifications.flatMap(q => q.affectedIds.flatMap(id => task.project.requirements.find(r => r.id === id)?.sourceUnitIds ?? (id.startsWith('S-') ? [id] : [])))]);
-            const audited = await call('audit', `audit-${index}`, '完整性与忠实性检查', `逐项比较reviewSourceUnitIds里的原文要求与一条或多条相关需求，不能因某个S已被引用就视为内容已完整承接。uncoveredSourceUnits是脚本发现尚无需求或澄清引用的来源事实，不能把它们视为已覆盖。其他原文用于理解条件、表头和跨条目组合证据。先判断多条需求是否共同完整表达原文，再报告遗漏，避免要求重复条目。反向检查每条需求是否存在误读、模态改变、漏条件/例外、无依据新增、不必要澄清、错误归属或跨条目矛盾。未指定技术实现不是业务缺口。每个问题填写责任owner；真实原文歧义使用source-decision，系统整理问题使用对应节点责任。只在原文明示业务前置、联动或例外时给出relations；共享来源和开发顺序不构成关系。不要要求拆出常识或单独测试场景；没有问题或关系返回空数组。输出 ${auditSchema}`, { reviewSourceUnitIds: [...ids], uncoveredSourceUnits: graph().uncovered.filter(d => ids.has(d.sourceUnitId)), sourceUnits: evidence, sourceDispositions: task.project.sourceDispositions?.filter(d => ids.has(d.sourceUnitId)), features, requirements, clarifications }, v => ({issues:acceptDirectAuditIssues(v.issues, evidence, features, requirements, clarifications),relations:acceptRequirementRelations(v.relations,evidence,requirements)}));
+            const audited = await call('audit', `audit-${index}`, '完整性与忠实性检查', `逐项比较reviewSourceUnitIds里的原文要求与一条或多条相关需求，不能因某个S已被引用就视为内容已完整承接。uncoveredSourceUnits是脚本发现尚无需求或澄清引用的来源事实，不能把它们视为已覆盖。其他原文用于理解条件、表头和跨条目组合证据。先判断多条需求是否共同完整表达原文，再报告遗漏，避免要求重复条目。反向检查每条需求是否存在误读、模态改变、漏条件/例外、无依据新增、不必要澄清、错误归属或跨条目矛盾。未指定技术实现不是业务缺口。每个问题填写责任owner；真实原文歧义使用 source-ambiguity/source-decision，并同时返回唯一 clarification；系统整理问题使用对应节点责任。${clarificationContract} 只在原文明示业务前置、联动或例外时给出relations；共享来源和开发顺序不构成关系。不要要求拆出常识或单独测试场景；没有问题或关系返回空数组。输出 ${auditSchema}`, { reviewSourceUnitIds: [...ids], uncoveredSourceUnits: graph().uncovered.filter(d => ids.has(d.sourceUnitId)), sourceUnits: evidence, sourceDispositions: task.project.sourceDispositions?.filter(d => ids.has(d.sourceUnitId)), features, requirements, clarifications }, v => ({issues:acceptDirectAuditIssues(v.issues, evidence, features, requirements, clarifications),relations:acceptRequirementRelations(v.relations,evidence,requirements)}));
             checks[index]=audited.issues;relationChecks[index]=audited.relations;
             cp.auditBatchCount = checks.filter(Boolean).length; task.steps[5].note = `已审计 ${cp.auditBatchCount}/${packs.length} 份候选内容`; await checkpoint();
           });
@@ -414,7 +435,7 @@ export class AnalysisTaskScheduler {
           // 从当前图重算，避免模型空结果吞掉脚本事实，也避免边界返工沿用旧遗漏。
           const uncovered = graph().uncovered;
           const structuralIssues: AuditIssue[] = uncovered.map(d => ({ id: `SCRIPT-${d.sourceUnitId}`, direction: "forward", type: "原文来源未落实", category: "detail-mismatch", sourceUnitIds: [d.sourceUnitId], affectedIds: d.featureIds.length ? d.featureIds : [d.sourceUnitId], detail: `${d.sourceUnitId} 当前没有任何需求或澄清承接（关联功能：${d.featureIds.join("、") || "无"}）。这仅是引用覆盖事实，请结合原文判断遗漏或功能边界错误，不推导额外要求。` }));
-          cp.auditIssues = classifyIssues([...checks.flat(), ...structuralIssues].map((i, n) => ({ ...i, id: `A-${String(n + 1).padStart(4, '0')}` })), task.project);
+          cp.auditIssues = classifyIssues([...checks.flat(), ...structuralIssues].map((i, n) => ({ ...i, id: `A-${String(n + 1).padStart(4, '0')}` })), task.project);attachAuditClarifications(task.project,cp.auditIssues);
         });
         const boundary = cp.auditIssues.filter(i => i.category === 'feature-boundary' && i.disposition === 'open');
         if (!boundary.length || (cp.featureRepairRounds ?? 0) >= 1) break;
@@ -500,8 +521,10 @@ export class AnalysisTaskScheduler {
           for (const issue of scope.issues) done.add(issue.id);
           cp.repairIssueIds = [...done]; await checkpoint();
         });
-        for (const issue of cp.auditIssues) if (issue.category === 'source-ambiguity') issue.disposition = 'needs-confirmation';
-        task.project.audit = { passed: cp.auditIssues.every(i => i.disposition === 'repaired' || i.disposition === 'dismissed') && task.project.clarifications.every(q => q.state !== 'open'), issues: cp.auditIssues }; task.audit = task.project.audit;
+        attachAuditClarifications(task.project,cp.auditIssues);
+        const platformIssues=cp.auditIssues.filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId));
+        const blockingQuestions=task.project.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
+        task.project.audit = { passed: platformIssues.length===0&&blockingQuestions.length===0, issues: cp.auditIssues }; task.audit = task.project.audit;
       });
       await stage(7, async () => {
         task.project.stage = 'review'; const assessment=assessDelivery(task.project);task.project.delivery=assessment;const result = path.join(workspace, 'result'); await mkdir(result, { recursive: true });

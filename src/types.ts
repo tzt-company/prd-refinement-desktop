@@ -35,7 +35,7 @@ export interface RequirementRule {
 
 export type AuditCategory = 'source-ambiguity'|'rule-extraction'|'feature-boundary'|'detail-mismatch'|'unclassified';
 export type AuditOwner = 'feature-grouping'|'requirement-detail'|'requirement-relation'|'source-decision'|'runtime-output';
-export interface AuditIssue { id:string;direction:string;type:string;sourceUnitIds:string[];affectedIds:string[];detail:string; category?:AuditCategory; owner?:AuditOwner; clarificationId?:string; disposition?:'open'|'repaired'|'needs-confirmation'|'dismissed'; repairAttempts?:number }
+export interface AuditIssue { id:string;direction:string;type:string;sourceUnitIds:string[];affectedIds:string[];detail:string; category?:AuditCategory; owner?:AuditOwner; clarificationId?:string; clarificationDraft?:Clarification; disposition?:'open'|'repaired'|'needs-confirmation'|'dismissed'; repairAttempts?:number }
 export interface RepairRecord { featureId:string; status:'accepted'|'rejected'; originalIssues:AuditIssue[]; before:RequirementDetail[]; beforeFeature?:Feature; candidateFeature?:Feature; candidate:RequirementDetail[]; verification:AuditIssue[]; reason?:string }
 export interface GraphRepairRecord {
   scope:'rules'|'features';
@@ -94,6 +94,15 @@ export interface Clarification {
   id: string;
   question: string;
   reason: string;
+  /** 对正式 Agent 交付的影响级别。旧任务缺省时按 blocking 展示。 */
+  level?: 'blocking' | 'suggestion' | 'ignorable';
+  knownFacts?: string;
+  unresolvedPoint?: string;
+  impact?: string;
+  levelReason?: string;
+  /** suggestion 必须说明用户暂不处理时采用的既有明确口径。 */
+  defaultResolution?: string;
+  sourceRefs?: SourceRef[];
   affectedIds: string[];
   state: 'open' | 'resolved' | 'dismissed';
   auditIssueIds?: string[];
@@ -202,7 +211,7 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4;
+    pipelineVersion?: 2 | 3 | 4 | 5;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
     unificationFeedbackRounds?: number;

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { AnalysisTaskScheduler, compactPromptInput } from '../electron/scheduler-v2';
 import type { AnalysisRuntime } from '../electron/runtime';
-import type { PrdProject, RuntimeConfig, SourceUnit } from '../src/types';
+import type { Clarification, PrdProject, RuntimeConfig, SourceUnit } from '../src/types';
 
 const root=path.resolve('.runtime-test-scheduler');
 const config:RuntimeConfig={adapter:'dsh',provider:'fake',fastModel:'fast',fastReasoningEffort:'low',model:'sol',reasoningEffort:'low',nodeProfiles:{imageReading:{model:'sol',reasoningEffort:'low'},featureCandidates:{model:'fast',reasoningEffort:'low'},featureCandidateRepair:{model:'sol',reasoningEffort:'low'},featureGlobal:{model:'sol',reasoningEffort:'low'},featureCoverage:{model:'sol',reasoningEffort:'low'},detailsFast:{model:'fast',reasoningEffort:'low'},details:{model:'sol',reasoningEffort:'low'},audit:{model:'sol',reasoningEffort:'low'},repair:{model:'sol',reasoningEffort:'low'}},maxParallel:1,maxNodeParallel:3};
@@ -25,6 +25,7 @@ function answer(prompt:string){
 function runtime(fn:(prompt:string)=>unknown=answer,gate?:(prompt:string)=>Promise<void>):AnalysisRuntime{return{start:async()=>{},stop:async()=>{},diagnostics:()=>'',promptAndWait:async(_id,prompt)=>{await gate?.(prompt);return JSON.stringify(fn(prompt))}}}
 function deferred(){let resolve!:()=>void;const promise=new Promise<void>(r=>{resolve=r});return{promise,resolve}}
 const emptyPatch=()=>({requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]});
+const clarification=(sourceUnitId:string,affectedIds:string[],overrides:Partial<Clarification>={}):Clarification=>({id:'LOCAL-Q',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level:'blocking',knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测业务规则',sourceRefs:[{sourceUnitId}],affectedIds,state:'open',...overrides});
 function twoFeatures(prompt:string){
   if(!prompt.includes('“功能候选识别”'))return answer(prompt);
   const units=input(prompt).sourceUnits as SourceUnit[];
@@ -36,7 +37,7 @@ function boundaryAnswer(p:string){
   if(p.includes('“功能候选识别·定点返工”'))return{features:[{id:'LOCAL-REVISED',sourceRefs:v.sourceUnits.map((u:SourceUnit)=>({sourceUnitId:u.id,quote:u.excerpt.slice(0,Math.max(1,u.excerpt.length-1))})),state:'draft'}],sourceDispositions:v.sourceUnits.map((u:SourceUnit)=>({sourceUnitId:u.id,kind:'requirement',reason:'明确要求',featureIds:['LOCAL-REVISED']}))};
   if(p.includes('“功能清单统一·定点返工”')){expect(v.sourceDispositions[0].featureIds).toEqual(['LOCAL-REVISED']);return{features:v.candidates,candidateMappings:v.candidates.map((f:{id:string})=>({candidateId:f.id,featureIds:[f.id]}))}};
   if(p.includes('“完整性与忠实性检查”'))return{issues:v.features.some((f:{sourceRefs?:Array<{end?:number}>})=>f.sourceRefs?.some(ref=>ref.end!==undefined))?[]:[{id:'A',direction:'cross',type:'边界错误',category:'feature-boundary',sourceUnitIds:['S-001'],affectedIds:[v.features[0].id],detail:'需调整功能边界'}]};
-  if(p.includes('“逐功能细化”'))return{...answer(p),clarifications:[{id:'LOCAL-Q',question:'确认业务口径',reason:'原文未说明',affectedIds:['LOCAL-R1'],state:'open'}]};
+  if(p.includes('“逐功能细化”'))return{...answer(p),clarifications:[clarification(v.sourceUnits[0].id,['LOCAL-R1'])]};
   return answer(p);
 }
 async function terminal(s:AnalysisTaskScheduler){for(let i=0;i<300;i++){const task=s.list()[0];if(task&&['completed','failed'].includes(task.status))return task;await new Promise(r=>setTimeout(r,10))}throw new Error('任务未结束')}
@@ -140,12 +141,12 @@ describe('八节点需求细化调度器',()=>{
     const both=deferred();let entered=0;
     const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
       if(p.includes('“完整性与忠实性检查”'))return twoIssues(p);
-      if(p.includes('“局部修正”')){const v=input(p);return{...emptyPatch(),requirements:[{...v.currentRequirements[0],id:'LOCAL-NEW',title:'新增 '+v.features[0].id,featureId:v.features[0].id}],clarifications:[{id:'LOCAL-Q',question:v.features[0].id,reason:'未明确',affectedIds:['LOCAL-NEW'],state:'open'}]}}
+      if(p.includes('“局部修正”')){const v=input(p);return{...emptyPatch(),requirements:[{...v.currentRequirements[0],id:'LOCAL-NEW',title:'新增 '+v.features[0].id,featureId:v.features[0].id}],clarifications:[clarification(v.sourceUnits[0].id,['LOCAL-NEW'],{question:`${v.features[0].id} 对应的业务处理口径是什么？`})]}}
       return twoFeatures(p);
     },async p=>{if(p.includes('“局部修正”')){if(++entered===2)both.resolve();await both.promise}}));
     await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(entered).toBe(2);
     expect(new Set(done.project.requirements.map(r=>r.id)).size).toBe(4);expect(new Set(done.project.clarifications.map(q=>q.id)).size).toBe(2);
-    for(const q of done.project.clarifications){const f=done.project.features.find(f=>f.id===q.question)!;expect(f.requirementIds).toContain(q.affectedIds[0]);expect(q.affectedIds[0]).toMatch(/^R-000[34]$/)}
+    for(const q of done.project.clarifications){const f=done.project.features.find(f=>q.question.startsWith(f.id))!;expect(f.requirementIds).toContain(q.affectedIds[0]);expect(q.affectedIds[0]).toMatch(/^R-000[34]$/)}
   });
   it('取消后迟到的候选结果不能提交',async()=>{
     const entered=deferred(),release=deferred(),stopped=deferred();const r=runtime(answer,async p=>{if(p.includes('“功能候选识别”')){entered.resolve();await release.promise}});let stopCalls=0;r.stop=async()=>{if(++stopCalls===2)stopped.resolve()};

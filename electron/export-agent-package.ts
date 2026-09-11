@@ -4,6 +4,7 @@ import path from 'node:path';
 import ExcelJS from 'exceljs';
 import type { AnalysisTask, DeliveryAssessment, PrdProject, RequirementDetail, SourceUnit } from '../src/types.js';
 import { writeResultWorkbook } from './export-excel.js';
+import { activePlatformIssues, affectedLabels, clarificationLevel, clarificationLevelLabel, featureTitle, sourceHeading, sourcePosition } from '../src/result-presentation.js';
 
 type DeliveryState = DeliveryAssessment['state'];
 type ExtendedTask = AnalysisTask & { runId?:string };
@@ -28,20 +29,20 @@ export interface AgentPackageResult { directory:string; manifest:AgentPackageMan
 const json = (value:unknown) => JSON.stringify(value,null,2)+'\n';
 const sha256 = (value:string|Buffer) => createHash('sha256').update(value).digest('hex');
 const safeSegment = (value:string,label:string) => {if(!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value))throw new Error(`${label}包含不安全字符`);return value};
-const sourceText = (source:SourceUnit) => `${source.logicalPath??''}${source.logicalPath?' · ':''}${source.location}\n${source.asset?.extractedText??source.excerpt}`;
+const sourceText = (source:SourceUnit) => `${sourcePosition(source)}\n${source.asset?.extractedText??source.excerpt}`;
 const bullets = (values:string[]) => values.length?values.map(value=>`- ${value}`).join('\n'):'- 无';
-const requirementMarkdown = (requirement:RequirementDetail) => [
+const requirementMarkdown = (project:PrdProject,requirement:RequirementDetail) => [
   `### ${requirement.id} ${requirement.title}`,
   '',requirement.behavior,'','条件：','',bullets(requirement.conditions),'','限制与例外：','',bullets(requirement.constraints),
-  '','原文明示验收条件：','',bullets(requirement.explicitAcceptanceConditions),'',`来源：${requirement.sourceUnitIds.join('、')||'无'}`
+  '','原文明示验收条件：','',bullets(requirement.explicitAcceptanceConditions),'','原文依据：','',requirement.sourceUnitIds.map(id=>project.sourceUnits.find(item=>item.id===id)).filter((item):item is SourceUnit=>!!item).map(item=>`- ${sourceHeading(item)} · ${sourcePosition(item)}`).join('\n')||'- 无'
 ].join('\n');
 
 function quality(_task:ExtendedTask,project:PrdProject):DeliveryAssessment {
   if(project.delivery)return structuredClone(project.delivery);
-  const active=(project.audit?.issues??[]).filter(issue=>issue.disposition!=='repaired');
-  const open=project.clarifications.filter(item=>item.state==='open');
+  const active=activePlatformIssues(project);
+  const open=project.clarifications.filter(item=>item.state==='open'&&(item.level??'blocking')==='blocking');
   const state:DeliveryState=active.length||open.length?'blocked':project.audit?.passed?'ready':'unchecked';
-  return {state,inputHash:project.sourceHash,resultHash:'',issueIds:active.map(item=>item.id),unverifiedScopeIds:[],policyVersion:1};
+  return {state,inputHash:project.sourceHash,resultHash:'',issueIds:[...active.map(item=>item.id),...open.map(item=>item.id)],unverifiedScopeIds:[],policyVersion:2};
 }
 
 function snapshot(project:PrdProject,task:ExtendedTask,assessment:DeliveryAssessment) {
@@ -71,19 +72,19 @@ function featureMarkdown(project:PrdProject,featureId:string,qualityState:Delive
   const related=project.requirements.filter(item=>directIds.has(item.id));
   const affected=new Set([feature.id,...feature.requirementIds,...feature.sourceUnitIds]);
   const clarifications=project.clarifications.filter(item=>item.affectedIds.some(id=>affected.has(id)));
-  const issues=(project.audit?.issues??[]).filter(item=>item.disposition!=='repaired'&&item.affectedIds.some(id=>affected.has(id)));
+  const issues=activePlatformIssues(project).filter(item=>item.affectedIds.some(id=>affected.has(id)));
   const sources=project.sourceUnits.filter(item=>feature.sourceUnitIds.includes(item.id));
   const sections=[
-    `# ${feature.id}${feature.name?` ${feature.name}`:''}`,'',`> 需求交付状态：${qualityState}`,'',
-    '## 原文位置','',sources.length?sources.map(item=>`### ${item.id} ${item.label}\n\n${sourceText(item)}`).join('\n\n'):'无','',
-    '## 本功能需求','',own.length?own.map(requirementMarkdown).join('\n\n'):'无'
+    `# ${featureTitle(project,feature)}`,'',`> 需求交付状态：${qualityState}`,'',
+    '## 原文位置','',sources.length?sources.map(item=>`### ${sourceHeading(item)}\n\n${sourceText(item)}`).join('\n\n'):'无','',
+    '## 本功能需求','',own.length?own.map(item=>requirementMarkdown(project,item)).join('\n\n'):'无'
   ];
-  if(constraints.length)sections.push('','## 适用的通用约束','',constraints.map(requirementMarkdown).join('\n\n'));
+  if(constraints.length)sections.push('','## 适用的通用约束','',constraints.map(item=>requirementMarkdown(project,item)).join('\n\n'));
   if(relations.length)sections.push('','## 直接关系','',relations.map(item=>`- ${item.sourceRequirementId} ${item.kind} ${item.targetRequirementId}（来源：${item.sourceRefs.map(ref=>ref.sourceUnitId).join('、')}）`).join('\n'));
-  if(related.length)sections.push('','## 直接关联需求','',related.map(requirementMarkdown).join('\n\n'));
+  if(related.length)sections.push('','## 直接关联需求','',related.map(item=>requirementMarkdown(project,item)).join('\n\n'));
   if(clarifications.length||issues.length)sections.push('','## 相关问题','',[
-    ...clarifications.map(item=>`- ${item.id} [${item.state}] ${item.question}：${item.reason}`),
-    ...issues.map(item=>`- ${item.id} [${item.disposition??'open'}] ${item.detail}`)
+    ...clarifications.map(item=>`- ${item.id}【${clarificationLevelLabel[clarificationLevel(item)]}】${item.question}\n  - 已知事实：${item.knownFacts??'旧任务未记录'}\n  - 未决点：${item.unresolvedPoint??item.reason}\n  - 影响：${item.impact??item.reason}${item.defaultResolution?`\n  - 暂不处理时：${item.defaultResolution}`:''}`),
+    ...issues.map(item=>`- ${item.id}【平台处理】${item.detail}\n  - 影响：${affectedLabels(project,item.affectedIds).join('、')}`)
   ].join('\n'));
   return sections.join('\n')+'\n';
 }
@@ -101,8 +102,17 @@ async function verifyPackage(directory:string,manifest:AgentPackageManifest,requ
   for(const file of manifest.files){const full=path.join(directory,...file.path.split('/'));const data=await readFile(full);if(data.length!==file.size||sha256(data)!==file.sha256)throw new Error(`文件回读校验失败：${file.path}`)}
 }
 async function relativeFiles(root:string,current=root):Promise<string[]>{const out:string[]=[];for(const entry of await readdir(current,{withFileTypes:true})){const full=path.join(current,entry.name);if(entry.isDirectory())out.push(...await relativeFiles(root,full));else if(entry.isFile())out.push(path.relative(root,full).split(path.sep).join('/'))}return out}
+async function publishDirectory(source:string,target:string){
+  try { await rename(source,target); return; }
+  catch(error) {
+    const code=(error as NodeJS.ErrnoException).code;
+    if(!['EPERM','EACCES','EBUSY'].includes(code??''))throw error;
+  }
+  await cp(source,target,{recursive:true,errorOnExist:true,force:false});
+  await rm(source,{recursive:true,force:true});
+}
 
-/** 从同一需求快照确定性编译文件，并在独立回读通过后原子发布目录。 */
+/** 从同一需求快照确定性编译文件，独立回读通过后发布到唯一目录。 */
 export async function writeAgentPackage(project:PrdProject,task:AnalysisTask,outputRoot:string,requestedDeliveryId?:string):Promise<AgentPackageResult> {
   const extendedProject=project,extendedTask=task as ExtendedTask;
   const assessment=quality(extendedTask,project),beforeAttempt=task.attempt,beforeFingerprint=sha256(json(snapshot(extendedProject,extendedTask,assessment)));
@@ -112,7 +122,7 @@ export async function writeAgentPackage(project:PrdProject,task:AnalysisTask,out
   try {
     const requirements=snapshot(extendedProject,extendedTask,assessment),requirementsText=json(requirements),resultHash=sha256(requirementsText);
     await writeFile(path.join(temporaryDirectory,'requirements.json'),requirementsText,'utf8');
-    const featureLinks=project.features.map(feature=>`- [${feature.id}${feature.name?` ${feature.name}`:''}](features/${feature.id}.md)`).join('\n');
+    const featureLinks=project.features.map(feature=>`- [${featureTitle(project,feature)}](features/${feature.id}.md)`).join('\n');
     await writeFile(path.join(temporaryDirectory,'README.md'),[
       `# ${project.name} Agent 需求交付包`,'',`需求交付状态：${assessment.state}`,'',
       '本目录以 requirements.json 为唯一结构化业务快照。按功能阅读以下文件；requirements.xlsx 用于人工查阅。','',
@@ -135,7 +145,7 @@ export async function writeAgentPackage(project:PrdProject,task:AnalysisTask,out
     const manifestReadback=JSON.parse(await readFile(path.join(temporaryDirectory,'manifest.json'),'utf8')) as AgentPackageManifest;
     if(JSON.stringify(manifestReadback)!==JSON.stringify(manifest))throw new Error('manifest.json 回读内容不一致');
     if(task.attempt!==beforeAttempt||sha256(json(snapshot(extendedProject,extendedTask,quality(extendedTask,project))))!==beforeFingerprint)throw new Error('导出期间任务或需求数据已变化');
-    await rename(temporaryDirectory,finalDirectory);
+    await publishDirectory(temporaryDirectory,finalDirectory);
     return {directory:finalDirectory,manifest};
   } catch(error) {
     await rm(temporaryDirectory,{recursive:true,force:true});throw error;

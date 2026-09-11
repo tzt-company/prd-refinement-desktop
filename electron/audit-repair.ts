@@ -1,5 +1,5 @@
 import type { AuditCategory, AuditIssue, Clarification, PrdProject, RequirementDetail, RequirementRule } from '../src/types.js';
-import { acceptDirectDetails, validateDirectGraph } from './domain.js';
+import { acceptDirectClarifications, acceptDirectDetails, validateDirectGraph } from './domain.js';
 
 export const auditCategories = new Set<AuditCategory>(['source-ambiguity','rule-extraction','feature-boundary','detail-mismatch','unclassified']);
 
@@ -92,17 +92,16 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
     return {...item,featureId};
   });
   const allowedRefs=new Set([...scope.sourceUnitIds,...scope.requirementIds,...requirements.map(item=>item.id)]);
-  const clarifications=raw.clarifications.map(value=>{
-    const item=record(value),id=requiredText(item.id,'clarification.id');checkId(id,scope.clarificationIds);
-    if(item.state!=='open')throw new Error('模型不得自动解决待确认事项');
+  const parsedClarifications=acceptDirectClarifications(raw.clarifications,sourceUnits,[...allowedRefs,...(scope.readOnlyRequirementIds??[])]);
+  const clarifications=parsedClarifications.map(item=>{
+    const id=item.id;checkId(id,scope.clarificationIds);
     // 仅允许同一个既有问题保留原有只读引用，不扩大需求写集合或新增关联。
     const previous=project.clarifications.find(question=>question.id===id);
     const retainedRefs=new Set(previous?.affectedIds.filter(ref=>scope.readOnlyRequirementIds?.includes(ref))??[]);
-    const affectedIds=stringList(item.affectedIds,'affectedIds');
+    const affectedIds=item.affectedIds;
     if(!affectedIds.length||affectedIds.some(ref=>!allowedRefs.has(ref)&&!retainedRefs.has(ref)))throw new Error(`${id} 引用越出修正范围`);
-    const question=requiredText(item.question,'question'),reason=requiredText(item.reason,'reason');
-    if(!existing.has(id)&&project.clarifications.some(other=>!scope.clarificationIds.includes(other.id)&&other.question===question&&other.reason===reason&&JSON.stringify([...other.affectedIds].sort())===JSON.stringify([...affectedIds].sort())))throw new Error(`${id} 复制了范围外澄清`);
-    return{id,question,reason,affectedIds,state:'open' as const};
+    if(!existing.has(id)&&project.clarifications.some(other=>!scope.clarificationIds.includes(other.id)&&other.question===item.question&&other.reason===item.reason&&JSON.stringify([...other.affectedIds].sort())===JSON.stringify([...affectedIds].sort())))throw new Error(`${id} 复制了范围外澄清`);
+    return{...item,affectedIds};
   });
   const deleteRequirementIds=stringList(raw.deleteRequirementIds,'deleteRequirementIds'),deleteClarificationIds=stringList(raw.deleteClarificationIds,'deleteClarificationIds');
   for(const id of deleteRequirementIds)if(!scope.requirementIds.includes(id))throw new Error(`越界删除 ${id}`);

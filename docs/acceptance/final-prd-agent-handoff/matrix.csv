@@ -19,3 +19,8 @@ A17,1,PENDING,production Electron 已验证 unchecked/草稿/功能原文分组�
 A18,1,PENDING,待混合来源夹具验收
 H01,1,PASS,round-1.md（--help 返回 0 且输出用法）
 H02,1,PASS,round-1.md（缺少交付目录返回 2 且输出用法）
+C01,3,PASS,三级澄清严格契约及建议默认口径由 direct-domain 测试验证；round-3.md
+C02,3,PASS,阻塞澄清和平台问题阻断、仅建议项可交付，由 scheduler 与 production Electron 验证；round-3.md
+C03,3,PASS,页面统一展示业务澄清和平台整理问题且责任分开；round-3.md
+C04,3,PASS,可见页面及 Excel 使用文件章节位置和原文，不显示来源内部 ID；round-3.md
+C05,3,PASS,Excel 三级事项与检查记录分表回读通过；round-3.md

@@ -2,7 +2,7 @@
 
 > 状态：ACTIVE  
 > Goal ID：prd-refinement-desktop  
-> 最近维护：2026-09-11T16:25:00+08:00
+> 最近维护：2026-09-11T17:10:00+08:00
 > 权威目标：D:\project\prd-refinement-desktop\goal.md
 
 ## 总目标
@@ -43,16 +43,19 @@
 | SG7-C | 资料组装与查阅界面 | 上传/目录/拖放、索引、补件、检索桌面验证 | 已完成 | 同上 |
 | SG7-D | 分析与交付集成 | 固定资料版本、全来源追踪、真实桌面启动 | 已完成 | 同上 |
 | SG8 | 定版 PRD 的 Agent 需求交付 | 功能仅作原文分组；需求为唯一业务表述；正反向审计区分整理错误、业务冲突与技术选择；通过状态后原子生成可携带 JSON/Markdown/Excel 需求包 | 已完成 | 148 项测试、真实 T-DEA0C834 ready 包及搬移回读、production Electron；`docs/acceptance/final-prd-agent-handoff/round-1.md`、`round-2.md` |
+| SG9 | 三级待处理事项与业务可读展示 | 页面不暴露来源内部 ID；澄清按阻塞/建议/可忽略分级；业务澄清与平台整理问题各归其责；三级交付判定、页面、Agent 包和 Excel 一致；真实 Electron 状态可读 | 已完成 | 151 项测试、构建、UI contract 与 production Electron 双态通过；`docs/acceptance/final-prd-agent-handoff/round-3.md` |
 
 ## 当前检查点
 
-- 当前子目标：SG8
-- 唯一下一步：如继续质量评测，执行 `docs/acceptance/final-prd-agent-handoff/matrix.csv` 中仍为 PENDING 的专用语义对抗用例；不把当前单一样本外推为自然语言零遗漏。
+- 当前子目标：SG9
+- 唯一下一步：在用户提供的新定版 PRD 上运行新版流程，验证真实问题描述与三级分级的语义质量；这不属于本轮代码实施范围。
 - 历史质量工作下一步：根据round-13已完成验证的反例，修正功能概述与需求双写、摘要覆盖诱发冗余、审计跨条目误报及问题责任范围不匹配，再做稳定版本配对评测。本轮用户要求的验证已完成，T-CFF7E4D2已产Excel，不能因22定向样本通过宣称整体质量通过。证据见 D:\baibu-agent\docs\acceptance\prd-refinement-implementation\round-13.md。
 - 未闭环项：round-13反向质量缺陷与稳定版配对成本/质量评测；SQLite规范化持久化、打包后真实桌面E2E、DSH图像端到端及真人审定 gold。
 
 ## 进展
 
+- 2026-09-11 SG9：三级澄清严格契约、交付判定、统一待处理页面、Agent 包和 Excel 已实现。151 项测试、类型检查、构建、UI contract 及 production Electron 双态通过；页面不显示内部来源编号，旧任务残缺问题提示重新分析。证据见 `docs/acceptance/final-prd-agent-handoff/round-3.md`。
+- 2026-09-11 SG9：用户确认待处理事项分为阻塞、建议、可忽略三级并授权实施。方案已落在 `docs/spec/clarification-review-experience.md`；当前进入数据契约、生成、交付判定、页面和导出的完整实现。
 - 2026-09-11：用户明确输入是马上交给开发 Agent 的定版 PRD，并授权按方案实施；新增 SG8。保留八节点，不接入开发仓库；功能只作原文分组，需求作为唯一业务表述，输出结构化 Agent 需求包与同源 Excel。
 - 2026-09-11 SG8：完成来源选区、逐字段证据、需求关系、问题责任、DeliveryAssessment、输入快照和原子 Agent 包；真实 Codex 任务 T-DEA0C834 产 3 功能/7 需求/2 关系且 ready，正式包搬移后独立回读通过，production Electron 显示检查与草稿状态。专用语义对抗矩阵未全绿，不创建最终报告。
 
@@ -102,6 +105,7 @@
 
 ## 重大决策
 
+- 2026-09-11：待处理事项采用阻塞、建议、可忽略三级。阻塞项和有效平台整理错误阻止正式交付；建议与可忽略不阻塞，且不能被自动写入确定需求。自动检查是发现过程，业务澄清是处理方式；页面统一入口但责任、生命周期和检查记录分开。
 - 2026-09-10 流程复审：主顺序合理，当前实现质量与成本尚未收敛。源码及 T-124FCB4C 回查发现需求归属随遍历顺序变化、23 条需求多功能引用、14 个功能首次细化全走 Sol；后两项不单独证明全部共享错误或模型浪费。详细证据及待实施建议见 `D:\baibu-agent\docs\acceptance\prd-refinement-implementation\round-11.md`。八节点精简或降级须通过独立对照评估，本轮未决定删除节点。
 
 - 一期建设独立桌面 App，暂不建设 CLI、Skill 或 MCP 产品入口。

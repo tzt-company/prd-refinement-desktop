@@ -26,6 +26,14 @@ function fixture(){
 }
 
 describe('Agent 交付包',()=>{
+  it('仅阻塞澄清拦截正式交付，建议和可忽略事项继续保留',async()=>{
+    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);const {project,task}=fixture();
+    const base={question:'是否需要在本期明确订单备注长度？',reason:'原文未明确',knownFacts:'订单可以提交',unresolvedPoint:'备注长度',impact:'不改变本期核心流程',levelReason:'已有明确默认口径',sourceRefs:[{sourceUnitId:'S-1'}],affectedIds:['R-001'],state:'open' as const};
+    project.clarifications=[{id:'Q-S',level:'suggestion',defaultResolution:'暂不处理时保持原文规则',...base},{id:'Q-I',level:'ignorable',...base}];
+    expect((await writeAgentPackage(project,task,root,'advisory')).manifest.qualityState).toBe('ready');
+    project.clarifications.push({id:'Q-B',level:'blocking',...base,question:'库存不足时订单应进入哪一种业务状态？',impact:'会改变订单状态',levelReason:'开发 Agent 无法确定处理分支'});
+    expect((await writeAgentPackage(project,task,root,'blocked')).manifest.qualityState).toBe('blocked');
+  });
   it('从同一快照生成、回读并原子发布完整需求包',async()=>{
     const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
     const {project,task}=fixture();const assetPath=path.join(root,'原始图片.png'),asset=Buffer.from('fixture-image');await writeFile(assetPath,asset);project.sourceUnits[0].asset={path:assetPath,mimeType:'image/png',sha256:hash(asset),readStatus:'read'};const result=await writeAgentPackage(project,task,root,'delivery-1');

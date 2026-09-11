@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptCandidateClassificationIssues, acceptDirectDetails, acceptDirectFeatureBatch, acceptDirectFeatures, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from '../electron/domain';
+import { acceptAuditIssues, acceptCandidateClassificationIssues, acceptDirectClarifications, acceptDirectDetails, acceptDirectFeatureBatch, acceptDirectFeatures, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from '../electron/domain';
 import type { Feature, RequirementDetail, SourceDisposition, SourceUnit } from '../src/types';
 
 const sources:SourceUnit[]=['S1','S2','S3'].map(id=>({id,label:id,kind:'paragraph',excerpt:'字段 X 必填',location:id,status:'processed'}));
@@ -9,6 +9,19 @@ const dispositions:SourceDisposition[]=sources.map((unit,i)=>({sourceUnitId:unit
 const graph=(features:Feature[],requirements:RequirementDetail[]=[requirement],ds=dispositions)=>validateDirectGraph(sources,ds,features,requirements,[]);
 
 describe('直接需求域契约',()=>{
+  it('仅接受具备完整事实、影响、分级依据和原文证据的三级澄清',()=>{
+    const base={id:'LOCAL-Q',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有唯一口径',knownFacts:'字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'会改变系统处理结果',levelReason:'需要明确开发输入',sourceRefs:[{sourceUnitId:'S1'}],affectedIds:['R1'],state:'open'};
+    for(const level of ['blocking','ignorable'] as const)expect(acceptDirectClarifications([{...base,level}],sources,['R1'])[0].level).toBe(level);
+    expect(acceptDirectClarifications([{...base,level:'suggestion',defaultResolution:'暂不处理时保持现有校验规则'}],sources,['R1'])[0].defaultResolution).toContain('保持');
+    expect(()=>acceptDirectClarifications([{...base,level:'suggestion'}],sources,['R1'])).toThrow('defaultResolution');
+    expect(()=>acceptDirectClarifications([{...base,level:'blocking',question:'NULL'}],sources,['R1'])).toThrow('完整业务问题');
+  });
+  it('来源歧义审查必须同时给出可回答的业务澄清草稿',()=>{
+    const issue={id:'LOCAL-A',direction:'forward',type:'来源歧义',category:'source-ambiguity',sourceUnitIds:['S1'],affectedIds:['R1'],detail:'空值处理口径未明确'};
+    expect(()=>acceptAuditIssues([issue],sources,[],[feature('F1',['S1'],['R1'])],[requirement],[])).toThrow();
+    const clarification={id:'LOCAL-Q',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有唯一口径',level:'blocking',knownFacts:'字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测规则',sourceRefs:[{sourceUnitId:'S1'}],affectedIds:['R1'],state:'open'};
+    expect(acceptAuditIssues([{...issue,clarification}],sources,[],[feature('F1',['S1'],['R1'])],[requirement],[])[0].clarificationDraft?.question).toBe(clarification.question);
+  });
   it('紧凑统一按显式单目标映射确定性合并全部来源',()=>{
     const {sourceUnitIds:_,...compact}=feature('F1',['S1']);
     const result=acceptFeatureUnification({features:[compact],candidateMappings:[{candidateId:'C1',featureIds:['F1']},{candidateId:'C2',featureIds:['F1']}]},[feature('C1',['S1']),feature('C2',['S2'])],sources);
