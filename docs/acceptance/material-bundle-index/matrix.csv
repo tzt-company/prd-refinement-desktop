@@ -24,3 +24,6 @@ selected-state-hierarchy,4,PASS,round-4/material-preparation-1100.png
 missing-reference-summary,4,PASS,round-4/current-desktop.json
 current-electron-build,4,PASS,round-4/current-desktop.png
 premium-strict-audit,4,PASS,round-4/premium-audit.json
+uploaded-files-only,5,PASS,tests/material-bundle.spec.ts
+no-reference-gap-ui,5,PASS,round-5/material-preparation-1440.png
+uploaded-files-responsive,5,PASS,round-5/material-preparation-1100.png

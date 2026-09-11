@@ -32,7 +32,6 @@ export interface MaterialApi {
   add(id: string, options: MaterialAddition, files?: File[]): Promise<MaterialBundle>;
   updateFile(id: string, fileId: string, patch: MaterialFilePatch): Promise<MaterialBundle>;
   removeFile(id: string, fileId: string): Promise<MaterialBundle>;
-  resolveReference(id: string, referenceId: string, action: {targetFileId?: string; exclusionReason?: string}): Promise<MaterialBundle>;
   index(id: string): Promise<MaterialBundle>;
   cancel(id: string): Promise<MaterialBundle>;
   query(id: string, query: MaterialQuery): Promise<MaterialSearchResult>;

@@ -16,17 +16,12 @@ describe('资料包快照、索引和恢复',()=>{
   expect((await index(store,bundle.id)).state).toBe('ready');const p=await store.project(bundle.id);expect(p.sourceDocuments).toHaveLength(2);expect(new Set(p.sourceUnits.map(u=>u.id)).size).toBe(p.sourceUnits.length);expect(p.sourceUnits.every(u=>u.location.includes(u.logicalPath!))).toBe(true);
   await writeFile(main,'改写源文件');expect((await store.project(bundle.id)).rawText).toContain('订单编号必填');const q=await store.query(bundle.id,{query:'退款'});expect(q.total).toBe(1);expect(q.items[0].sourceRole).toBe('supplement');await expect(store.read(bundle.id,['S-not-owned'])).rejects.toThrow();
  });
- it('缺少相对SVG资源进入待补件，添加目录后绑定、图像识别并就绪',async()=>{
+ it('只处理用户上传的文件，不根据文档引用判断缺件',async()=>{
   const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.html','<h1>订单</h1><p>点击筛选</p><img src="assets/filter.svg">'));
-  const missing=await index(store,bundle.id);expect(missing.state).toBe('needs-materials');expect(missing.references[0].state).toBe('missing');await expect(store.project(bundle.id)).rejects.toThrow('未就绪');
-  await file(root,'assets/filter.svg','<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><rect width="12" height="12" fill="red"/></svg>');await store.add(bundle.id,[path.join(root,'assets')],{kind:'directory',role:'supplement'});const ready=await index(store,bundle.id);expect(ready.state,JSON.stringify(ready.issues)).toBe('ready');expect(ready.references[0].state).toBe('resolved');expect((await store.project(bundle.id)).sourceUnits.some(u=>u.asset?.readStatus==='read')).toBe(true);
+  const ready=await index(store,bundle.id);expect(ready.state,JSON.stringify(ready.issues)).toBe('ready');expect(ready.references).toEqual([]);expect(ready.issues).toEqual([]);expect((await store.project(bundle.id)).rawText).toContain('点击筛选');
  });
- it('未提交的旁边文件不可被偷偷读取，明确绑定包内文件才消除缺口',async()=>{
-  const {root,store,bundle}=await setup();await file(root,'secret.png','not-an-image');await addPrimary(store,bundle.id,await file(root,'main.html','<p>规则</p><img src="secret.png">'));const missing=await index(store,bundle.id);expect(missing.state).toBe('needs-materials');expect(missing.references[0].state).toBe('missing');
-  const svg=await file(root,'uploaded/icon.svg','<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><circle cx="5" cy="5" r="3"/></svg>');const b=await store.add(bundle.id,[svg],{kind:'files',role:'supplement',mount:'provided'});await store.resolveReference(bundle.id,missing.references[0].id,{targetFileId:b.files.find(f=>f.role==='supplement')!.id});expect((await index(store,bundle.id)).state).toBe('ready');
- });
- it('显式排除必须有理由，文件与来源绑定不能跨资料包',async()=>{
-  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.html','<p>订单</p><img src="https://example.invalid/a.png">'));const b=await index(store,bundle.id);const ref=b.references[0];await expect(store.resolveReference(bundle.id,ref.id,{})).rejects.toThrow();await expect(store.resolveReference(bundle.id,ref.id,{targetFileId:'F-other'})).rejects.toThrow();await store.resolveReference(bundle.id,ref.id,{exclusionReason:'用户确认仅为装饰图标，不含需求信息'});expect((await index(store,bundle.id)).state).toBe('ready');
+ it('不会读取主文档旁边但未上传的文件',async()=>{
+  const {root,store,bundle}=await setup();await file(root,'secret.png','not-an-image');await addPrimary(store,bundle.id,await file(root,'main.html','<p>规则</p><img src="secret.png"><iframe src="prototype.html"></iframe>'));const ready=await index(store,bundle.id);expect(ready.state).toBe('ready');expect(ready.references).toEqual([]);expect(ready.issues).toEqual([]);expect((await store.project(bundle.id)).sourceUnits.some(unit=>unit.asset)).toBe(false);
  });
  it('同名异目录不合并，同逻辑路径冲突拒绝且不部分提交',async()=>{
   const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'a/main.txt','A'));const second=await file(root,'b/main.txt','B');await expect(store.add(bundle.id,[second],{kind:'files',role:'supplement'})).rejects.toThrow('冲突');expect((await store.get(bundle.id)).files).toHaveLength(1);await store.add(bundle.id,[second],{kind:'files',role:'supplement',mount:'b'});expect((await index(store,bundle.id)).state).toBe('ready');expect((await store.project(bundle.id)).sourceDocuments).toHaveLength(2);
