@@ -63,7 +63,10 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
     }}
     scope.key=scope.issues.map(item=>item.id).sort().join('+');scopes.push(scope);
   }
-  return scopes.map(scope=>({...scope,readOnlyRequirementIds:distinct(scope.clarificationIds.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref)&&!scope.requirementIds.includes(ref))))}));
+  return scopes.map(scope=>({...scope,readOnlyRequirementIds:distinct([
+    ...project.features.filter(feature=>scope.featureIds.includes(feature.id)).flatMap(feature=>feature.requirementIds),
+    ...scope.clarificationIds.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref))),
+  ].filter(id=>!scope.requirementIds.includes(id)))}));
 }
 
 function stringList(value:unknown,label:string):string[]{if(!Array.isArray(value)||value.some(item=>typeof item!=='string'||!item.trim()))throw new Error(`${label} 必须为字符串数组`);if(new Set(value).size!==value.length)throw new Error(`${label} 含重复项`);return value as string[]}

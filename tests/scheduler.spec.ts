@@ -22,11 +22,14 @@ function answer(prompt:string){
   if(prompt.includes('“功能清单统一”'))return{features:value.candidates,candidateMappings:value.candidates.map((f:{id:string})=>({candidateId:f.id,featureIds:[f.id]}))};
   if(prompt.includes('“功能候选完整性检查'))return{issues:[]};
   if(prompt.includes('“逐功能细化”'))return{requirements:[{id:'LOCAL-R1',title:'字段要求',behavior:'字段 X 必填',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:value.sourceUnits.map((u:SourceUnit)=>u.id),state:'draft'}],clarifications:[]};
+  if(prompt.includes('“审计问题成立性确认”'))return{results:value.issues.map((issue:{id:string})=>({issueId:issue.id,status:'confirmed',reason:'完整上下文确认问题成立',correctedDetail:''}))};
+  if(prompt.includes('“完整性与忠实性检查·局部复核”'))return{originalIssueResults:value.originalIssues.map((issue:{id:string})=>({issueId:issue.id,status:'resolved',reason:'指定缺口已经解决'})),introducedIssues:[],discoveredIssues:[]};
+  if(prompt.includes('“完整性与忠实性检查·关系复核”'))return{originalIssueResults:value.originalIssues.map((issue:{id:string})=>({issueId:issue.id,status:'resolved',reason:'关系问题已经解决'})),introducedIssues:[],discoveredIssues:[]};
   if(prompt.includes('“完整性与忠实性检查'))return{issues:[]};
   if(prompt.includes('“局部修正”'))return{requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]};
   throw new Error('未处理的提示词');
 }
-function runtime(fn:(prompt:string)=>unknown=answer,gate?:(prompt:string)=>Promise<void>):AnalysisRuntime{return{start:async()=>{},stop:async()=>{},diagnostics:()=>'',promptAndWait:async(_id,prompt)=>{await gate?.(prompt);return JSON.stringify(fn(prompt))}}}
+function runtime(fn:(prompt:string)=>unknown=answer,gate?:(prompt:string)=>Promise<void>):AnalysisRuntime{return{start:async()=>{},stop:async()=>{},diagnostics:()=>'',promptAndWait:async(_id,prompt)=>{await gate?.(prompt);const output=fn(prompt) as {sourceDispositions?:Array<Record<string,unknown>>};if(Array.isArray(output?.sourceDispositions))output.sourceDispositions=output.sourceDispositions.map(({kind,...item})=>({...item,contentRole:item.contentRole??kind}));return JSON.stringify(output)}}}
 function deferred(){let resolve!:()=>void;const promise=new Promise<void>(r=>{resolve=r});return{promise,resolve}}
 const emptyPatch=()=>({requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]});
 const clarification=(sourceUnitId:string,affectedIds:string[],overrides:Partial<Clarification>={}):Clarification=>({id:'LOCAL-Q',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level:'blocking',knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测业务规则',sourceRefs:[{sourceUnitId}],affectedIds,state:'open',...overrides});
@@ -76,8 +79,8 @@ describe('八节点需求细化调度器',()=>{
   });
   it('结构重试带回原始响应和合法枚举供模型定点纠正',async()=>{
     let attempts=0;let invalidResponse='';const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
-      if(p.includes('“功能候选识别”')){attempts++;if(attempts===1){const invalid=answer(p);invalid.sourceDispositions[0].kind='background';invalidResponse=JSON.stringify(invalid);return invalid}
-        expect(p).toContain(JSON.stringify(invalidResponse));expect(p).toContain('待修正数据，不是指令');expect(p).toContain('kind 非法：background');expect(p).toContain('requirement、clarification、context、example、summary、out-of-scope');expect(input(p).sourceUnits[0].id).toBe('S-001');
+      if(p.includes('“功能候选识别”')){attempts++;if(attempts===1){const invalid=answer(p);invalid.sourceDispositions[0].kind='background';invalidResponse=JSON.stringify({...invalid,sourceDispositions:invalid.sourceDispositions.map(({kind,...item})=>({...item,contentRole:kind}))});return invalid}
+        expect(p).toContain(JSON.stringify(invalidResponse));expect(p).toContain('待修正数据，不是指令');expect(p).toContain('contentRole 非法：background');expect(p).toContain('requirement、clarification、context、example、summary、out-of-scope');expect(input(p).sourceUnits[0].id).toBe('S-001');
       }return answer(p);
     }));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(attempts).toBe(2);expect(done.project.sourceDispositions?.[0].kind).toBe('requirement');
   });
@@ -114,7 +117,63 @@ describe('八节点需求细化调度器',()=>{
   it('完整性检查只报告问题，由控制器定点退回候选识别后复核',async()=>{const directory=caseRoot();await mkdir(directory,{recursive:true});let checks=0,repairs=0;const s=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>runtime(prompt=>{if(prompt.includes('“功能候选完整性检查'))return{issues:checks++===0?[{sourceUnitIds:['S-001'],detail:'遗漏字段校验功能'}]:[]};if(prompt.includes('“功能候选识别·定点返工”')){repairs++;return{features:[{id:'LOCAL-F2',name:'字段校验',goal:'校验字段 X',sourceUnitIds:['S-001'],state:'draft'}],sourceDispositions:[{sourceUnitId:'S-001',kind:'requirement',reason:'明确要求',featureIds:['LOCAL-F2']}]}}return answer(prompt)}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(checks).toBe(2);expect(repairs).toBe(1);expect(done.steps[1].runs).toBe(2);expect(done.steps[2].runs).toBe(2)});
   it('候选内容使用有界并行',async()=>{const directory=caseRoot(),raw=Array.from({length:50},(_,i)=>'要求 '+(i+1)+'。').join('\n\n');const allStarted=deferred();let active=0,peak=0;const s=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>runtime(answer,async prompt=>{if(prompt.includes('“功能候选识别”')){active++;peak=Math.max(peak,active);if(active===3)allStarted.resolve();await allStarted.promise;active--}}));await s.initialize();await s.create(project(raw));const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(done.checkpoint?.featureCandidateBatchCount).toBe(3);expect(peak).toBeGreaterThan(1);expect(peak).toBeLessThanOrEqual(3)});
   it('复杂功能使用 Sol 轻度推理，候选使用快速模型',async()=>{const directory=caseRoot(),created:RuntimeConfig[]=[];const s=new AnalysisTaskScheduler(directory,async()=>config,()=>{},c=>{created.push(c);return runtime()});await s.initialize();await s.create(project('字段 X 必填，状态变化时需要权限校验并处理例外。'));const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(created.some(c=>c.model==='sol'&&c.reasoningEffort==='low')).toBe(true);expect(created.some(c=>c.model==='fast')).toBe(true)});
-  it('审计问题只触发受影响功能的局部修正并回到审计复核',async()=>{const directory=caseRoot();let repaired=0,reviews=0;const s=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>runtime(prompt=>{if(prompt.includes('“完整性与忠实性检查·局部复核”')){reviews++;return{issues:[]}}if(prompt.includes('“完整性与忠实性检查”'))return{issues:[{id:'A',direction:'reverse',type:'误读',category:'detail-mismatch',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'误读'}]};if(prompt.includes('“局部修正”')){repaired++;return{requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]}}return answer(prompt)}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(repaired).toBe(1);expect(reviews).toBe(1);expect(done.project.audit?.issues[0].disposition).toBe('repaired')});
+  it('审计问题只触发受影响功能的局部修正并回到审计复核',async()=>{const directory=caseRoot();let repaired=0,reviews=0;const s=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>runtime(prompt=>{if(prompt.includes('“完整性与忠实性检查·局部复核”')){reviews++;return answer(prompt)}if(prompt.includes('“完整性与忠实性检查”'))return{issues:[{id:'A',direction:'reverse',type:'误读',category:'detail-mismatch',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'误读'}]};if(prompt.includes('“局部修正”')){repaired++;return{requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]}}return answer(prompt)}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(repaired).toBe(1);expect(reviews).toBe(1);expect(done.project.audit?.issues[0].disposition).toBe('repaired')});
+  it('审计发现已有澄清重复时由平台合并，不再生成引用Q编号的新澄清',async()=>{
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);
+      if(p.includes('“逐功能细化”'))return{requirements:[{id:'LOCAL-R1',title:'候选校验',behavior:'按判定字段检查候选冲突',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-001'],state:'draft'}],clarifications:[
+        clarification('S-001',['S-001'],{id:'LOCAL-Q1',question:'判定字段为空字符串时是否按照数据库 NULL 处理？',unresolvedPoint:'空字符串是否按照 NULL 处理',level:'suggestion',defaultResolution:'暂按空字符串与 NULL 不同处理'}),
+        clarification('S-001',['S-001'],{id:'LOCAL-Q2',question:'候选判定字段中的空字符是否需要和 NULL 统一？',unresolvedPoint:'空字符和 NULL 是否统一',level:'blocking'})
+      ]};
+      if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'LOCAL-A',direction:'cross',type:'duplicate-clarification',category:'source-ambiguity',owner:'source-decision',sourceUnitIds:['S-001'],affectedIds:v.clarifications.map((q:{id:string})=>q.id),detail:'两条澄清表达同一个业务决定',clarification:clarification('S-001',v.clarifications.map((q:{id:string})=>q.id),{id:'LOCAL-MERGED',question:'候选判定字段中的空字符串是否应与数据库 NULL 统一处理？',unresolvedPoint:'空字符串是否与 NULL 统一处理',level:'blocking'})}]};
+      return answer(p);
+    }));
+    await s.initialize();await s.create(project('候选判定字段为空时需确认处理口径。'));const done=await terminal(s);
+    expect(done.status,done.error).toBe('needs-attention');expect(done.project.clarifications).toHaveLength(1);
+    expect(done.project.clarifications[0]).toMatchObject({level:'blocking',affectedIds:['S-001']});expect(done.project.clarifications[0].question).toContain('数据库 NULL');
+    expect(done.project.audit?.issues[0].clarificationId).toBe(done.project.clarifications[0].id);expect(done.project.audit?.issues[0].affectedIds).toEqual(['S-001']);
+  });
+  it('原问题解决且无回归时提交成果，并将旁支问题独立进入下一轮',async()=>{
+    let initialAudit=true,repairs=0,reviews=0,confirmationSawRelated=false;
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);
+      if(p.includes('“功能候选识别”'))return{features:[{id:'LOCAL-F1',name:'字段维护',sourceUnitIds:v.sourceUnits.map((u:SourceUnit)=>u.id),state:'draft'}],sourceDispositions:v.sourceUnits.map((u:SourceUnit)=>({sourceUnitId:u.id,kind:'requirement',reason:'明确要求',featureIds:['LOCAL-F1']}))};
+      if(p.includes('“逐功能细化”'))return{requirements:[{id:'LOCAL-R1',title:'字段X',behavior:'字段 X 可填写',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-001'],state:'draft'},{id:'LOCAL-R2',title:'字段Y',behavior:'字段 Y 可填写',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-002'],state:'draft'}],clarifications:[]};
+      if(p.includes('“完整性与忠实性检查·局部复核”')){reviews++;const target=v.originalIssues[0];return{originalIssueResults:[{issueId:target.id,status:'resolved',reason:'目标已经修正'}],introducedIssues:[],discoveredIssues:reviews===1?[{id:'LOCAL-OTHER',direction:'reverse',type:'字段Y模态错误',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:['S-002'],affectedIds:['R-0002'],detail:'字段 Y 应为必填'}]:[]}}
+      if(p.includes('“审计问题成立性确认”')){confirmationSawRelated||=v.requirements.some((r:{id:string})=>r.id==='R-0002');return answer(p)}
+      if(p.includes('“完整性与忠实性检查”')&&initialAudit){initialAudit=false;return{issues:[{id:'LOCAL-A',direction:'reverse',type:'字段X模态错误',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'字段 X 应为必填'}]}}
+      if(p.includes('“局部修正”')){repairs++;const current=v.currentRequirements[0];return{...emptyPatch(),requirements:[{...current,featureId:v.features[0].id,behavior:current.id==='R-0001'?'字段 X 必填':'字段 Y 必填'}]}}
+      return answer(p);
+    }));
+    await s.initialize();await s.create(project('字段 X 必填。\n\n字段 Y 必填。'));const done=await terminal(s);
+    expect(done.status,done.error).toBe('completed');expect(repairs).toBe(2);expect(reviews).toBe(2);expect(confirmationSawRelated).toBe(true);
+    expect(done.project.requirements.map(r=>r.behavior)).toEqual(['字段 X 必填','字段 Y 必填']);expect(done.project.audit?.issues.map(i=>i.disposition)).toEqual(['repaired','repaired']);
+    expect(done.checkpoint?.repairAttemptsV2?.map(a=>a.state)).toEqual(['committed','committed']);expect(done.checkpoint?.repairs?.[0].status).toBe('accepted');
+  });
+  it('原问题虽解决但候选引入回归时拒绝提交',async()=>{
+    let initialAudit=true;
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);
+      if(p.includes('“完整性与忠实性检查·局部复核”'))return{originalIssueResults:[{issueId:v.originalIssues[0].id,status:'resolved',reason:'原问题已解决'}],introducedIssues:[{id:'LOCAL-REG',direction:'reverse',type:'新增回归',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'候选把必须改成可选'}],discoveredIssues:[]};
+      if(p.includes('“完整性与忠实性检查”')&&initialAudit){initialAudit=false;return{issues:[{id:'LOCAL-A',direction:'reverse',type:'原问题',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'原内容需修正'}]}}
+      if(p.includes('“局部修正”'))return{...emptyPatch(),requirements:[{...v.currentRequirements[0],featureId:v.features[0].id,behavior:'字段 X 可选'}]};return answer(p)}));
+    await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status).toBe('needs-attention');expect(done.project.requirements[0].behavior).toBe('字段 X 必填');expect(done.project.audit?.issues[0].disposition).toBe('open');expect(done.checkpoint?.repairAttemptsV2?.every(a=>a.state==='verified-rejected')).toBe(true);
+  });
+  it('需求关系问题进入独立修正和复核并关闭原问题',async()=>{
+    let initialAudit=true,relationRepairs=0,relationReviews=0;
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);
+      if(p.includes('“功能候选识别”'))return{features:[{id:'LOCAL-F1',name:'字段联动',sourceUnitIds:v.sourceUnits.map((u:SourceUnit)=>u.id),state:'draft'}],sourceDispositions:v.sourceUnits.map((u:SourceUnit)=>({sourceUnitId:u.id,kind:'requirement',reason:'明确要求',featureIds:['LOCAL-F1']}))};
+      if(p.includes('“逐功能细化”'))return{requirements:[{id:'LOCAL-R1',title:'先决条件',behavior:'先设置字段 X',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-001'],state:'draft'},{id:'LOCAL-R2',title:'后续动作',behavior:'设置字段 X 后才能提交',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-002'],state:'draft'}],clarifications:[]};
+      if(p.includes('“需求关系修正”')){relationRepairs++;return{relations:[{id:'LOCAL-REL-1',sourceRequirementId:'R-0002',targetRequirementId:'R-0001',kind:'depends-on',evidenceIds:[v.evidenceCatalog[0].id]}]}}
+      if(p.includes('“完整性与忠实性检查·关系复核”')){relationReviews++;return{originalIssueResults:[{issueId:v.originalIssues[0].id,status:'resolved',reason:'缺失关系已补齐'}],introducedIssues:[],discoveredIssues:[]}}
+      if(p.includes('“完整性与忠实性检查”')&&initialAudit){initialAudit=false;return{issues:[{id:'LOCAL-REL-A',direction:'cross',type:'缺少业务前置关系',category:'detail-mismatch',owner:'requirement-relation',sourceUnitIds:['S-001','S-002'],affectedIds:['R-0001','R-0002'],detail:'提交依赖字段 X 已设置'}],relations:[]}}
+      return answer(p);
+    }));
+    await s.initialize();await s.create(project('先设置字段 X。\n\n设置字段 X 后才能提交。'));const done=await terminal(s);
+    expect(done.status,done.error).toBe('completed');expect(relationRepairs).toBe(1);expect(relationReviews).toBe(1);expect(done.project.audit?.issues[0].disposition).toBe('repaired');expect(done.project.relations).toMatchObject([{sourceRequirementId:'R-0002',targetRequirementId:'R-0001',kind:'depends-on'}]);
+  });
+  it('局部候选已保存后中断，重试直接复核而不重复生成',async()=>{
+    const stopped=deferred();let scheduler:AnalysisTaskScheduler,cancelled=false,cancellation:Promise<void>|undefined,repairs=0;
+    scheduler=new AnalysisTaskScheduler(caseRoot(),async()=>config,task=>{if(!cancelled&&task.checkpoint?.repairAttemptsV2?.some(entry=>entry.state==='candidate-ready')){cancelled=true;cancellation=scheduler.cancel(task.id)}},()=>{const r=runtime(p=>{if(p.includes('“完整性与忠实性检查”')&&!p.includes('·局部复核'))return{issues:[{id:'LOCAL-A',direction:'reverse',type:'误读',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'需修正'}]};if(p.includes('“局部修正”'))repairs++;return answer(p)});r.stop=async()=>{stopped.resolve()};return r});
+    await scheduler.initialize();const created=await scheduler.create(project());await stopped.promise;await cancellation;expect(scheduler.list()[0].checkpoint?.repairAttemptsV2?.at(-1)?.state).toBe('candidate-ready');await scheduler.retry(created.id);const done=await terminal(scheduler);expect(done.status,done.error).toBe('completed');expect(repairs).toBe(1);expect(done.checkpoint?.repairAttemptsV2?.at(-1)?.state).toBe('committed');
+  });
   it('局部修正连续返回伪造验收条件时拒绝候选并保留系统整理问题',async()=>{
     let repairs=0;const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
       const v=input(p);
@@ -126,11 +185,11 @@ describe('八节点需求细化调度器',()=>{
     }));await s.initialize();await s.create(project());const done=await terminal(s);
     expect(done.status,done.error).toBe('needs-attention');expect(repairs).toBe(6);
     expect(done.project.requirements.flatMap(r=>r.explicitAcceptanceConditions)).not.toContain('如果字段 X 为空则提示错误');
-    expect(done.project.audit?.issues[0].disposition).toBe('open');expect(done.project.audit?.issues.some(i=>i.owner==='runtime-output'&&i.detail.includes('连续两次未通过数据契约'))).toBe(true);expect(done.project.clarifications).toHaveLength(0);expect(done.project.delivery?.state).toBe('blocked');
+    expect(done.project.audit?.issues[0].disposition).toBe('open');expect(done.checkpoint?.repairAttemptsV2?.every(entry=>entry.state==='invalid-output')).toBe(true);expect(done.project.clarifications).toHaveLength(0);expect(done.project.delivery?.state).toBe('blocked');
     expect(done.checkpoint?.repairs?.at(-1)).toMatchObject({status:'rejected',candidate:[]});expect(done.checkpoint?.repairs?.at(-1)?.reason).toContain('逐字引用关联原文');
   });
   it('局部修正的 Runtime 故障不会被当成输出校验失败吞掉',async()=>{const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'A',direction:'reverse',type:'误读',category:'detail-mismatch',sourceUnitIds:['S-001'],affectedIds:['R-0001'],detail:'误读'}]};return answer(p)},async p=>{if(p.includes('“局部修正”'))throw new Error('runtime unavailable')}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status).toBe('failed');expect(done.error).toContain('runtime unavailable');expect(done.checkpoint?.repairs).toBeUndefined()});
-  it('局部候选未覆盖完整修正范围时按输出错误隔离且阻断交付',async()=>{const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);if(p.includes('“逐功能细化·定点补漏”'))return{requirements:[],clarifications:[]};if(p.includes('“逐功能细化”'))return{requirements:[],clarifications:[]};if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'A',direction:'forward',type:'遗漏',category:'detail-mismatch',sourceUnitIds:['S-001'],affectedIds:[v.features[0].id],detail:'应形成明确需求'}]};if(p.includes('“局部修正”'))return{...emptyPatch(),requirements:[]};return answer(p)}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('needs-attention');expect(done.checkpoint?.repairs?.at(-1)?.reason).toContain('增量修正仍有未覆盖原文');expect(done.project.clarifications).toHaveLength(0);expect(done.project.audit?.issues.some(i=>i.owner==='runtime-output')).toBe(true);expect(done.project.delivery?.state).toBe('blocked')});
+  it('局部候选未覆盖完整修正范围时按输出错误隔离且阻断交付',async()=>{const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);if(p.includes('“逐功能细化·定点补漏”'))return{requirements:[],clarifications:[]};if(p.includes('“逐功能细化”'))return{requirements:[],clarifications:[]};if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'A',direction:'forward',type:'遗漏',category:'detail-mismatch',sourceUnitIds:['S-001'],affectedIds:[v.features[0].id],detail:'应形成明确需求'}]};if(p.includes('“局部修正”'))return{...emptyPatch(),requirements:[]};return answer(p)}));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('needs-attention');expect(done.checkpoint?.repairs?.at(-1)?.reason).toContain('增量修正仍有未覆盖原文');expect(done.project.clarifications).toHaveLength(0);expect(done.checkpoint?.repairAttemptsV2?.at(-1)?.state).toBe('invalid-output');expect(done.project.delivery?.state).toBe('blocked')});
   it('运行配置不持久化密钥',async()=>{const directory=caseRoot(),secretConfig={...config,apiKey:'FAKE-SECRET'};const s=new AnalysisTaskScheduler(directory,async()=>secretConfig,()=>{},()=>runtime());await s.initialize();const created=await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(await readFile(path.join(directory,created.id+'.json'),'utf8')).not.toContain('FAKE-SECRET')});
   it('同源的两个功能各自只拥有本功能产生的需求',async()=>{
     const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(twoFeatures));await s.initialize();await s.create(project());const done=await terminal(s);
@@ -171,7 +230,7 @@ describe('八节点需求细化调度器',()=>{
   });
   it('失败重试不重复修正已经提交的独立问题范围',async()=>{
     const committed=deferred();const counts=new Map<string,number>();let fail=true;
-    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,t=>{if(t.checkpoint?.repairIssueIds?.includes('A-0001'))committed.resolve()},()=>runtime(p=>{if(p.includes('“完整性与忠实性检查”'))return twoIssues(p);if(p.includes('“局部修正”'))return emptyPatch();return twoFeatures(p)},async p=>{if(p.includes('“局部修正”')){const id=input(p).issues[0].id;counts.set(id,(counts.get(id)??0)+1);if(id==='A-0002'&&fail){await committed.promise;throw new Error('可重试故障')}}}));
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,t=>{if(t.checkpoint?.repairAttemptsV2?.some(entry=>entry.state==='committed'&&entry.targetIssueIds.includes('A-0001')))committed.resolve()},()=>runtime(p=>{if(p.includes('“完整性与忠实性检查”'))return twoIssues(p);if(p.includes('“局部修正”'))return emptyPatch();return twoFeatures(p)},async p=>{if(p.includes('“局部修正”')){const id=input(p).issues[0].id;counts.set(id,(counts.get(id)??0)+1);if(id==='A-0002'&&fail){await committed.promise;throw new Error('可重试故障')}}}));
     await s.initialize();const created=await s.create(project());expect((await terminal(s)).status).toBe('failed');fail=false;await s.retry(created.id);const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(counts.get('A-0001')).toBe(1);expect(counts.get('A-0002')).toBe(2);
   });
   it('候选两轮修正预算跨 retry 保留',async()=>{
@@ -192,7 +251,7 @@ describe('八节点需求细化调度器',()=>{
     }));
     await s.initialize();const created=await s.create(project());const first=await terminal(s);expect(first.status).toBe('failed');expect(first.checkpoint?.featureRepairRounds??0).toBe(0);
     if(failureAt!=='candidate')expect(first.checkpoint?.boundaryCandidate).toBeDefined();if(failureAt==='unify')expect(first.checkpoint?.boundaryChecked).toBe(true);
-    await s.retry(created.id);const done=await terminal(s);expect(done.status,done.error).toBe('needs-attention');expect(done.checkpoint?.featureRepairRounds).toBe(1);expect(done.checkpoint?.boundaryUnified).toBeDefined();
+    await s.retry(created.id);const done=await terminal(s);expect(done.status,done.error).toBe('needs-attention');expect(done.checkpoint?.featureRepairRounds).toBe(1);expect(done.checkpoint?.boundaryUnified).toBeUndefined();
     expect(counts).toEqual({candidate:failureAt==='candidate'?2:1,check:failureAt==='check'?2:1,unify:failureAt==='unify'?2:1});
   });
   it('边界修改替换旧澄清且复用调用后八节点均完成',async()=>{

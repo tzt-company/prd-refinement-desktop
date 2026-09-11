@@ -71,7 +71,7 @@ describe('直接需求域契约',()=>{
   it('跨功能约束显式保留适用关系，缺省时不推断',()=>{
     const values=[feature('F1',['S1']),{...feature('C1',['S2']),kind:'constraint',appliesToFeatureIds:['F1']},{...feature('C2',['S3']),kind:'constraint'}];
     const result=acceptDirectFeatures(values,sources);expect(result[1].appliesToFeatureIds).toEqual(['F1']);expect(result[2].appliesToFeatureIds).toBeUndefined();
-    const batch=acceptDirectFeatureBatch(values,sources.map(u=>({sourceUnitId:u.id,kind:'requirement',reason:'明确要求',featureIds:[]})),sources);expect(batch.features[1].appliesToFeatureIds).toEqual(['F1']);
+    const batch=acceptDirectFeatureBatch(values,sources.map(u=>({sourceUnitId:u.id,contentRole:'requirement',reason:'明确要求',featureIds:[]})),sources);expect(batch.features[1].appliesToFeatureIds).toEqual(['F1']);
   });
   it('适用关系拒绝不存在的功能、自引用及普通功能声明',()=>{
     expect(()=>acceptDirectFeatures([{...feature('C1',['S1']),kind:'constraint',appliesToFeatureIds:['BAD']}],sources)).toThrow('不存在的 ID');

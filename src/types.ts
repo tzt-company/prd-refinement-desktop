@@ -36,7 +36,22 @@ export interface RequirementRule {
 export type AuditCategory = 'source-ambiguity'|'rule-extraction'|'feature-boundary'|'detail-mismatch'|'unclassified';
 export type AuditOwner = 'feature-grouping'|'requirement-detail'|'requirement-relation'|'source-decision'|'runtime-output';
 export interface AuditIssue { id:string;direction:string;type:string;sourceUnitIds:string[];affectedIds:string[];detail:string; category?:AuditCategory; owner?:AuditOwner; clarificationId?:string; clarificationDraft?:Clarification; disposition?:'open'|'repaired'|'needs-confirmation'|'dismissed'; repairAttempts?:number }
-export interface RepairRecord { featureId:string; status:'accepted'|'rejected'; originalIssues:AuditIssue[]; before:RequirementDetail[]; beforeFeature?:Feature; candidateFeature?:Feature; candidate:RequirementDetail[]; verification:AuditIssue[]; reason?:string }
+export interface RepairTargetResult { issueId:string; status:'resolved'|'unresolved'; reason:string }
+export interface RepairReview { originalIssueResults:RepairTargetResult[]; introducedIssues:AuditIssue[]; discoveredIssues:AuditIssue[] }
+export interface RepairRecord { featureId:string; status:'accepted'|'rejected'; originalIssues:AuditIssue[]; before:RequirementDetail[]; beforeFeature?:Feature; candidateFeature?:Feature; candidate:RequirementDetail[]; verification:AuditIssue[]; originalIssueResults?:RepairTargetResult[]; introducedIssues?:AuditIssue[]; discoveredIssues?:AuditIssue[]; reason?:string }
+export interface RepairAttemptRecord {
+  id:string;
+  scopeKey:string;
+  round:number;
+  targetIssueIds:string[];
+  baseFingerprint:string;
+  state:'planned'|'candidate-ready'|'verified-rejected'|'committed'|'invalid-output'|'stale';
+  scope:{featureIds:string[];requirementIds:string[];clarificationIds:string[];sourceUnitIds:string[];requiredSourceUnitIds:string[];readOnlyRequirementIds:string[]};
+  patch?:{requirements:Array<RequirementDetail&{featureId:string}>;deleteRequirementIds:string[];clarifications:Clarification[];deleteClarificationIds:string[]};
+  candidate?:{requirements:RequirementDetail[];clarifications:Clarification[]};
+  review?:RepairReview;
+  reason?:string;
+}
 export interface GraphRepairRecord {
   scope:'rules'|'features';
   status:'accepted'|'rejected';
@@ -211,7 +226,7 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
     validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
@@ -220,6 +235,10 @@ export interface AnalysisTask {
     repairIssueIds?: string[];
     repairAttempts?: Record<string,number>;
     repairFeedback?: Record<string,AuditIssue[]>;
+    repairAttemptsV2?: RepairAttemptRecord[];
+    confirmedIssueIds?: string[];
+    relationRepairAttempts?: Record<string,number>;
+    boundaryFeedback?: AuditIssue[];
     modelCallSequence?: number;
     materializedFeatureIds?: string[];
     featureClarificationIds?: Record<string,string[]>;
