@@ -126,6 +126,11 @@ function attachAuditClarifications(project:PrdProject,issues:AuditIssue[]){
 }
 const featureContent = (f: Feature) => JSON.stringify([f.name, f.kind ?? 'function', [...(f.sourceRefs??f.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})))].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))), [...(f.appliesToFeatureIds ?? [])].sort()]);
 const deliveryProjection = (p:PrdProject) => ({sourceHash:p.sourceHash,revision:p.revision,features:p.features,requirements:p.requirements,relations:p.relations??[],clarifications:p.clarifications,audit:p.audit,sourceDispositions:p.sourceDispositions});
+export const schedulerConcurrency = (config:Pick<RuntimeConfig,'maxParallel'|'maxNodeParallel'>) => {
+  const taskLimit = Math.min(8, Math.max(1, Math.trunc(config.maxParallel) || 1));
+  const nodeLimit = Math.min(10, Math.max(1, Math.trunc(config.maxNodeParallel ?? 10)));
+  return { taskLimit, nodeLimit, slotLimit: taskLimit * nodeLimit };
+};
 const assessDelivery = (p:PrdProject):DeliveryAssessment => {
   const issues=(p.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId)),open=p.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
   const unverified=p.audit?[]:['audit'];
@@ -198,8 +203,8 @@ export class AnalysisTaskScheduler {
   private async pump() {
     if (this.pumping) return; this.pumping = true;
     try {
-      const current = await this.getConfig(), limit = Math.min(8, Math.max(1, Math.trunc(current.maxParallel) || 1));
-      this.slotLimit = Math.min(8, limit * Math.max(1, current.maxNodeParallel ?? 3)); this.drainSlots();
+      const current = await this.getConfig(), concurrency = schedulerConcurrency(current), limit = concurrency.taskLimit;
+      this.slotLimit = concurrency.slotLimit; this.drainSlots();
       while (this.running.size < limit && this.queue.length) {
         const index = this.queue.findIndex(id => !this.running.has(id)); if (index < 0) break;
         const task = this.tasks.get(this.queue.splice(index, 1)[0]); if (!task || task.status !== 'queued') continue;
@@ -211,7 +216,7 @@ export class AnalysisTaskScheduler {
   }
 
   private async run(task: AnalysisTask, config: RuntimeConfig, runtimes: AnalysisRuntime[]) {
-    const attempt = task.attempt, workspace = path.join(this.root, task.id), session = `prd-${task.id}-a${attempt}`, pool = Math.min(8, Math.max(1, config.maxNodeParallel ?? 3)), cp = task.checkpoint!;
+    const attempt = task.attempt, workspace = path.join(this.root, task.id), session = `prd-${task.id}-a${attempt}`, pool = schedulerConcurrency(config).nodeLimit, cp = task.checkpoint!;
     task.status = 'running'; task.startedAt ??= Date.now(); task.completedAt = undefined; task.error = undefined;
     const cache = new Map<ModelNodeId, Promise<AnalysisRuntime>>(), busy = Array(8).fill(0) as number[];
     const previousStatus = task.steps.map(s => s.status);

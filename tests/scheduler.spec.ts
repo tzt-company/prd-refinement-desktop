@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { AnalysisTaskScheduler, compactPromptInput } from '../electron/scheduler-v2';
+import { AnalysisTaskScheduler, compactPromptInput, schedulerConcurrency } from '../electron/scheduler-v2';
 import type { AnalysisRuntime } from '../electron/runtime';
 import type { Clarification, PrdProject, RuntimeConfig, SourceUnit } from '../src/types';
 
@@ -11,6 +11,10 @@ const config:RuntimeConfig={adapter:'dsh',provider:'fake',fastModel:'fast',fastR
 const project=(rawText='字段 X 必填。'):PrdProject=>({id:'P-test',name:'测试',sourceName:'test.md',sourceHash:'hash',revision:1,importedAt:new Date().toISOString(),rawText,stage:'inventory',sourceUnits:[],rules:[],features:[],requirements:[],clarifications:[]});
 const caseRoot=()=>path.join(root,randomUUID());
 afterAll(()=>rm(root,{recursive:true,force:true}));
+
+it('默认并发配置允许 5 个任务各执行 10 个节点',()=>{
+  expect(schedulerConcurrency({maxParallel:5,maxNodeParallel:10})).toEqual({taskLimit:5,nodeLimit:10,slotLimit:50});
+});
 function input(prompt:string){return JSON.parse(prompt.slice(prompt.lastIndexOf('节点输入：')+5))}
 function answer(prompt:string){
   const value=input(prompt);
