@@ -36,6 +36,11 @@ describe('需求细化数据契约', () => {
     expect(progress).toContain('复杂功能与补漏');
     expect(progress).toContain('处理状态、权限、依赖、例外及定点补漏');
   });
+  it('旧任务持久化的来源包文案在界面统一显示为候选内容',()=>{
+    const task={status:'running',progress:25,startedAt:1000,steps:[{id:'candidates',name:'功能候选识别',note:'已识别 17/17 个来源包',runs:19,status:'completed'}],project:{}} as AnalysisTask;
+    const progress=renderToStaticMarkup(React.createElement(Progress,{task,now:3000}));
+    expect(progress).toContain('已识别 17/17 个候选内容');expect(progress).toContain('累计业务调用 19 次');expect(progress).not.toContain('来源包');expect(progress).not.toContain('运行 19 轮');
+  });
   it('区分模型活跃耗时、等待重试与墙钟耗时',()=>{
     const task={status:'failed',startedAt:1000,completedAt:13000,steps:[],runtimeMetrics:[
       {sessionId:'prd-T-a1-candidate-1-try1',startedAt:1000,completedAt:4000,durationMs:3000,adapter:'codex-oauth',model:'fast',reasoningEffort:'low'},
