@@ -100,7 +100,7 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
   } else if(['.html','.htm','.css','.js'].includes(extension)){
     const units:SourceUnit[]=[];
     const add=(excerpt:string,location:string,kind:SourceUnit['kind']='paragraph',context?:string,status:SourceUnit['status']='processed')=>{
-      if(excerpt.trim())units.push({id:'',kind,label:excerpt.slice(0,100),excerpt,location,status,...(context?{context}:{})});
+      if(excerpt.trim())units.push({id:'',kind,label:kind==='heading'?excerpt.trim():kind==='table'?'表格内容':kind==='attachment'?excerpt.trim():'正文内容',excerpt,location,status,...(context?{context}:{})});
     };
     const blocked=(label:string,location:string)=>add(`[${label}]`,location,'attachment',undefined,'blocked');
     const resolve=async(reference:string,location:string,base:string)=>{

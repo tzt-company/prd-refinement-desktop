@@ -211,13 +211,15 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8;
     validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
     unificationFeedbackRounds?: number;
     candidateCheckIssues?: Array<Array<{sourceUnitIds:string[];detail:string}>>;
     repairIssueIds?: string[];
+    repairAttempts?: Record<string,number>;
+    repairFeedback?: Record<string,AuditIssue[]>;
     modelCallSequence?: number;
     materializedFeatureIds?: string[];
     featureClarificationIds?: Record<string,string[]>;
@@ -245,7 +247,7 @@ export interface AnalysisTask {
     featureRepairRounds?: number;
     crossFeatureAuditCompleted?: boolean;
   };
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'needs-attention' | 'failed';
   progress: number;
   createdAt: number;
   startedAt?: number;

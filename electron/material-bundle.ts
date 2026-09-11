@@ -8,7 +8,7 @@ import { extractDocument } from './document-assets.js';
 import { sourceCoverage } from './source-units.js';
 import { SourceIndex } from './source-index.js';
 
-const PARSER_VERSION = 'bundle-3-evidence';
+const PARSER_VERSION = 'bundle-4-closure';
 export const MATERIAL_LIMITS = { files: 1000, fileBytes: 100 * 1024 * 1024, totalBytes: 500 * 1024 * 1024, units: 100000 };
 const supported = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt','.png','.jpg','.jpeg','.webp','.gif','.svg','.css','.js']);
 const documentTypes = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt']);

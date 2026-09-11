@@ -12,7 +12,7 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
   return issues.flatMap(issue=>{
     const key=JSON.stringify([issue.direction,issue.type,issue.detail,[...issue.sourceUnitIds].sort(),[...issue.affectedIds].sort()]);
     if(seen.has(key))return[];seen.add(key);
-    let category=issue.category;
+    let category=issue.owner==='feature-grouping'?'feature-boundary':issue.category;
     // Existing-rule errors must identify that rule. A true omission can have no rule ID yet.
     if(category==='rule-extraction'&&!issue.affectedIds.some(id=>rules.has(id))&&!/(遗漏|缺失|未提取)/.test(`${issue.type}${issue.detail}`))category=undefined;
     if(!category){
@@ -27,7 +27,7 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
   });
 }
 
-export interface RepairScope { key:string; issues:AuditIssue[]; featureIds:string[]; requirementIds:string[]; clarificationIds:string[]; sourceUnitIds:string[]; readOnlyRequirementIds?:string[] }
+export interface RepairScope { key:string; issues:AuditIssue[]; featureIds:string[]; requirementIds:string[]; clarificationIds:string[]; sourceUnitIds:string[]; requiredSourceUnitIds:string[]; readOnlyRequirementIds?:string[] }
 export interface RequirementPatch {
   requirements:Array<RequirementDetail & { featureId:string }>;
   deleteRequirementIds:string[];
@@ -52,15 +52,14 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
       if(candidates.length!==1)continue;
       features=candidates;
     }
-    // 明确指向功能整体的问题才扩大写集合；来源定位的遗漏允许只新增条目。
-    if(!requirements.length&&issue.affectedIds.some(id=>features.some(feature=>feature.id===id)))requirements=distinct(features.flatMap(feature=>feature.requirementIds));
+    // 功能 ID 只用于定位归属，不能授权改写整个功能；来源遗漏允许定点新增需求。
     questions=distinct([...questions,...project.clarifications.filter(question=>question.affectedIds.some(id=>requirements.includes(id))).map(question=>question.id)]);
     const sourceIds=new Set(project.sourceUnits.map(unit=>unit.id));
     const evidence=distinct([...issue.sourceUnitIds,...requirements.flatMap(id=>requirementById.get(id)!.sourceUnitIds),...questions.flatMap(id=>questionById.get(id)!.affectedIds.flatMap(ref=>requirementById.get(ref)?.sourceUnitIds??[ref]))]).filter(id=>sourceIds.has(id));
-    const scope:RepairScope={key:issue.id,issues:[issue],featureIds:features.map(feature=>feature.id),requirementIds:requirements,clarificationIds:questions,sourceUnitIds:evidence};
+    const scope:RepairScope={key:issue.id,issues:[issue],featureIds:features.map(feature=>feature.id),requirementIds:requirements,clarificationIds:questions,sourceUnitIds:evidence,requiredSourceUnitIds:distinct(issue.sourceUnitIds)};
     let merged=true;
     while(merged){merged=false;for(let index=scopes.length-1;index>=0;index--){const other=scopes[index];const sharedWrite=other.requirementIds.some(id=>scope.requirementIds.includes(id))||other.clarificationIds.some(id=>scope.clarificationIds.includes(id));const sameSources=other.sourceUnitIds.length===scope.sourceUnitIds.length&&other.sourceUnitIds.every(id=>scope.sourceUnitIds.includes(id));const sameMissingTarget=!other.requirementIds.length&&!scope.requirementIds.length&&!other.clarificationIds.length&&!scope.clarificationIds.length&&sameSources&&other.featureIds.some(id=>scope.featureIds.includes(id));if(!sharedWrite&&!sameMissingTarget)continue;
-      scope.issues.push(...other.issues);for(const field of ['featureIds','requirementIds','clarificationIds','sourceUnitIds'] as const)scope[field]=distinct([...scope[field],...other[field]]);scopes.splice(index,1);merged=true;
+      scope.issues.push(...other.issues);for(const field of ['featureIds','requirementIds','clarificationIds','sourceUnitIds','requiredSourceUnitIds'] as const)scope[field]=distinct([...scope[field],...other[field]]);scopes.splice(index,1);merged=true;
     }}
     scope.key=scope.issues.map(item=>item.id).sort().join('+');scopes.push(scope);
   }
@@ -128,7 +127,8 @@ export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch
   result.clarifications.push(...validated.clarifications.map(item=>({...item,id:mapping.get(item.id)!,affectedIds:item.affectedIds.map(id=>mapping.get(id)??id)})));
   for(const feature of result.features){feature.requirementIds=feature.requirementIds.filter(id=>!changedR.has(id)&&!validated.deleteRequirementIds.includes(id));feature.requirementIds.push(...validated.requirements.filter(item=>item.featureId===feature.id).map(item=>mapping.get(item.id)!));}
   const graph=validateDirectGraph(result.sourceUnits,result.sourceDispositions??[],result.features,result.requirements,result.clarifications);
-  const invalid=graph.uncovered.filter(item=>!previouslyUncovered.has(item.sourceUnitId)||scope.sourceUnitIds.includes(item.sourceUnitId));
+  const required=new Set(scope.requiredSourceUnitIds);
+  const invalid=graph.uncovered.filter(item=>!previouslyUncovered.has(item.sourceUnitId)||required.has(item.sourceUnitId));
   if(invalid.length)throw new Error(`增量修正仍有未覆盖原文：${invalid.map(item=>item.sourceUnitId).join('、')}`);
   return result;
 }

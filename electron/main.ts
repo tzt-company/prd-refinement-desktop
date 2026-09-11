@@ -133,8 +133,8 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('analysis:cancel', (_event, taskId: string) => scheduler.cancel(taskId));
   ipcMain.handle('analysis:retry', async (_event, taskId: string) => {
     const task=scheduler.get(taskId);
-    if(!task||task.status!=='failed')return;
-    if(task.checkpoint?.pipelineVersion===7)return scheduler.retry(taskId);
+    if(!task||!['failed','needs-attention'].includes(task.status))return;
+    if(task.checkpoint?.pipelineVersion===8)return scheduler.retry(taskId);
     const bundle=task.project.materialBundle;
     if(!bundle)throw new Error('旧任务没有可重新读取的资料包，请重新选择原始文件');
     const current=await materials.get(bundle.id);
