@@ -81,6 +81,18 @@ describe('八节点需求细化调度器',()=>{
       }return answer(p);
     }));await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('completed');expect(attempts).toBe(2);expect(done.project.sourceDispositions?.[0].kind).toBe('requirement');
   });
+  it('来源 quote 不属于原文时要求逐字修正或退回整块引用',async()=>{
+    let attempts=0;const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
+      if(p.includes('“功能候选识别”')){
+        attempts++;const v=input(p),unit=v.sourceUnits[0] as SourceUnit;
+        if(attempts===1)return{features:[{id:'LOCAL-F1',name:'字段校验',sourceRefs:[{sourceUnitId:unit.id,quote:'字段 X 必须填写'}],state:'draft'}],sourceDispositions:[{sourceUnitId:unit.id,kind:'requirement',reason:'明确要求',featureIds:['LOCAL-F1']}]};
+        expect(p).toContain('来源引用专项修正规则');expect(p).toContain('删除该引用的 quote 字段');
+        return{features:[{id:'LOCAL-F1',name:'字段校验',sourceRefs:[{sourceUnitId:unit.id}],state:'draft'}],sourceDispositions:[{sourceUnitId:unit.id,kind:'requirement',reason:'明确要求',featureIds:['LOCAL-F1']}]};
+      }
+      return answer(p);
+    }));await s.initialize();await s.create(project());const done=await terminal(s);
+    expect(done.status,done.error).toBe('completed');expect(attempts).toBe(2);expect(done.project.features[0].sourceRefs).toEqual([{sourceUnitId:'S-001'}]);
+  });
   it('候选识别检查统一共用数量摘要与具体要求分类契约',async()=>{
     const contracts=new Map<string,string>();const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{
       for(const title of ['功能候选识别','功能候选完整性检查','功能清单统一'])if(p.includes(`“${title}”`)){const match=p.match(/统一来源分类契约：.*?业务要求必须保留。/);expect(match).not.toBeNull();contracts.set(title,match![0])}
