@@ -29,7 +29,7 @@ try {
  await page.getByRole('button',{name:'选择 PRD 文件',exact:true}).click();
  await page.getByRole('heading',{name:'主文档.html',exact:true}).waitFor();
  assert.equal(await page.locator('.material-supplements').count(),1,'主 PRD 保存后应展开补充资料');
- await page.getByRole('button',{name:'管理资料包',exact:true}).click();
+ await page.getByRole('button',{name:'重命名',exact:true}).click();
  await page.getByLabel('资料包名称').fill('订单需求资料');
  await page.getByRole('button',{name:'保存名称',exact:true}).click();
  assert.match(await page.getByLabel('已有资料包').locator('option:checked').textContent(),/订单需求资料/);
@@ -75,7 +75,6 @@ try {
  await page.getByRole('button',{name:'返回任务中心',exact:true}).click();
  await page.getByRole('button',{name:'新建任务',exact:true}).first().click();
  await page.getByLabel('已有资料包').selectOption('bundle-ui');
- await page.getByRole('button',{name:'管理资料包',exact:true}).click();
  await page.getByRole('button',{name:'删除资料包',exact:true}).click();
  await page.getByRole('button',{name:'确认删除资料包',exact:true}).click();
  await page.getByText('资料包已删除',{exact:true}).waitFor();
