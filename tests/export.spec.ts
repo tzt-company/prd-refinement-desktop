@@ -34,7 +34,7 @@ it('导出明确的约束适用关系，并保留直接引用原文的待确认�
   const features=workbook.getWorksheet('功能清单')!,questions=workbook.getWorksheet('待处理事项')!;
   expect(features.getCell('B1').value).toBe('类型');expect(features.getCell('G1').value).toBe('适用功能');
   expect(features.getCell('B2').value).toBe('业务功能');expect(features.getCell('B4').value).toBe('跨功能约束');
-  expect(features.getCell('G4').value).toContain('域名问题');expect(features.getCell('G4').value).not.toContain('F-002');
+  expect(features.getCell('G4').value).toBe('发布');expect(features.getCell('G4').value).not.toContain('查询');
   expect(questions.getCell('L2').value).toContain('第 20 行');expect(questions.getCell('L2').value).toContain('是否支持多域名？');expect(questions.getCell('L2').value).toContain('发布设置');
   expect(workbook.worksheets.filter(sheet=>sheet.state==='visible')).toHaveLength(6);
   expect(workbook.worksheets.filter(sheet=>sheet.state==='hidden').map(sheet=>sheet.name)).toEqual(['来源处置','审查历史']);

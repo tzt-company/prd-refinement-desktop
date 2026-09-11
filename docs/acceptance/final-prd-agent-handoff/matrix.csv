@@ -24,3 +24,4 @@ C02,3,PASS,阻塞澄清和平台问题阻断、仅建议项可交付，由 sched
 C03,3,PASS,页面统一展示业务澄清和平台整理问题且责任分开；round-3.md
 C04,3,PASS,可见页面及 Excel 使用文件章节位置和原文，不显示来源内部 ID；round-3.md
 C05,3,PASS,Excel 三级事项与检查记录分表回读通过；round-3.md
+C06,3,PASS,功能生成可读导航名称且功能与需求页面不显示类型列；production Electron；round-3.md

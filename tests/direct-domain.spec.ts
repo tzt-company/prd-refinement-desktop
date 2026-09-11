@@ -124,10 +124,10 @@ describe('直接需求域契约',()=>{
     expect(()=>acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联-ID']}],[],linked)).toThrow('不得推导或静默丢弃');
   });
   it('功能引用的连续文字必须在指定原文中唯一并转换为稳定选区',()=>{
-    const parsed=acceptDirectFeatures([{id:'LOCAL-F',kind:'function',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],sources);
-    expect(parsed[0].name).toBeUndefined();expect(parsed[0].sourceUnitIds).toEqual(['S1']);expect(parsed[0].sourceRefs).toEqual([{sourceUnitId:'S1',start:0,end:4}]);
-    expect(()=>acceptDirectFeatures([{id:'LOCAL-F',sourceRefs:[{sourceUnitId:'S1',quote:'不存在'}],state:'draft'}],sources)).toThrow('不在指定原文');
-    const repeated=[{...sources[0],excerpt:'字段 X 与字段 X'}];expect(()=>acceptDirectFeatures([{id:'LOCAL-F',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],repeated)).toThrow('不唯一');
+    const parsed=acceptDirectFeatures([{id:'LOCAL-F',name:'字段校验',kind:'function',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],sources);
+    expect(parsed[0].name).toBe('字段校验');expect(parsed[0].sourceUnitIds).toEqual(['S1']);expect(parsed[0].sourceRefs).toEqual([{sourceUnitId:'S1',start:0,end:4}]);
+    expect(()=>acceptDirectFeatures([{id:'LOCAL-F',name:'字段校验',sourceRefs:[{sourceUnitId:'S1',quote:'不存在'}],state:'draft'}],sources)).toThrow('不在指定原文');
+    const repeated=[{...sources[0],excerpt:'字段 X 与字段 X'}];expect(()=>acceptDirectFeatures([{id:'LOCAL-F',name:'字段校验',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],repeated)).toThrow('不唯一');
   });
   it('需求证据逐字段绑定且显式业务关系必须有真实两端和来源',()=>{
     const detailed=acceptDirectDetails([{...requirement,conditions:['已登录'],evidenceBindings:{behavior:[{sourceUnitId:'S1'}],conditions:[[{sourceUnitId:'S1'}]],constraints:[],explicitAcceptanceConditions:[]}}],[],sources).requirements[0];

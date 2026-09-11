@@ -79,7 +79,7 @@ export interface Feature {
   id: string;
   kind?: 'function' | 'constraint';
   appliesToFeatureIds?: string[];
-  /** 旧任务只读字段；新任务不得生成或依赖。 */
+  /** 便于人工导航的模型生成名称，不作为业务需求事实。 */
   name?: string;
   /** 旧任务只读字段；新任务不得生成或依赖。 */
   goal?: string;
@@ -211,7 +211,7 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
     unificationFeedbackRounds?: number;

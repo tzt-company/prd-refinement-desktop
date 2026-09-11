@@ -65,6 +65,7 @@ export function sourcePosition(unit: SourceUnit) {
 }
 
 export function featureTitle(project: PrdProject, feature: Feature) {
+  if (feature.name?.trim()) return feature.name.trim();
   const refs = feature.sourceRefs?.length ? feature.sourceRefs : feature.sourceUnitIds.map(sourceUnitId => ({ sourceUnitId }));
   const first = refs[0], unit = first && project.sourceUnits.find(item => item.id === first.sourceUnitId);
   if (!unit) return feature.kind === 'constraint' ? '跨功能约束' : '业务功能';

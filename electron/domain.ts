@@ -54,7 +54,7 @@ export function acceptDirectClarifications(value:unknown,sourceUnits:SourceUnit[
 const featureFrom = (item:Record<string,unknown>, index:number, units:SourceUnit[]):Feature => {
   const state=text(item.state,`features[${index}].state`);if(!reviewStates.has(state))throw new Error(`features[${index}].state 非法`);
   const selected=sourceRefs(item,units,`features[${index}]`);
-  return{id:text(item.id,`features[${index}].id`),sourceRefs:selected,sourceUnitIds:[...new Set(selected.map(ref=>ref.sourceUnitId))],ruleIds:[],requirementIds:[],kind:featureKind(item.kind),state:state as Feature['state']};
+  return{id:text(item.id,`features[${index}].id`),name:text(item.name,`features[${index}].name`),sourceRefs:selected,sourceUnitIds:[...new Set(selected.map(ref=>ref.sourceUnitId))],ruleIds:[],requirementIds:[],kind:featureKind(item.kind),state:state as Feature['state']};
 };
 
 export function acceptRules(value: unknown, sourceUnits: SourceUnit[]) {

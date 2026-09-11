@@ -27,8 +27,8 @@ const stages = [
   ['repair', '局部修正', '修改问题涉及条目并独立复核'],
   ['delivery', '交付', '校验最终快照并生成需求交付包'],
 ] as const;
-const featureSchema = '{"id":"LOCAL-F1","kind":"function|constraint","sourceRefs":[{"sourceUnitId":"S-001","quote":"原文中的连续且唯一文字；引用整块时省略quote"}],"appliesToFeatureIds":[],"state":"draft"}';
-const unifiedFeatureSchema = '{"id":"LOCAL-F1","kind":"function|constraint","appliesToFeatureIds":[],"state":"draft"}';
+const featureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","sourceRefs":[{"sourceUnitId":"S-001","quote":"原文中的连续且唯一文字；引用整块时省略quote"}],"appliesToFeatureIds":[],"state":"draft"}';
+const unifiedFeatureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","appliesToFeatureIds":[],"state":"draft"}';
 const candidateSchema = `{"features":[${featureSchema}],"sourceDispositions":[{"sourceUnitId":"S-001","kind":"requirement|clarification|context|example|summary|out-of-scope","reason":"...","featureIds":["LOCAL-F1"]}]}`;
 const clarificationSchema = '{"id":"LOCAL-Q1","question":"包含业务对象、触发条件和待决定规则的完整问题","reason":"为什么原文仍不能得到唯一结论","level":"blocking|suggestion|ignorable","knownFacts":"原文已经明确的事实","unresolvedPoint":"唯一待决定点","impact":"不处理会怎样影响 Agent 实施或为什么不影响","levelReason":"为什么属于该级别","defaultResolution":"仅 suggestion 必填：暂不处理时沿用的明确原文口径","sourceRefs":[{"sourceUnitId":"S-001","quote":"直接支撑问题的连续原文；整块引用可省略quote"}],"affectedIds":["S-001"],"state":"open"}';
 const clarificationContract = '澄清分为三级：blocking 表示不回答会迫使 Agent 猜测业务行为、数据判定、权限、状态或验收口径，必须阻断；suggestion 表示已有明确依据可实施但值得确认以降低理解风险，必须给出暂不处理时沿用的 defaultResolution；ignorable 仅限不改变业务含义、实施结果或验收的轻微表述/文档形式，不需要用户作决定。不能把重复项、平台整理失败、缺少内部函数名或纯技术选型包装为澄清或可忽略项。每项必须合并完整语义上下文，写清已知事实、唯一未决点、影响和级别理由；不得输出 NULL、半句话、无指代的“上述/该内容”或“请人工整理原文”。同一业务决定跨多个来源只输出一项；一个来源包含两个独立决定时分别输出。';
@@ -124,7 +124,7 @@ function attachAuditClarifications(project:PrdProject,issues:AuditIssue[]){
     const clarification=addClarification(project,issue.clarificationDraft,issue.id);issue.clarificationId=clarification.id;issue.disposition='needs-confirmation';delete issue.clarificationDraft;
   }
 }
-const featureContent = (f: Feature) => JSON.stringify([f.kind ?? 'function', [...(f.sourceRefs??f.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})))].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))), [...(f.appliesToFeatureIds ?? [])].sort()]);
+const featureContent = (f: Feature) => JSON.stringify([f.name, f.kind ?? 'function', [...(f.sourceRefs??f.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})))].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))), [...(f.appliesToFeatureIds ?? [])].sort()]);
 const deliveryProjection = (p:PrdProject) => ({sourceHash:p.sourceHash,revision:p.revision,features:p.features,requirements:p.requirements,relations:p.relations??[],clarifications:p.clarifications,audit:p.audit,sourceDispositions:p.sourceDispositions});
 const assessDelivery = (p:PrdProject):DeliveryAssessment => {
   const issues=(p.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId)),open=p.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
@@ -151,7 +151,7 @@ export class AnalysisTaskScheduler {
       let task: AnalysisTask;
       try { task = JSON.parse(await readFile(path.join(this.root, file), 'utf8')) as AnalysisTask; } catch { continue; }
       if (!task.id || !task.project || !Array.isArray(task.steps)) continue;
-      if (task.checkpoint?.pipelineVersion !== 5 && task.status !== 'completed') {
+      if (task.checkpoint?.pipelineVersion !== 6 && task.status !== 'completed') {
         task.status = 'failed'; task.error = '旧版检查点仅供查看，请用原始材料创建新任务';
       } else if (task.status === 'running') {
         task.status = 'queued'; task.error = '应用退出后从最近检查点恢复';
@@ -168,7 +168,7 @@ export class AnalysisTaskScheduler {
     const config = await this.getConfig(), now = Date.now();
     const task: AnalysisTask = {
       id: `T-${randomUUID().slice(0, 8).toUpperCase()}`, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
-      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 5, detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairIssueIds: [], relationBatches: [] },
+      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 6, detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairIssueIds: [], relationBatches: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
     this.tasks.set(task.id, task); this.queue.push(task.id); await this.publish(task); void this.pump(); return structuredClone(task);
@@ -183,7 +183,7 @@ export class AnalysisTaskScheduler {
   }
   async retry(id: string) {
     const task = this.tasks.get(id); if (!task || task.status !== 'failed') return;
-    if (task.checkpoint?.pipelineVersion !== 5) throw new Error('旧版检查点不可续跑，请创建新任务');
+    if (task.checkpoint?.pipelineVersion !== 6) throw new Error('旧版检查点不可续跑，请创建新任务');
     task.attempt++; task.status = 'queued'; task.error = undefined; task.completedAt = undefined;
     for (const step of task.steps) if (step.status === 'failed') { step.status = 'pending'; step.startedAt = undefined; }
     if (!this.queue.includes(id)) this.queue.push(id);
@@ -258,7 +258,7 @@ export class AnalysisTaskScheduler {
     const identify = (units: SourceUnit[], purpose: string, currentCandidates?: Feature[], issues?: unknown) => call(currentCandidates ? 'featureCandidateRepair' : 'featureCandidates', purpose, currentCandidates ? '功能候选识别·定点返工' : '功能候选识别', `${sourceClassificationContract}识别实际业务功能及真正跨功能约束。同一功能的必填、枚举、默认值等属性归入该功能，不另造跨功能约束。文档记法、表头、保存原文结构是上下文；标题中的新增模块、重命名等明确业务要求仍需关联实际功能。待澄清关联真实功能或保留空 featureIds，不创建“待确认事项管理”等伪功能。每来源恰好一条处置；存在明确要求时不能整段仅分类为背景。返工同时纠正候选与来源分类，保留无关候选。输出 ${candidateSchema}`, { sourceUnits: units, currentCandidates, coverageIssues: issues }, v => acceptDirectFeatureBatch(v.features, v.sourceDispositions, units));
     const unify = async (candidates: Feature[], units: SourceUnit[], dispositions: SourceDisposition[], issues?: AuditIssue[]): Promise<Feature[]> => {
       if (!issues && candidates.length < 2) return Promise.resolve(acceptFeatureUnification({ features: candidates, candidateMappings: candidates.map(f => ({ candidateId: f.id, featureIds: [f.id] })) }, candidates, units));
-      const resolve = (evidence?: SourceUnit[]) => call('featureGlobal', 'unify', issues ? '功能清单统一·定点返工' : '功能清单统一', `${sourceClassificationContract}sourceDispositions是当前来源分类账本；候选的sourceRefs和对应原文是唯一业务内容，不存在名称或目标摘要。候选关联context来源不表示把它当产品要求，不能仅因该关联报告分类错误。按完整业务能力统一候选边界，必须处理跨包语义重叠：同一对象的字段属性、历史迁移、联动和附录枚举应组织到对应完整功能；概览候选映射到相关实际功能，不再保留一份宽泛重复功能。仅真正跨功能的独立约束单列。不得以保留候选ID为由原样照抄全部候选；也不得为减少数量合并无关业务。若发现候选把文档记法/表头/结构保存当产品功能或来源分类错误，先返回 {"classificationIssues":[{"candidateIds":["输入候选ID"],"sourceUnitIds":["来源ID"],"detail":"分类错误与业务依据"}]}，由控制器退回识别和独立检查；你不直接删除或改分类。每候选恰好一个映射记录，可以映射多个输出功能；每个输出均有候选依据。每候选来源必须在其目标功能并集中保留，禁止猜测或补入其他候选的来源。优先保留现有功能 ID，新增用 LOCAL ID。输出紧凑结构 {"features":[${unifiedFeatureSchema}],"candidateMappings":[{"candidateId":"输入候选ID","featureIds":["输出功能ID"]}]}。features禁止重复抄写来源。一个候选映射单个目标时，其全部来源由脚本自动并入该目标。映射多个目标时，必须在该mapping增加sourceUnitIdsByFeature:{"目标ID":["属于该目标的来源ID"]}，每个目标非空，全部来源分配完整且不越界。需要拆分且尚未看到该候选全部原文时，先一次性请求所有拟拆分候选的原文，不得凭来源ID猜测。如果证据不足以判断边界，可返回 {"neededSourceUnitIds":["有争议的来源ID"]} 请求对应原文；已经收到所需证据后必须返回映射。`, { candidates, sourceUnits: evidence, sourceDispositions: dispositions.filter(d => units.some(u => u.id === d.sourceUnitId)), issues }, v => {
+      const resolve = (evidence?: SourceUnit[]) => call('featureGlobal', 'unify', issues ? '功能清单统一·定点返工' : '功能清单统一', `${sourceClassificationContract}sourceDispositions是当前来源分类账本；候选的sourceRefs和对应原文是唯一业务内容。name 只生成简短、可区分的导航名称，不得补充业务规则、范围或目标摘要。候选关联context来源不表示把它当产品要求，不能仅因该关联报告分类错误。按完整业务能力统一候选边界，必须处理跨包语义重叠：同一对象的字段属性、历史迁移、联动和附录枚举应组织到对应完整功能；概览候选映射到相关实际功能，不再保留一份宽泛重复功能。仅真正跨功能的独立约束单列。不得以保留候选ID为由原样照抄全部候选；也不得为减少数量合并无关业务。若发现候选把文档记法/表头/结构保存当产品功能或来源分类错误，先返回 {"classificationIssues":[{"candidateIds":["输入候选ID"],"sourceUnitIds":["来源ID"],"detail":"分类错误与业务依据"}]}，由控制器退回识别和独立检查；你不直接删除或改分类。每候选恰好一个映射记录，可以映射多个输出功能；每个输出均有候选依据。每候选来源必须在其目标功能并集中保留，禁止猜测或补入其他候选的来源。优先保留现有功能 ID，新增用 LOCAL ID。输出紧凑结构 {"features":[${unifiedFeatureSchema}],"candidateMappings":[{"candidateId":"输入候选ID","featureIds":["输出功能ID"]}]}。features禁止重复抄写来源。一个候选映射单个目标时，其全部来源由脚本自动并入该目标。映射多个目标时，必须在该mapping增加sourceUnitIdsByFeature:{"目标ID":["属于该目标的来源ID"]}，每个目标非空，全部来源分配完整且不越界。需要拆分且尚未看到该候选全部原文时，先一次性请求所有拟拆分候选的原文，不得凭来源ID猜测。如果证据不足以判断边界，可返回 {"neededSourceUnitIds":["有争议的来源ID"]} 请求对应原文；已经收到所需证据后必须返回映射。`, { candidates, sourceUnits: evidence, sourceDispositions: dispositions.filter(d => units.some(u => u.id === d.sourceUnitId)), issues }, v => {
         if (Array.isArray(v.classificationIssues) && v.classificationIssues.length) return { classificationIssues: acceptCandidateClassificationIssues(v.classificationIssues, candidates, units) };
         if (Array.isArray(v.neededSourceUnitIds)) {
           const requested = v.neededSourceUnitIds;
