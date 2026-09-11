@@ -30,7 +30,9 @@ export function buildEvidenceCatalog(units: SourceUnit[]): SourceEvidence[] {
   for (const unit of units) {
     const text = sourceText(unit);
     if (!text.length) continue;
-    const ranges: Array<[number, number]> = [[0, text.length], ...boundaries(text).filter(([start, end]) => start !== 0 || end !== text.length)];
+    // 同一文字只发送一次。多句来源按不重叠句段提供，避免“整段 + 分句”重复放大提示词。
+    const sentenceRanges=boundaries(text);
+    const ranges: Array<[number, number]> = sentenceRanges.length ? sentenceRanges : [[0,text.length]];
     const seen = new Set<string>();
     for (const [start, end] of ranges) {
       const key = `${start}:${end}`;

@@ -7,8 +7,9 @@ const units:SourceUnit[]=[{id:'S1',label:'规则',kind:'paragraph',excerpt:'允�
 describe('确定性原文证据目录',()=>{
   it('同段多句生成稳定且可区分的程序选区',()=>{
     const first=buildEvidenceCatalog(units),second=buildEvidenceCatalog(units);
-    expect(second).toEqual(first);expect(first.map(item=>item.text)).toEqual(['允许撤回。允许导出。','允许撤回。','允许导出。']);
-    expect(resolveEvidenceIds([first[1].id],first,'feature.evidenceIds')).toEqual([{sourceUnitId:'S1',start:0,end:5}]);
+    expect(second).toEqual(first);expect(first.map(item=>item.text)).toEqual(['允许撤回。','允许导出。']);
+    expect(first.map(item=>item.text).join('')).toBe(units[0].excerpt);
+    expect(resolveEvidenceIds([first[0].id],first,'feature.evidenceIds')).toEqual([{sourceUnitId:'S1',start:0,end:5}]);
   });
   it('未知、空和过期证据编号确定性拒绝',()=>{
     const catalog=buildEvidenceCatalog(units);
@@ -16,14 +17,14 @@ describe('确定性原文证据目录',()=>{
     expect(()=>resolveEvidenceIds([],catalog,'feature.evidenceIds')).toThrow('非空证据编号数组');
   });
   it('功能、澄清、关系和逐字段绑定统一转换为 SourceRef',()=>{
-    const {catalog}=evidencePromptInput({sourceUnits:units}),id=catalog[1].id;
+    const {catalog}=evidencePromptInput({sourceUnits:units}),id=catalog[0].id;
     const value=materializeEvidenceSelections({features:[{evidenceIds:[id]}],clarification:{evidenceIds:[id]},relation:{evidenceIds:[id]},requirement:{evidenceBindings:{behavior:[id],conditions:[[id]],constraints:[],explicitAcceptanceConditions:[]}}},catalog);
     const ref={sourceUnitId:'S1',start:0,end:5};
     expect(value).toMatchObject({features:[{sourceRefs:[ref]}],clarification:{sourceRefs:[ref]},relation:{sourceRefs:[ref]},requirement:{evidenceBindings:{behavior:[ref],conditions:[[ref]]}}});
     expect((value.requirement as {sourceUnitIds:string[]}).sourceUnitIds).toEqual(['S1']);
   });
   it('拒绝模型重新抄写 quote，并由验收证据反向取得原句',()=>{
-    const catalog=buildEvidenceCatalog(units),id=catalog[1].id;
+    const catalog=buildEvidenceCatalog(units),id=catalog[0].id;
     expect(()=>materializeEvidenceSelections({features:[{sourceRefs:[{sourceUnitId:'S1',quote:'允许撤回。'}]}]},catalog)).toThrow('不得包含模型抄写的 quote');
     const value=materializeEvidenceSelections({requirements:[{explicitAcceptanceEvidenceIds:[id],evidenceBindings:{behavior:[id],conditions:[],constraints:[]}}]},catalog) as {requirements:Array<{explicitAcceptanceConditions:string[];evidenceBindings:{explicitAcceptanceConditions:unknown[]}}>};
     expect(value.requirements[0].explicitAcceptanceConditions).toEqual(['允许撤回。']);

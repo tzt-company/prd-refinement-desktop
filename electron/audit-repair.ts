@@ -114,7 +114,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
 }
 
 /** 在当前最新项目上串行提交，不能用调用开始时的数组长度分配编号。 */
-export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch:RequirementPatch,allocateIds:boolean):PrdProject {
+export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch:RequirementPatch,allocateIds:boolean,resolvedSourceUnitIds:ReadonlySet<string>=new Set()):PrdProject {
   const previouslyUncovered=new Set(validateDirectGraph(project.sourceUnits,project.sourceDispositions??[],project.features,project.requirements,project.clarifications).uncovered.map(item=>item.sourceUnitId));
   const validated=acceptRequirementPatch(patch,project,scope),result=structuredClone(project);
   const allIds=[...project.requirements,...project.clarifications].map(item=>item.id);
@@ -131,7 +131,7 @@ export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch
   for(const feature of result.features){feature.requirementIds=feature.requirementIds.filter(id=>!changedR.has(id)&&!validated.deleteRequirementIds.includes(id));feature.requirementIds.push(...validated.requirements.filter(item=>item.featureId===feature.id).map(item=>mapping.get(item.id)!));}
   const graph=validateDirectGraph(result.sourceUnits,result.sourceDispositions??[],result.features,result.requirements,result.clarifications);
   const required=new Set(scope.requiredSourceUnitIds);
-  const invalid=graph.uncovered.filter(item=>!previouslyUncovered.has(item.sourceUnitId)||required.has(item.sourceUnitId));
+  const invalid=graph.uncovered.filter(item=>!resolvedSourceUnitIds.has(item.sourceUnitId)&&(!previouslyUncovered.has(item.sourceUnitId)||required.has(item.sourceUnitId)));
   if(invalid.length)throw new Error(`增量修正仍有未覆盖原文：${invalid.map(item=>item.sourceUnitId).join('、')}`);
   return result;
 }
