@@ -29,6 +29,8 @@ export interface MaterialApi {
   create(): Promise<MaterialBundle>;
   list(): Promise<MaterialBundle[]>;
   get(id: string): Promise<MaterialBundle>;
+  renameBundle(id: string, name: string): Promise<MaterialBundle>;
+  deleteBundle(id: string): Promise<void>;
   add(id: string, options: MaterialAddition, files?: File[]): Promise<MaterialBundle>;
   updateFile(id: string, fileId: string, patch: MaterialFilePatch): Promise<MaterialBundle>;
   removeFile(id: string, fileId: string): Promise<MaterialBundle>;

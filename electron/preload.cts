@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('prdApp', {
     create:()=>ipcRenderer.invoke('materials:create'),
     list:()=>ipcRenderer.invoke('materials:list'),
     get:(id:string)=>ipcRenderer.invoke('materials:get',id),
+    renameBundle:(id:string,name:string)=>ipcRenderer.invoke('materials:rename',id,name),
+    deleteBundle:(id:string)=>ipcRenderer.invoke('materials:delete',id),
     add:(id:string,options:import('../src/material-types.js').MaterialAddition,files?:File[])=>{
       const paths=files?.map(file=>webUtils.getPathForFile(file));
       if(paths?.some(p=>!p))return Promise.reject(new Error('无法取得本地路径，请从资源管理器拖入文件或目录'));

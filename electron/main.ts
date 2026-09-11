@@ -70,6 +70,8 @@ if (ownsInstance) app.whenReady().then(async () => {
   materialHandler('materials:create',()=>materials.create());
   materialHandler('materials:list',()=>materials.list());
   materialHandler('materials:get',(id:string)=>materials.get(id));
+  materialHandler('materials:rename',(id:string,name:string)=>materials.renameBundle(id,name));
+  materialHandler('materials:delete',(id:string)=>materials.deleteBundle(id));
   materialHandler('materials:add',async(id:string,options:MaterialAddition,paths?:string[])=>{
     if(!options||!['files','directory'].includes(options.kind))throw new Error('选择类型无效');
     const chosen=paths??(await dialog.showOpenDialog({title:options.role==='primary'?'选择主 PRD':options.kind==='directory'?'选择补充资料目录':'选择补充资料',properties:options.kind==='directory'?['openDirectory']:options.role==='primary'?['openFile']:['openFile','multiSelections']})).filePaths;
