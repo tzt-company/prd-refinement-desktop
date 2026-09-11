@@ -21,6 +21,11 @@ describe('增量修正写集合与提交',()=>{
     const scopes=planDetailRepairs([issue('MODEL',['F1'],['S1']),issue('SCRIPT',['F1'],['S1'])],p);
     expect(scopes).toHaveLength(1);expect(scopes[0].issues.map(item=>item.id)).toEqual(['SCRIPT','MODEL']);expect(scopes[0].sourceUnitIds).toEqual(['S1']);
   });
+  it('不同来源集合不会因共享功能被传递合并成过大修正范围',()=>{
+    const p=project();p.requirements=[];p.features[0].requirementIds=[];p.features[1].requirementIds=[];
+    const scopes=planDetailRepairs([issue('BROAD',['F1'],['S1','S2']),issue('S1',['F1'],['S1']),issue('S2',['F1'],['S2'])],p);
+    expect(scopes).toHaveLength(3);expect(scopes.map(scope=>scope.sourceUnitIds)).toEqual([['S1','S2'],['S1'],['S2']]);
+  });
   it('局部提交仍拒绝丢失原本已覆盖来源',()=>{
     const p=project(),scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];
     expect(()=>applyRequirementPatch(p,scope,{...empty(),deleteRequirementIds:['R-0001']},true)).toThrow('未覆盖原文：S1');
