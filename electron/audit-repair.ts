@@ -22,7 +22,8 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
       else if(issue.affectedIds.some(id=>rules.has(id)))category='rule-extraction';
       else category='unclassified';
     }
-    return[{...issue,category,disposition:issue.disposition??(category==='source-ambiguity'?'needs-confirmation':'open')}];
+    const owner=issue.owner??(category==='source-ambiguity'?'source-decision':category==='feature-boundary'?'feature-grouping':category==='detail-mismatch'?'requirement-detail':'runtime-output');
+    return[{...issue,category,owner,disposition:issue.disposition??(category==='source-ambiguity'?'needs-confirmation':'open')}];
   });
 }
 
@@ -40,7 +41,7 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
   const scopes:RepairScope[]=[];
   const requirementById=new Map(project.requirements.map(item=>[item.id,item]));
   const questionById=new Map(project.clarifications.map(item=>[item.id,item]));
-  for(const issue of issues.filter(item=>item.category==='detail-mismatch'&&item.disposition==='open')){
+  for(const issue of issues.filter(item=>item.category==='detail-mismatch'&&(item.owner===undefined||item.owner==='requirement-detail')&&item.disposition==='open')){
     let requirements=issue.affectedIds.filter(id=>requirementById.has(id));
     let questions=issue.affectedIds.filter(id=>questionById.has(id));
     requirements=distinct([...requirements,...questions.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref)))]);

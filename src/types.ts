@@ -17,6 +17,13 @@ export interface SourceUnit {
   synthetic?: boolean;
 }
 
+export interface SourceRef {
+  sourceUnitId: string;
+  /** UTF-16 左闭右开选区；省略表示引用整个来源单元。 */
+  start?: number;
+  end?: number;
+}
+
 export interface RequirementRule {
   id: string;
   statement: string;
@@ -27,7 +34,8 @@ export interface RequirementRule {
 }
 
 export type AuditCategory = 'source-ambiguity'|'rule-extraction'|'feature-boundary'|'detail-mismatch'|'unclassified';
-export interface AuditIssue { id:string;direction:string;type:string;sourceUnitIds:string[];affectedIds:string[];detail:string; category?:AuditCategory; disposition?:'open'|'repaired'|'needs-confirmation'; repairAttempts?:number }
+export type AuditOwner = 'feature-grouping'|'requirement-detail'|'requirement-relation'|'source-decision'|'runtime-output';
+export interface AuditIssue { id:string;direction:string;type:string;sourceUnitIds:string[];affectedIds:string[];detail:string; category?:AuditCategory; owner?:AuditOwner; clarificationId?:string; disposition?:'open'|'repaired'|'needs-confirmation'|'dismissed'; repairAttempts?:number }
 export interface RepairRecord { featureId:string; status:'accepted'|'rejected'; originalIssues:AuditIssue[]; before:RequirementDetail[]; beforeFeature?:Feature; candidateFeature?:Feature; candidate:RequirementDetail[]; verification:AuditIssue[]; reason?:string }
 export interface GraphRepairRecord {
   scope:'rules'|'features';
@@ -57,6 +65,12 @@ export interface RequirementDetail {
   /** 仅保留 PRD 原文明确给出的验收条件，不由平台推导测试场景。 */
   explicitAcceptanceConditions: string[];
   sourceUnitIds: string[];
+  evidenceBindings?: {
+    behavior: SourceRef[];
+    conditions: SourceRef[][];
+    constraints: SourceRef[][];
+    explicitAcceptanceConditions: SourceRef[][];
+  };
   ruleIds: string[];
   state: ReviewState;
 }
@@ -65,9 +79,12 @@ export interface Feature {
   id: string;
   kind?: 'function' | 'constraint';
   appliesToFeatureIds?: string[];
-  name: string;
-  goal: string;
+  /** 旧任务只读字段；新任务不得生成或依赖。 */
+  name?: string;
+  /** 旧任务只读字段；新任务不得生成或依赖。 */
+  goal?: string;
   sourceUnitIds: string[];
+  sourceRefs?: SourceRef[];
   ruleIds: string[];
   requirementIds: string[];
   state: ReviewState;
@@ -78,11 +95,33 @@ export interface Clarification {
   question: string;
   reason: string;
   affectedIds: string[];
-  state: 'open' | 'resolved';
+  state: 'open' | 'resolved' | 'dismissed';
+  auditIssueIds?: string[];
+  resolutionSourceUnitIds?: string[];
+}
+
+export interface RequirementRelation {
+  id: string;
+  sourceRequirementId: string;
+  targetRequirementId: string;
+  kind: 'depends-on'|'affects'|'exception-to';
+  sourceRefs: SourceRef[];
+}
+
+export type DeliveryState = 'ready'|'blocked'|'unchecked';
+export interface DeliveryAssessment {
+  state: DeliveryState;
+  inputHash: string;
+  resultHash: string;
+  issueIds: string[];
+  unverifiedScopeIds: string[];
+  policyVersion: number;
 }
 
 export interface PrdProject {
   materialBundle?: { id: string; revision: number };
+  /** 分析任务固化的自包含输入目录。 */
+  inputSnapshotPath?: string;
   sourceDocuments?: Array<{fileId: string; revision: number; logicalPath: string; role: import('./material-types.js').MaterialRole; rawText: string}>;
   id: string;
   name: string;
@@ -98,7 +137,9 @@ export interface PrdProject {
   features: Feature[];
   requirements: RequirementDetail[];
   clarifications: Clarification[];
+  relations?: RequirementRelation[];
   audit?: RequirementAudit;
+  delivery?: DeliveryAssessment;
 }
 
 export interface RuntimeStatus {
@@ -161,7 +202,7 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3;
+    pipelineVersion?: 2 | 3 | 4;
     candidateRepairRounds?: number[];
     unificationFeedback?: Array<Array<{ sourceUnitIds: string[]; detail: string }>>;
     unificationFeedbackRounds?: number;
@@ -185,6 +226,7 @@ export interface AnalysisTask {
     featureCoverageBatches?: Feature[][];
     detailResults?: Record<string,{requirements:RequirementDetail[];clarifications:Clarification[]}>;
     auditIssueBatches?: AuditIssue[][];
+    relationBatches?: RequirementRelation[][];
     repairedFeatureIds?: string[];
     featureCandidateFingerprint?: string;
     repairs?: RepairRecord[];

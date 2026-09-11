@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, writeFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { extractDocument } from './document-assets.js';
 import type { RuntimeConfig, PrdProject } from '../src/types.js';
@@ -123,7 +123,11 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('projects:open-result', async (_event, projectId: string) => { const directory = resultRoot(projectId); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
   ipcMain.handle('analysis:list', () => scheduler.list());
   ipcMain.handle('analysis:start', async (_event, project: PrdProject) => {
-    if(project.materialBundle){const canonical=await materials.project(project.materialBundle.id);if(canonical.materialBundle!.revision!==project.materialBundle.revision)throw new Error('资料已变更，请重新确认版本');return scheduler.create(canonical)}
+    if(project.materialBundle){
+      const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
+      try{const canonical=await materials.project(project.materialBundle.id,snapshot);if(canonical.materialBundle!.revision!==project.materialBundle.revision)throw new Error('资料已变更，请重新确认版本');return await scheduler.create(canonical)}
+      catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
+    }
     return scheduler.create(project);
   });
   ipcMain.handle('analysis:cancel', (_event, taskId: string) => scheduler.cancel(taskId));

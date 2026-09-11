@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { MaterialAddition, MaterialBundle, MaterialFile, MaterialFilePatch, MaterialQuery } from '../src/material-types.js';
@@ -146,6 +146,28 @@ export class MaterialBundleStore {
   }
   async query(id:string,query:MaterialQuery){const {reader}=await this.indexed(id);return reader.query(query)}
   async read(id:string,ids:string[]){const {reader}=await this.indexed(id);if(ids.length>100)throw new Error('单次最多读取 100 个来源单元');return reader.read(ids)}
-  async project(id:string):Promise<PrdProject>{const {b,index}=await this.indexed(id);if(b.state!=='ready')throw new Error('资料未就绪，请先补齐或处置缺口');const primary=b.files.find(f=>f.role==='primary')!;return {id:'P-'+randomUUID(),name:b.name,sourceName:primary.logicalPath,sourceHash:index.manifestHash,revision:b.revision,importedAt:new Date().toISOString(),rawText:index.documents.map(d=>d.rawText).join('\n\n'),stage:'inventory',sourceUnits:structuredClone(index.units),sourceDocuments:structuredClone(index.documents),materialBundle:{id:b.id,revision:b.revision},rules:[],features:[],requirements:[],clarifications:[]}}
+  async project(id:string,snapshotRoot?:string):Promise<PrdProject>{
+    const {b,index}=await this.indexed(id);if(b.state!=='ready')throw new Error('资料未就绪，请先补齐或处置缺口');
+    const primary=b.files.find(f=>f.role==='primary')!,sourceUnits=structuredClone(index.units);
+    if(snapshotRoot){
+      if(!path.isAbsolute(snapshotRoot))throw new Error('任务快照目录必须是绝对路径');
+      const revisionRoot=path.join(this.dir(b.id),'revisions',String(b.revision));
+      try{
+        await mkdir(path.dirname(snapshotRoot),{recursive:true});
+        await mkdir(snapshotRoot,{recursive:false});
+        await cp(path.join(revisionRoot,'input'),path.join(snapshotRoot,'input'),{recursive:true,errorOnExist:true,force:false});
+        for(const unit of sourceUnits){
+          if(!unit.asset)continue;
+          if(hash(await readFile(unit.asset.path))!==unit.asset.sha256)throw new Error(`图片资产哈希不匹配：${unit.id}`);
+          const extension=path.extname(unit.asset.path).toLowerCase(),target=path.join(snapshotRoot,'assets',`${unit.asset.sha256}${extension}`);
+          await mkdir(path.dirname(target),{recursive:true});
+          try{await copyFile(unit.asset.path,target,1)}catch(error){if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error}
+          if(hash(await readFile(target))!==unit.asset.sha256)throw new Error(`任务图片快照校验失败：${unit.id}`);
+          unit.asset.path=target;
+        }
+      }catch(error){await rm(snapshotRoot,{recursive:true,force:true});throw error}
+    }
+    return {id:'P-'+randomUUID(),name:b.name,sourceName:primary.logicalPath,sourceHash:index.manifestHash,revision:b.revision,importedAt:new Date().toISOString(),rawText:index.documents.map(d=>d.rawText).join('\n\n'),stage:'inventory',sourceUnits,sourceDocuments:structuredClone(index.documents),materialBundle:{id:b.id,revision:b.revision},inputSnapshotPath:snapshotRoot,rules:[],features:[],requirements:[],clarifications:[]}
+  }
   async shutdown(){for(const job of this.jobs.values())job.controller.abort(new Error('应用关闭，索引已取消'));await Promise.all(Array.from(this.jobs.values()).map(j=>j.done))}
 }

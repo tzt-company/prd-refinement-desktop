@@ -2,12 +2,12 @@
 
 > 状态：ACTIVE  
 > Goal ID：prd-refinement-desktop  
-> 最近维护：2026-09-11T09:38:00+08:00  
+> 最近维护：2026-09-11T16:25:00+08:00
 > 权威目标：D:\project\prd-refinement-desktop\goal.md
 
 ## 总目标
 
-建设一个独立桌面端 App，接收 PRD 及需求材料，先识别完整功能点与跨功能约束，再逐项生成带来源、上下文和待澄清问题的需求明细；通过统一 Runtime 适配 Codex OAuth 或 DeepSeek Harness，最终结果自动生成 Excel 到项目结果目录。平台不推导测试用例、验收场景或测试数据，测试人员基于细化产物另行设计；PRD 原文明确的验收条件仍作为需求内容保留。
+建设一个独立桌面端 App，接收定版 PRD 及需求材料，先识别完整功能点与跨功能约束，再逐项生成带来源、上下文和待澄清问题的需求明细；通过统一 Runtime 适配 Codex CLI 或 DSH，最终生成可供开发 Agent 继续实施的结构化需求包与人工可读 Excel。平台不接入目标项目源码，不生成技术方案、测试用例、验收场景或测试数据；PRD 原文明确的接口、字段、数据要求、技术约束和验收条件仍作为需求内容保留。
 
 ## 完成条件
 
@@ -42,15 +42,19 @@
 | SG7-B | 多文件解析与引用索引 | 真实缺件可定位、SVG及内嵌资源测试通过 | 已完成 | docs/acceptance/material-bundle-index/ |
 | SG7-C | 资料组装与查阅界面 | 上传/目录/拖放、索引、补件、检索桌面验证 | 已完成 | 同上 |
 | SG7-D | 分析与交付集成 | 固定资料版本、全来源追踪、真实桌面启动 | 已完成 | 同上 |
+| SG8 | 定版 PRD 的 Agent 需求交付 | 功能仅作原文分组；需求为唯一业务表述；正反向审计区分整理错误、业务冲突与技术选择；通过状态后原子生成可携带 JSON/Markdown/Excel 需求包 | 已完成 | 148 项测试、真实 T-DEA0C834 ready 包及搬移回读、production Electron；`docs/acceptance/final-prd-agent-handoff/round-1.md`、`round-2.md` |
 
 ## 当前检查点
 
-- 当前子目标：SG7-D
-- 唯一下一步：SG7 本轮已完成；实际用户资料包等待补齐 4 个 SVG（5 处引用）或用户明确排除依据，再启动需求分析。验收见 docs/acceptance/material-bundle-index/report.md。
+- 当前子目标：SG8
+- 唯一下一步：如继续质量评测，执行 `docs/acceptance/final-prd-agent-handoff/matrix.csv` 中仍为 PENDING 的专用语义对抗用例；不把当前单一样本外推为自然语言零遗漏。
 - 历史质量工作下一步：根据round-13已完成验证的反例，修正功能概述与需求双写、摘要覆盖诱发冗余、审计跨条目误报及问题责任范围不匹配，再做稳定版本配对评测。本轮用户要求的验证已完成，T-CFF7E4D2已产Excel，不能因22定向样本通过宣称整体质量通过。证据见 D:\baibu-agent\docs\acceptance\prd-refinement-implementation\round-13.md。
 - 未闭环项：round-13反向质量缺陷与稳定版配对成本/质量评测；SQLite规范化持久化、打包后真实桌面E2E、DSH图像端到端及真人审定 gold。
 
 ## 进展
+
+- 2026-09-11：用户明确输入是马上交给开发 Agent 的定版 PRD，并授权按方案实施；新增 SG8。保留八节点，不接入开发仓库；功能只作原文分组，需求作为唯一业务表述，输出结构化 Agent 需求包与同源 Excel。
+- 2026-09-11 SG8：完成来源选区、逐字段证据、需求关系、问题责任、DeliveryAssessment、输入快照和原子 Agent 包；真实 Codex 任务 T-DEA0C834 产 3 功能/7 需求/2 关系且 ready，正式包搬移后独立回读通过，production Electron 显示检查与草稿状态。专用语义对抗矩阵未全绿，不创建最终报告。
 
 - 2026-09-10 round-13：真实八节点于19:54完成，Excel已独立回读，91测试与构建通过；22定向样本语义通过但反向有3失败，质量不通过。完成任务含6次尝试/101调用/58分13秒，已知input3313753、cached1108480、output110664，含1次用量未知；非稳定成本基线。修复分类账本输入、来源编译、结构纠错上下文、覆盖门禁位置/作用域、审计定位说明及Excel直接S澄清关联。
 

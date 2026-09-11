@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acceptCandidateClassificationIssues, acceptDirectDetails, acceptDirectFeatureBatch, acceptDirectFeatures, acceptFeatureUnification, validateDirectGraph } from '../electron/domain';
+import { acceptCandidateClassificationIssues, acceptDirectDetails, acceptDirectFeatureBatch, acceptDirectFeatures, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from '../electron/domain';
 import type { Feature, RequirementDetail, SourceDisposition, SourceUnit } from '../src/types';
 
 const sources:SourceUnit[]=['S1','S2','S3'].map(id=>({id,label:id,kind:'paragraph',excerpt:'字段 X 必填',location:id,status:'processed'}));
@@ -109,5 +109,19 @@ describe('直接需求域契约',()=>{
     const linked=[{...sources[0],excerpt:'合并后统一使用关联 ID；完成后询问是否生成版本。'}];
     expect(acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联 id']}],[],linked).requirements[0].explicitAcceptanceConditions).toEqual(['合并后统一使用关联 id']);
     expect(()=>acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联-ID']}],[],linked)).toThrow('不得推导或静默丢弃');
+  });
+  it('功能引用的连续文字必须在指定原文中唯一并转换为稳定选区',()=>{
+    const parsed=acceptDirectFeatures([{id:'LOCAL-F',kind:'function',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],sources);
+    expect(parsed[0].name).toBeUndefined();expect(parsed[0].sourceUnitIds).toEqual(['S1']);expect(parsed[0].sourceRefs).toEqual([{sourceUnitId:'S1',start:0,end:4}]);
+    expect(()=>acceptDirectFeatures([{id:'LOCAL-F',sourceRefs:[{sourceUnitId:'S1',quote:'不存在'}],state:'draft'}],sources)).toThrow('不在指定原文');
+    const repeated=[{...sources[0],excerpt:'字段 X 与字段 X'}];expect(()=>acceptDirectFeatures([{id:'LOCAL-F',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],repeated)).toThrow('不唯一');
+  });
+  it('需求证据逐字段绑定且显式业务关系必须有真实两端和来源',()=>{
+    const detailed=acceptDirectDetails([{...requirement,conditions:['已登录'],evidenceBindings:{behavior:[{sourceUnitId:'S1'}],conditions:[[{sourceUnitId:'S1'}]],constraints:[],explicitAcceptanceConditions:[]}}],[],sources).requirements[0];
+    expect(detailed.evidenceBindings?.conditions[0]).toEqual([{sourceUnitId:'S1'}]);
+    const wrapped=acceptDirectDetails([{...requirement,evidenceBindings:{behavior:{sourceRefs:[{sourceUnitId:'S1'}]},conditions:[],constraints:[],explicitAcceptanceConditions:[]}}],[],sources).requirements[0];
+    expect(wrapped.evidenceBindings?.behavior).toEqual([{sourceUnitId:'S1'}]);
+    const second={...requirement,id:'R2',sourceUnitIds:['S2']};expect(acceptRequirementRelations([{sourceRequirementId:'R1',targetRequirementId:'R2',kind:'affects',sourceRefs:[{sourceUnitId:'S1'}]}],sources,[requirement,second])).toHaveLength(1);
+    expect(()=>acceptRequirementRelations([{sourceRequirementId:'R1',targetRequirementId:'R1',kind:'depends-on',sourceRefs:[{sourceUnitId:'S1'}]}],sources,[requirement])).toThrow('禁止自引用');
   });
 });
