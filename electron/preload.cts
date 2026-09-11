@@ -13,7 +13,6 @@ contextBridge.exposeInMainWorld('prdApp', {
     },
     updateFile:(id:string,fileId:string,patch:import('../src/material-types.js').MaterialFilePatch)=>ipcRenderer.invoke('materials:update-file',id,fileId,patch),
     removeFile:(id:string,fileId:string)=>ipcRenderer.invoke('materials:remove-file',id,fileId),
-    resolveReference:(id:string,referenceId:string,action:{targetFileId?:string;exclusionReason?:string})=>ipcRenderer.invoke('materials:resolve-reference',id,referenceId,action),
     index:(id:string)=>ipcRenderer.invoke('materials:index',id),
     cancel:(id:string)=>ipcRenderer.invoke('materials:cancel',id),
     query:(id:string,query:import('../src/material-types.js').MaterialQuery)=>ipcRenderer.invoke('materials:query',id,query),

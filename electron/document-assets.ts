@@ -9,7 +9,7 @@ import { parse, serializeOuter, type DefaultTreeAdapterMap } from 'parse5';
 import type { SourceUnit } from '../src/types.js';
 import { buildSourceUnits, enrichSourceContext } from './source-units.js';
 
-export type ExtractionOptions = { resolveReference?: (reference:string,location:string)=>Promise<{path?:string;error?:string;excludedReason?:string}>; signal?:AbortSignal };
+export type ExtractionOptions = { resolveReference?: (reference:string,location:string)=>Promise<{path?:string;error?:string;excludedReason?:string}>; followReferences?:boolean; signal?:AbortSignal };
 const checkAbort=(signal?:AbortSignal)=>signal?.throwIfAborted();
 
 export type ImportedDocument = { rawText: string; sourceUnits: SourceUnit[] };
@@ -63,10 +63,11 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
     await convertLegacyDoc(path.resolve(filePath),path.resolve(converted),options.signal);
     return extractDocument(converted,assetDirectory,options);
   }
+  const followReferences=options.followReferences!==false;
   if (!['.docx','.pdf','.html','.htm','.css','.js','.svg',...Object.keys(mimeTypes)].includes(extension)) {
     if(!['.md','.txt'].includes(extension))throw new Error(`不支持的文档格式：${extension}`);
     const rawText=new TextDecoder('utf-8',{fatal:true}).decode(buffer),sourceUnits=buildSourceUnits(rawText);
-    if(extension==='.md'&&options.resolveReference){
+    if(extension==='.md'&&followReferences&&options.resolveReference){
       for(const unit of [...sourceUnits]){
         let referenceFailed=false;
         for(const match of unit.excerpt.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)){
@@ -126,6 +127,7 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
       try{return new TextDecoder(charset,{fatal:true}).decode(bytes)}catch{throw new Error(`HTML 编码 ${charset} 无法读取，请另存为 UTF-8 HTML`)}
     };
     const scanStyle=async(code:string,location:string,base:string,depth=0):Promise<void>=>{
+      if(!followReferences)return;
       if(depth>=8){blocked('CSS 引用超过 8 层',location);return}
       for(const match of code.matchAll(/(?:url\(\s*["']?([^"')\s]+)|@import\s+["']([^"']+))/gi)){
         const reference=match[1]??match[2];if(reference.startsWith('#'))continue;
@@ -157,7 +159,7 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
         const reference=tag==='link'?attrs.href:attrs.src;
         let codeBase=base;
         let code=node.childNodes.map(child=>'value' in child?child.value:'').join('');
-        if(reference){const resource=await readReference(reference,location,base);if(!resource)return;codeBase=path.dirname(options.resolveReference?path.resolve(base,reference):resource.target);code=new TextDecoder('utf-8',{fatal:true}).decode(resource.bytes)}
+        if(reference){if(!followReferences)return;const resource=await readReference(reference,location,base);if(!resource)return;codeBase=path.dirname(options.resolveReference?path.resolve(base,reference):resource.target);code=new TextDecoder('utf-8',{fatal:true}).decode(resource.bytes)}
         if(code.trim())add(code,location,'attachment',`HTML ${tag==='script'?'交互脚本':'样式'}源码（来源数据，未执行；不是普通业务需求）`);
         if(tag!=='script')await scanStyle(code,location,codeBase);
         return;
@@ -168,22 +170,22 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
         if(embedded===undefined&&attrs.src?.startsWith('data:text/html')){
           try{const comma=attrs.src.indexOf(',');if(comma<0)throw new Error('invalid data URL');embedded=/;base64$/i.test(attrs.src.slice(0,comma))?decodeHtml(Buffer.from(attrs.src.slice(comma+1),'base64')):decodeURIComponent(attrs.src.slice(comma+1))}catch{blocked('HTML 内嵌文档编码无法读取',location);return}
         }
-        if(embedded===undefined){if(!attrs.src){blocked('HTML 外部 iframe 缺少地址',location);return}const resource=await readReference(attrs.src,`${location} / 外部 iframe`,base);if(!resource)return;embedded=decodeHtml(resource.bytes);embeddedBase=path.dirname(options.resolveReference?path.resolve(base,attrs.src):resource.target)}
+        if(embedded===undefined){if(!followReferences)return;if(!attrs.src){blocked('HTML 外部 iframe 缺少地址',location);return}const resource=await readReference(attrs.src,`${location} / 外部 iframe`,base);if(!resource)return;embedded=decodeHtml(resource.bytes);embeddedBase=path.dirname(options.resolveReference?path.resolve(base,attrs.src):resource.target)}
         await visit(parse(embedded,{sourceCodeLocationInfo:true}),embeddedBase,`${location} / iframe ${attrs.title??(attrs.src?.startsWith('data:')?'data:text/html 内嵌文档':attrs.src)??'srcdoc'}`,depth+1);return;
       }
       if(tag==='img'){
         const src=attrs.src??'',match=src.match(/^data:(image\/(?:png|jpeg|gif|webp|svg\+xml));base64,([\s\S]+)$/i);
         try{
           if(match){const bytes=Buffer.from(match[2],'base64'),suffix=match[1]==='image/svg+xml'?'.svg':'.'+(match[1]==='image/jpeg'?'jpg':match[1].split('/')[1]);validateSignature(bytes,suffix);await addAsset(suffix==='.svg'?await rasterizeSvg(bytes):bytes,`html-image-${assets.length+1}${suffix==='.svg'?'.png':suffix}`,location,suffix==='.svg'?'image/png':match[1])}
-          else if(src){const resource=await readReference(src,location,base);if(resource){const suffix=path.extname(resource.target).toLowerCase();validateSignature(resource.bytes,suffix);if(suffix==='.svg')await addAsset(await rasterizeSvg(resource.bytes),`html-image-${assets.length+1}.png`,location,'image/png');else if(mimeTypes[suffix])await addAsset(resource.bytes,`html-image-${assets.length+1}${suffix}`,location,mimeTypes[suffix]);else blocked(`HTML 图片格式尚不支持：${src}`,location)}}
-          else blocked('HTML 图片缺少地址',location);
+          else if(src&&followReferences){const resource=await readReference(src,location,base);if(resource){const suffix=path.extname(resource.target).toLowerCase();validateSignature(resource.bytes,suffix);if(suffix==='.svg')await addAsset(await rasterizeSvg(resource.bytes),`html-image-${assets.length+1}.png`,location,'image/png');else if(mimeTypes[suffix])await addAsset(resource.bytes,`html-image-${assets.length+1}${suffix}`,location,mimeTypes[suffix]);else blocked(`HTML 图片格式尚不支持：${src}`,location)}}
+          else if(!src)blocked('HTML 图片缺少地址',location);
         }catch(error){checkAbort(options.signal);blocked(`HTML 图片无法读取：${src}；${String(error)}`,location)}
         if(attrs.alt)add(`[图片说明：${attrs.alt}]`,location);return;
       }
       if(tag==='svg'){try{await addAsset(await rasterizeSvg(Buffer.from(serializeOuter(node))),`html-image-${assets.length+1}.png`,location,'image/png')}catch(error){checkAbort(options.signal);blocked(`HTML SVG 无法读取：${String(error)}`,location)}return}
-      if(['object','embed','canvas','video','audio','template'].includes(tag)){if(attrs.src||attrs.data)await readReference(attrs.src??attrs.data,location,base);blocked(`HTML ${tag} 内容需另行读取`,location);return}
+      if(['object','embed','canvas','video','audio','template'].includes(tag)){if(followReferences){if(attrs.src||attrs.data)await readReference(attrs.src??attrs.data,location,base);blocked(`HTML ${tag} 内容需另行读取`,location)}return}
       if(attrs.style){add(attrs.style,location,'attachment','HTML 排版属性（来源数据，不是普通业务需求）');await scanStyle(attrs.style,location,base)}
-      if(attrs.srcset)blocked(`HTML ${tag} 替代图片未读取`,location);
+      if(followReferences&&attrs.srcset)blocked(`HTML ${tag} 替代图片未读取`,location);
       const context=tag==='table'?`表格原始位置：${location}`:tableContext;
       for(const child of node.childNodes)await visit(child,base,parentLocation,depth,/^h[1-6]$/.test(tag)?'#'.repeat(Number(tag[1]))+' ':heading,context);
     };
@@ -210,7 +212,7 @@ export async function extractDocument(filePath: string, assetDirectory: string, 
     for(const file of Object.values(archive.files).filter(file=>!file.dir&&/^word\/embeddings\//.test(file.name)))assets.push({id:'',kind:'attachment',label:file.name,excerpt:`[嵌入附件：${file.name}]`,location:`DOCX 包内 ${file.name}`,status:'blocked'});
     // These parts are outside mammoth raw-text coverage; keep an explicit ingestion gap.
     for(const file of Object.values(archive.files).filter(file=>!file.dir&&/^word\/(?:charts\/|diagrams\/|header\d|footer\d)/.test(file.name)))assets.push({id:'',kind:'attachment',label:file.name,excerpt:`[未读取的文档组件：${file.name}]`,location:`DOCX 包内 ${file.name}`,status:'blocked'});
-    for(const file of Object.values(archive.files).filter(file=>!file.dir&&file.name.endsWith('.rels'))) {
+    if(followReferences)for(const file of Object.values(archive.files).filter(file=>!file.dir&&file.name.endsWith('.rels'))) {
       const relationships=await file.async('string');
       const external=[...relationships.matchAll(/<Relationship\b[^>]*>/g)].map(match=>match[0]).filter(element=>/TargetMode\s*=\s*["']External["']/.test(element));
       for(const element of external){

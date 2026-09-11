@@ -77,7 +77,6 @@ if (ownsInstance) app.whenReady().then(async () => {
   });
   materialHandler('materials:update-file',(id:string,fileId:string,patch:MaterialFilePatch)=>materials.updateFile(id,fileId,patch));
   materialHandler('materials:remove-file',(id:string,fileId:string)=>materials.removeFile(id,fileId));
-  materialHandler('materials:resolve-reference',(id:string,referenceId:string,action:{targetFileId?:string;exclusionReason?:string})=>materials.resolveReference(id,referenceId,action));
   materialHandler('materials:index',(id:string)=>materials.index(id));
   materialHandler('materials:cancel',(id:string)=>materials.cancel(id));
   materialHandler('materials:query',(id:string,query:MaterialQuery)=>materials.query(id,query));

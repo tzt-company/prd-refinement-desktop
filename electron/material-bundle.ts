@@ -2,13 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 import { copyFile, lstat, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { MaterialAddition, MaterialBundle, MaterialFile, MaterialFilePatch, MaterialQuery, MaterialReference } from '../src/material-types.js';
+import type { MaterialAddition, MaterialBundle, MaterialFile, MaterialFilePatch, MaterialQuery } from '../src/material-types.js';
 import type { PrdProject, SourceUnit } from '../src/types.js';
 import { extractDocument } from './document-assets.js';
 import { sourceCoverage } from './source-units.js';
 import { SourceIndex } from './source-index.js';
 
-const PARSER_VERSION = 'bundle-1';
+const PARSER_VERSION = 'bundle-2-uploaded-only';
 export const MATERIAL_LIMITS = { files: 1000, fileBytes: 100 * 1024 * 1024, totalBytes: 500 * 1024 * 1024, units: 100000 };
 const supported = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt','.png','.jpg','.jpeg','.webp','.gif','.svg','.css','.js']);
 const documentTypes = new Set(['.html','.htm','.doc','.docx','.pdf','.md','.txt']);
@@ -23,7 +23,7 @@ function contained(root:string,relative:string){const result=path.resolve(root,l
 interface StoredFile extends MaterialFile { blob?: string; originalPath?: string }
 interface StoredBundle extends MaterialBundle { files:StoredFile[]; bindings:Record<string,{targetFileId?:string;exclusionReason?:string}> }
 interface MaterialIndex { revision:number; units:SourceUnit[]; documents:NonNullable<PrdProject['sourceDocuments']>; manifestHash:string }
-interface CachedParse { version:string; hash:string; logicalPath:string; dependencies:string; references:MaterialReference[]; result:Awaited<ReturnType<typeof extractDocument>> }
+interface CachedParse { version:string; hash:string; logicalPath:string; result:Awaited<ReturnType<typeof extractDocument>> }
 export interface MaterialStoreOptions { readImage?:(unit:SourceUnit,signal:AbortSignal)=>Promise<{readable:boolean;text:string}>; visionKey?:(signal:AbortSignal)=>Promise<string> }
 
 /** 资料包拥有输入和索引；分析运行只取得固定版本副本。 */
@@ -86,26 +86,9 @@ export class MaterialBundleStore {
   })}
   async updateFile(id:string,fileId:string,patch:MaterialFilePatch){return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);const file=b.files.find(f=>f.id===fileId);if(!file)throw new Error('文件不存在');if(patch.logicalPath!==undefined){const next=logical(patch.logicalPath);if(b.files.some(f=>f.id!==fileId&&f.logicalPath.toLowerCase()===next.toLowerCase()))throw new Error('逻辑路径冲突');file.logicalPath=next}if(patch.role){if(!['primary','supplement','historical'].includes(patch.role))throw new Error('资料角色无效');if(patch.role==='primary'){if(!documentTypes.has(path.extname(file.logicalPath).toLowerCase()))throw new Error('主 PRD 必须是文档');for(const f of b.files)if(f.role==='primary')f.role='supplement';b.name=path.basename(file.logicalPath,path.extname(file.logicalPath))}file.role=patch.role}if(patch.exclusionReason!==undefined){if(file.role==='primary'&&patch.exclusionReason.trim())throw new Error('不能排除主 PRD');file.exclusionReason=patch.exclusionReason.trim()||undefined;file.status=file.exclusionReason?'excluded':'registered'}this.invalidate(b);await this.save(b);return this.view(b)})}
   async removeFile(id:string,fileId:string){return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);if(!b.files.some(f=>f.id===fileId))throw new Error('文件不存在');b.files=b.files.filter(f=>f.id!==fileId);this.invalidate(b);await this.save(b);return this.view(b)})}
-  async resolveReference(id:string,referenceId:string,action:{targetFileId?:string;exclusionReason?:string}){return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);if(!b.references.some(r=>r.id===referenceId))throw new Error('引用不存在');if(Boolean(action.targetFileId)===Boolean(action.exclusionReason?.trim()))throw new Error('请选择关联文件或填写排除依据');if(action.targetFileId&&!b.files.some(f=>f.id===action.targetFileId))throw new Error('目标文件不属于本资料包');b.bindings[referenceId]={...action,exclusionReason:action.exclusionReason?.trim()};this.invalidate(b);await this.save(b);return this.view(b)})}
   async index(id:string){const generation=this.cancellation.get(id)??0;return this.serial(id,async()=>{const b=await this.load(id);this.writable(b);if(b.indexedRevision===b.revision)this.invalidate(b);if(b.files.filter(f=>f.role==='primary'&&!f.exclusionReason).length!==1)throw new Error('请指定一个主 PRD');b.state='indexing';b.error=undefined;b.issues=[];b.references=[];b.progress={completed:0,total:b.files.length,phase:'建立文件快照'};await this.save(b);const controller=new AbortController();if(generation!==(this.cancellation.get(id)??0))controller.abort(new Error('索引已取消'));const done=Promise.resolve().then(()=>this.build(b,controller.signal)).finally(()=>{this.jobs.delete(id)});this.jobs.set(id,{controller,done});return this.view(b)})}
   async cancel(id:string){this.cancellation.set(id,(this.cancellation.get(id)??0)+1);this.additions.get(id)?.abort(new Error('用户取消资料添加'));this.jobs.get(id)?.controller.abort(new Error('用户取消索引'));await this.queues.get(id)?.catch(()=>{});const job=this.jobs.get(id);if(job){job.controller.abort(new Error('用户取消索引'));await job.done}return this.get(id)}
   async wait(id:string){await this.jobs.get(id)?.done;return this.get(id)}
-  private resolve(b:StoredBundle,file:StoredFile,reference:string,location:string,inputRoot:string):{edge:MaterialReference;path?:string;error?:string;excludedReason?:string}{
-    const id='REF-'+hash(file.id+file.hash+reference+location).slice(0,24),binding=b.bindings[id];
-    const edge:MaterialReference={id,fileId:file.id,reference,location,state:'missing'};
-    if(binding?.exclusionReason){edge.state='excluded';edge.reason=binding.exclusionReason;return {edge,excludedReason:binding.exclusionReason}}
-    let targets:StoredFile[]=[];
-    if(binding?.targetFileId)targets=b.files.filter(f=>f.id===binding.targetFileId);
-    else{
-      if(/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(reference)){edge.state='external';return {edge,error:`外部资源尚未提供：${reference}`}}
-      try{const decoded=decodeURIComponent(reference.split(/[?#]/)[0]).replace(/\\/g,'/');if(decoded.startsWith('/')||decoded.includes(':'))throw new Error('invalid');const target=path.posix.normalize(path.posix.join(path.posix.dirname(file.logicalPath),decoded));logical(target);targets=b.files.filter(f=>f.logicalPath.toLowerCase()===target.toLowerCase())}catch{return {edge,error:`引用超出资料目录或路径无效：${reference}`}}
-    }
-    if(targets.length!==1){edge.state=targets.length?'ambiguous':'missing';return {edge,error:`引用${targets.length?'存在歧义':'缺少文件'}：${reference}`}}
-    const target=targets[0];edge.targetFileId=target.id;
-    if(target.exclusionReason){edge.state='excluded';edge.reason=target.exclusionReason;return {edge,excludedReason:target.exclusionReason}}
-    if(!target.blob)return {edge,error:`引用目标无法读取：${target.logicalPath}`};
-    edge.state='resolved';return {edge,path:contained(inputRoot,target.logicalPath)};
-  }
   private async build(b:StoredBundle,signal:AbortSignal){
     const revision=b.revision,revisionRoot=path.join(this.dir(b.id),'revisions',String(revision)),inputRoot=path.join(revisionRoot,'input');
     const units:SourceUnit[]=[],documents:MaterialIndex['documents']=[];
@@ -120,14 +103,12 @@ export class MaterialBundleStore {
         file.status='reading';await this.save(b);
         try{
           const cachePath=path.join(this.dir(b.id),'cache',file.id+'.json');let cached:CachedParse|undefined;try{cached=JSON.parse(await readFile(cachePath,'utf8'))}catch{/* 首次解析 */}
-          const dependency=(refs:MaterialReference[])=>hash(JSON.stringify(refs.map(ref=>{const r=this.resolve(b,file,ref.reference,ref.location,inputRoot),target=b.files.find(f=>f.id===r.edge.targetFileId);return [r.edge, target?.hash]})));
-          let result:CachedParse['result'],references:MaterialReference[]=[];
-          if(cached?.version===PARSER_VERSION&&cached.hash===file.hash&&cached.logicalPath===file.logicalPath&&cached.dependencies===dependency(cached.references)){result=structuredClone(cached.result);references=cached.references.map(ref=>this.resolve(b,file,ref.reference,ref.location,inputRoot).edge)}
+          let result:CachedParse['result'];
+          if(cached?.version===PARSER_VERSION&&cached.hash===file.hash&&cached.logicalPath===file.logicalPath){result=structuredClone(cached.result)}
           else{
-            result=await extractDocument(contained(inputRoot,file.logicalPath),path.join(this.dir(b.id),'parsed',file.id,randomUUID()),{signal,resolveReference:async(reference:string,location:string)=>{signal.throwIfAborted();const resolution=this.resolve(b,file,reference,location,inputRoot);references.push(resolution.edge);return {path:resolution.path,error:resolution.error,excludedReason:resolution.excludedReason}}});
-            signal.throwIfAborted();await this.atomic(cachePath,{version:PARSER_VERSION,hash:file.hash,logicalPath:file.logicalPath,result,references,dependencies:dependency(references)} satisfies CachedParse);
+            result=await extractDocument(contained(inputRoot,file.logicalPath),path.join(this.dir(b.id),'parsed',file.id,randomUUID()),{signal,followReferences:false});
+            signal.throwIfAborted();await this.atomic(cachePath,{version:PARSER_VERSION,hash:file.hash,logicalPath:file.logicalPath,result} satisfies CachedParse);
           }
-          b.references.push(...references);
           if(!result.sourceUnits.length)throw new Error('文档没有可读取内容，请提供有效文档或明确排除');
           if(!sourceCoverage(result.rawText,result.sourceUnits).complete)throw new Error('提取文本与来源账本不一致');
           const prefix=`S-${file.id.slice(2)}-v${file.revision}-${PARSER_VERSION}-`,mapping=new Map(result.sourceUnits.map((unit,i)=>[unit.id,prefix+String(i+1).padStart(4,'0')]));
@@ -148,9 +129,7 @@ export class MaterialBundleStore {
         b.progress.completed++;await this.save(b);
       }
       signal.throwIfAborted();b.progress.phase='构建来源索引';await this.save(b);
-      // 同一引用可能在递归内容中被重复访问，保留独立位置，去除完全重复的边。
-      b.references=Array.from(new Map(b.references.map(r=>[r.id,r])).values());
-      for(const ref of b.references.filter(r=>!['resolved','excluded'].includes(r.state)))b.issues.push({id:'I-'+ref.id,fileId:ref.fileId,referenceId:ref.id,message:`${ref.location}：${ref.reference}（${ref.state}）`});
+      b.references=[];
       const index:MaterialIndex={revision,units,documents,manifestHash:hash(JSON.stringify(b.files.map(f=>[f.id,f.revision,f.hash,f.logicalPath,f.role,f.exclusionReason])))};
       new SourceIndex(units,revision);
       signal.throwIfAborted();await this.atomic(path.join(revisionRoot,'index.json'),index);signal.throwIfAborted();
