@@ -34,7 +34,7 @@ export function ResultIssues({project}:{project:PrdProject}){
       return <button key={`${item.kind}-${item.value.id}`} onClick={()=>setSelectedKey(`${item.kind}-${item.value.id}`)}><span className={`issue-level ${level}`}>{item.kind==='platform'?'阻塞':clarificationLevelLabel[level]}</span><span><strong>{title}</strong><small>{item.kind==='platform'?'平台处理':level==='blocking'?'需要你澄清':level==='suggestion'?'建议确认':'无需决定'} · 影响 {affectedLabels(project,item.value.affectedIds).slice(0,2).join('、')}</small></span><ChevronRight/></button>
     })}</div>}
     <details className="check-history"><summary>查看自动检查记录（{project.audit?.issues.length??0}）</summary><p>检查记录用于说明平台发现、修复或排除过什么，不要求用户逐条审批。</p>{(project.audit?.issues??[]).map(issue=><div key={issue.id}><strong>{issueTitle(issue)}</strong><span>{issue.disposition==='repaired'?'已修复':issue.disposition==='dismissed'?'有证据排除':issue.disposition==='needs-confirmation'?'已转为业务澄清':'未解决'}</span></div>)}</details>
-    {selected&&<IssueDrawer project={project} item={selected} onClose={()=>setSelectedKey(undefined)}/>} 
+    {selected&&<IssueDrawer project={project} item={selected} onClose={()=>setSelectedKey(undefined)}/>}
   </section>;
 }
 
