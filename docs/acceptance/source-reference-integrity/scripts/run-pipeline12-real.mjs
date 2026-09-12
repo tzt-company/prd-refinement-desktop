@@ -1,7 +1,7 @@
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import {AnalysisTaskScheduler} from '../../../../dist-electron/electron/scheduler-v2.js';
+import {AnalysisTaskScheduler,CURRENT_PIPELINE_VERSION} from '../../../../dist-electron/electron/scheduler-v2.js';
 
 const appData=process.env.APPDATA;
 if(!appData)throw new Error('APPDATA 未设置');
@@ -49,7 +49,7 @@ if(!singleUnlimited){
   const completed=await waitFor(concurrent.map(task=>task.id));
   for(let index=0;index<completed.length;index++){const result=summarize(completed[index],'concurrent',index+1);results.push(result);console.log(JSON.stringify(result))}
 }
-const report={startedAt:new Date(events[0]?.at??Date.now()).toISOString(),completedAt:new Date().toISOString(),sourceTaskId,sourceHash:sourceTask.project.sourceHash,config:{adapter:config.adapter,provider:config.provider,fastModel:config.fastModel,model:config.model,reasoningEffort:config.reasoningEffort,maxParallel:5,maxNodeParallel:10,taskDeadline:singleUnlimited?'none':'20m'},runRoot,results,passed:results.length===(singleUnlimited?1:8)&&results.every(item=>(singleUnlimited||item.within20Minutes)&&item.pipelineVersion===13&&item.hardBudgetViolations===0&&item.platformOpen===0&&item.checksPassed&&item.unverifiedScopeIds.length===0&&['completed','needs-attention'].includes(item.status))};
+const report={startedAt:new Date(events[0]?.at??Date.now()).toISOString(),completedAt:new Date().toISOString(),sourceTaskId,sourceHash:sourceTask.project.sourceHash,config:{adapter:config.adapter,provider:config.provider,fastModel:config.fastModel,model:config.model,reasoningEffort:config.reasoningEffort,maxParallel:5,maxNodeParallel:10,taskDeadline:singleUnlimited?'none':'20m'},runRoot,results,passed:results.length===(singleUnlimited?1:8)&&results.every(item=>(singleUnlimited||item.within20Minutes)&&item.pipelineVersion===CURRENT_PIPELINE_VERSION&&item.hardBudgetViolations===0&&item.platformOpen===0&&item.checksPassed&&item.unverifiedScopeIds.length===0&&['completed','needs-attention'].includes(item.status))};
 await mkdir(path.dirname(outputFile),{recursive:true});
 await writeFile(outputFile,JSON.stringify(report,null,2),'utf8');
 console.log(JSON.stringify({outputFile,passed:report.passed}));

@@ -43,6 +43,7 @@ const repairReviewSchema = `{"originalIssueResults":[{"issueId":"输入问题ID"
 const fastNodes = new Set<ModelNodeId>(['featureCandidates', 'detailsFast']);
 const sourceClassificationContract = '统一来源分类契约：仅数量统计或章节索引、未表达具体业务行为的摘要归为 context，不需要独立功能，检查不得要求为其创建功能，统一不得因其未独立成项重复反馈。摘要若包含正文未展开的具体业务要求，必须保留并关联实际功能；不能因位于摘要就丢弃。文档记法和纯表头归为 context；标题或摘要明确的新增模块、字段重命名等业务要求必须保留。';
 const nodeStep: Record<ModelNodeId, number> = { imageReading: 0, featureCandidates: 1, featureCandidateRepair: 1, featureCoverage: 2, featureGlobal: 3, detailsFast: 4, details: 4, audit: 5, repair: 6 };
+export const CURRENT_PIPELINE_VERSION = 14;
 
 function parseObject(value: string) {
   return JSON.parse(value.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()) as Record<string, unknown>;
@@ -118,7 +119,9 @@ function nextId(prefix: string, items: Array<{ id: string }>, width: number) {
 export function semanticallyRelatedRequirements(query:string,requirements:PrdProject['requirements'],limit=4){
   const grams=(value:string)=>{const normalized=value.toLocaleLowerCase('zh-CN').replace(/[\s，。；：、,.!?！？:「」“”'"`()（）【】\[\]<>《》]/gu,'');const result=new Set<string>();for(let index=0;index<normalized.length-1;index++)result.add(normalized.slice(index,index+2));return result};
   const queryGrams=grams(query);if(!queryGrams.size)return[];
-  return requirements.map(requirement=>{const text=[requirement.title,requirement.behavior,...requirement.conditions,...requirement.constraints,...requirement.explicitAcceptanceConditions].join('\n'),score=[...grams(text)].filter(gram=>queryGrams.has(gram)).length;return{requirement,score}}).filter(item=>item.score>=2).sort((a,b)=>b.score-a.score||a.requirement.id.localeCompare(b.requirement.id)).slice(0,limit).map(item=>item.requirement);
+  const documents=requirements.map(requirement=>({requirement,grams:grams([requirement.title,requirement.behavior,...requirement.conditions,...requirement.constraints,...requirement.explicitAcceptanceConditions].join('\n'))})),frequency=new Map<string,number>();
+  for(const document of documents)for(const gram of document.grams)frequency.set(gram,(frequency.get(gram)??0)+1);
+  return documents.map(document=>{const matches=[...document.grams].filter(gram=>queryGrams.has(gram)),weighted=matches.reduce((score,gram)=>score+Math.log(1+documents.length/(frequency.get(gram)??1)),0),score=weighted/Math.sqrt(Math.max(1,document.grams.size));return{requirement:document.requirement,matches:matches.length,score}}).filter(item=>item.matches>=2).sort((a,b)=>b.score-a.score||a.requirement.id.localeCompare(b.requirement.id)).slice(0,limit).map(item=>item.requirement);
 }
 function mergeConfirmationScopes(scopes:ReturnType<typeof planDetailRepairs>){
   const grouped=new Map<string,(typeof scopes)[number]>();
@@ -260,7 +263,7 @@ export class AnalysisTaskScheduler {
       try { task = JSON.parse(await readFile(path.join(this.root, file), 'utf8')) as AnalysisTask; } catch { continue; }
       if (!task.id || !task.project || !Array.isArray(task.steps)) continue;
       if(task.status==='completed'&&task.project.delivery?.state!=='ready'){task.status='needs-attention';task.progress=Math.min(task.progress,88);task.error='平台整理未完成：该任务的正式交付准入未通过，请重新审计当前材料。'}
-      if (task.checkpoint?.pipelineVersion !== 14 && !['completed','needs-attention'].includes(task.status)) {
+      if (task.checkpoint?.pipelineVersion !== CURRENT_PIPELINE_VERSION && !['completed','needs-attention'].includes(task.status)) {
         task.status = 'failed'; task.error = '旧版检查点仅供查看，请用原始材料创建新任务';
       } else if (task.status === 'running') {
         task.status = 'queued'; task.error = '应用退出后从最近检查点恢复';
@@ -278,7 +281,7 @@ export class AnalysisTaskScheduler {
     const config = await this.getConfig(), now = Date.now();
     const task: AnalysisTask = {
       id: `T-${randomUUID().slice(0, 8).toUpperCase()}`, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
-      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 14, resultVersion:0,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
+      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: CURRENT_PIPELINE_VERSION, resultVersion:0,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
     this.tasks.set(task.id, task); this.queue.push(task.id); await this.publish(task); void this.pump(); return structuredClone(task);
@@ -293,7 +296,7 @@ export class AnalysisTaskScheduler {
   }
   async retry(id: string) {
     const task = this.tasks.get(id); if (!task || !['failed','needs-attention'].includes(task.status)) return;
-    if (task.checkpoint?.pipelineVersion !== 14) throw new Error('旧版检查点不可续跑，请使用任务保存的原始材料重新执行');
+    if (task.checkpoint?.pipelineVersion !== CURRENT_PIPELINE_VERSION) throw new Error('旧版检查点不可续跑，请使用任务保存的原始材料重新执行');
     const needsAttention=task.status==='needs-attention';
     task.attempt++; task.status = 'queued'; task.error = undefined; task.completedAt = undefined;
     if(needsAttention){for(const index of [6,7]){const step=task.steps[index];step.status='pending';step.startedAt=undefined;step.completedAt=undefined}}
@@ -795,7 +798,13 @@ export class AnalysisTaskScheduler {
         }
         attachAuditClarifications(task.project,cp.auditIssues);
         if(task.project.clarifications.some(item=>item.state==='open')){
-          const open=task.project.clarifications.filter(item=>item.state==='open'),questionSourceIds=new Set(open.flatMap(item=>[...(item.sourceRefs??[]).map(ref=>ref.sourceUnitId),...item.affectedIds.filter(id=>id.startsWith('S-'))])),relatedRequirementIds=new Set(open.flatMap(item=>item.affectedIds.filter(id=>task.project.requirements.some(requirement=>requirement.id===id)))),relatedRequirements=task.project.requirements.filter(item=>relatedRequirementIds.has(item.id)||item.sourceUnitIds.some(id=>questionSourceIds.has(id))),relatedSourceIds=new Set([...questionSourceIds,...relatedRequirements.flatMap(item=>item.sourceUnitIds)]),reconciliationUnits=sourceUnits(relatedSourceIds),actions=await call('audit','clarification-reconciliation','待澄清事项全局有效性与一致性检查',`逐项执行最终有效性检查：原文或需求已有唯一答案时返回 remove-answered，并列出 satisfiedRequirementIds；原文明确把业务判断交给用户时，不得反问平台需要系统判定规则。问题真实但表述、未决点或级别不准确时返回 revise，并按三级契约给出 revisedClarification；业务行为已经明确、只剩文案等不影响实现的选择必须为 suggestion 并给 defaultResolution，不能保留 blocking。准确且仍无答案的单项返回 keep。多个事项表达同一个决定时返回 merge，否则返回 keep-distinct。输出 {"actions":[{"action":"remove-answered|revise|keep|merge|keep-distinct","clarificationIds":["Q-0001"],"satisfiedRequirementIds":["R-0001"],"revisedClarification":${clarificationSchema},"reason":"原文和需求中的明确依据"}]}。每个 open 澄清必须恰好出现在一个动作中；revise 保留原澄清 ID。`,{sourceUnits:reconciliationUnits,requirements:relatedRequirements,clarifications:open},v=>acceptClarificationReconciliation(v.actions,open,relatedRequirements,reconciliationUnits));
+          const instruction=`逐项执行最终有效性检查：原文或需求已有唯一答案时返回 remove-answered，并列出 satisfiedRequirementIds；原文明确把业务判断交给用户时，不得反问平台需要系统判定规则。问题真实但表述、未决点或级别不准确时返回 revise，并按三级契约给出 revisedClarification；业务行为已经明确、只剩文案等不影响实现的选择必须为 suggestion 并给 defaultResolution，不能保留 blocking。准确且仍无答案的单项返回 keep。多个事项表达同一个决定时返回 merge，否则返回 keep-distinct。输出 {"actions":[{"action":"remove-answered|revise|keep|merge|keep-distinct","clarificationIds":["Q-0001"],"satisfiedRequirementIds":["R-0001"],"revisedClarification":${clarificationSchema},"reason":"原文和需求中的明确依据"}]}。每个 open 澄清必须恰好出现在一个动作中；revise 保留原澄清 ID。`;
+          const open=task.project.clarifications.filter(item=>item.state==='open').sort((a,b)=>normalizedDecision(a).localeCompare(normalizedDecision(b),'zh-CN'));
+          const scope=(questions:Clarification[])=>{const questionSourceIds=new Set(questions.flatMap(item=>[...(item.sourceRefs??[]).map(ref=>ref.sourceUnitId),...item.affectedIds.filter(id=>id.startsWith('S-'))])),relatedRequirementIds=new Set(questions.flatMap(item=>item.affectedIds.filter(id=>task.project.requirements.some(requirement=>requirement.id===id)))),requirements=task.project.requirements.filter(item=>relatedRequirementIds.has(item.id)||item.sourceUnitIds.some(id=>questionSourceIds.has(id))),relatedSourceIds=new Set([...questionSourceIds,...requirements.flatMap(item=>item.sourceUnitIds)]),units=sourceUnits(relatedSourceIds);return{requirements,units,input:{sourceUnits:units,requirements,clarifications:questions}}};
+          const reconciliationBatches:Clarification[][]=[];let current:Clarification[]=[];
+          for(const question of open){const candidate=[...current,question],candidateScope=scope(candidate),evidence=evidencePromptInput(candidateScope.input),built=prompt('待澄清事项全局有效性与一致性检查',instruction,evidence.input),measurement=measurePrompt(built.text,'repair',built.sections);if(current.length&&measurement.estimatedTokens>measurement.targetTokens){reconciliationBatches.push(current);current=[question]}else current=candidate}
+          if(current.length)reconciliationBatches.push(current);
+          const actions=(await mapPool(reconciliationBatches,pool,async(questions,index)=>{const batch=scope(questions);return call('audit',`clarification-reconciliation-${index+1}`,'待澄清事项全局有效性与一致性检查',instruction,batch.input,v=>acceptClarificationReconciliation(v.actions,questions,batch.requirements,batch.units))})).flat();
           for(const action of actions.filter(item=>item.action==='remove-answered')){const removed=new Set(action.clarificationIds);task.project.clarifications=task.project.clarifications.filter(item=>!removed.has(item.id));for(const issue of cp.auditIssues)if(issue.owner==='source-decision'&&((issue.clarificationId&&removed.has(issue.clarificationId))||issue.affectedIds.some(id=>removed.has(id))))closeIssue(issue,'repaired')}
           for(const action of actions.filter(item=>item.action==='revise')){const current=task.project.clarifications.find(item=>item.id===action.clarificationIds[0]);if(current&&action.revisedClarification)Object.assign(current,action.revisedClarification)}
           for(const action of actions.filter(item=>item.action==='merge')){const items=action.clarificationIds.map(id=>task.project.clarifications.find(item=>item.id===id)!).filter(Boolean);if(items.length>1){const canonical=mergeClarifications(task.project,action.clarificationIds,items[0],`clarification-merge:${action.clarificationIds.join('+')}`),removed=new Set(action.clarificationIds.filter(id=>id!==canonical.id));for(const issue of cp.auditIssues){if(issue.clarificationId&&removed.has(issue.clarificationId))issue.clarificationId=canonical.id;issue.affectedIds=[...new Set(issue.affectedIds.map(id=>removed.has(id)?canonical.id:id))]}}}

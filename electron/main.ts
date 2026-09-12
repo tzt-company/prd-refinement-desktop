@@ -6,7 +6,7 @@ import { extractDocument } from './document-assets.js';
 import type { RuntimeConfig, PrdProject } from '../src/types.js';
 import { createRuntime, inspectRuntime, testRuntimeRoute } from './runtime.js';
 import { writeResultWorkbook } from './export-excel.js';
-import { AnalysisTaskScheduler } from './scheduler-v2.js';
+import { AnalysisTaskScheduler, CURRENT_PIPELINE_VERSION } from './scheduler-v2.js';
 import { MaterialBundleStore } from './material-bundle.js';
 import type { MaterialAddition, MaterialFilePatch, MaterialQuery } from '../src/material-types.js';
 
@@ -134,7 +134,7 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('analysis:retry', async (_event, taskId: string) => {
     const task=scheduler.get(taskId);
     if(!task||!['failed','needs-attention'].includes(task.status))return;
-    if(task.checkpoint?.pipelineVersion===14)return scheduler.retry(taskId);
+    if(task.checkpoint?.pipelineVersion===CURRENT_PIPELINE_VERSION)return scheduler.retry(taskId);
     const bundle=task.project.materialBundle;
     if(!bundle)throw new Error('旧任务没有可重新读取的资料包，请重新选择原始文件');
     const current=await materials.get(bundle.id);

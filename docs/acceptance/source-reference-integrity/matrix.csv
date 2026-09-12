@@ -1,4 +1,4 @@
-"case_id","case","round_1","round_3","round_4","round_5","round_6","round_7","round_9","round_12","status","round_13","round_14"
+"case_id","case","round_1","round_3","round_4","round_5","round_6","round_7","round_9","round_12","status","round_13","round_14","round_15"
 "SRC-01","HTML行内节点组成完整业务句","PASS","NOT_RUN","PASS","PASS","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS","NOT_RUN","NOT_RUN"
 "SRC-02","表格行保留表头及列关系","PASS","NOT_RUN","PASS","PASS","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS","NOT_RUN","NOT_RUN"
 "SRC-03","iframe与正文标题作用域隔离","PASS","NOT_RUN","PASS","PASS","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS","NOT_RUN","NOT_RUN"
@@ -54,3 +54,6 @@
 "RVW-12","局部修复有界补入同功能跨来源依据","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS"
 "RVW-13","来源型澄清可读取同源已有需求","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS"
 "RVW-14","当前模型输出缺少逐字段证据时拒绝","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","PASS"
+"RVW-15","真实长查询仍能召回直接回答再次生成的需求","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","NOT_RUN","PASS"
+"RVW-16","大量澄清按提示预算分批且全部覆盖","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","NOT_RUN","PASS"
+"RVW-17","真实验收脚本与当前流水线共用版本常量","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","NOT_RUN","PASS","NOT_RUN","NOT_RUN","PASS"
