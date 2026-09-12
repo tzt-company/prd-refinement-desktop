@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-09-12T01:02:10.940Z",
+  "completedAt": "2026-09-12T01:14:09.859Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T01-02-10.919Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-9E0DCF0E",
+      "status": "failed",
+      "error": "Codex 已退出（1）：Selected model is at capacity. Please try a different model.",
+      "wallMs": 717830,
+      "within20Minutes": true,
+      "pipelineVersion": 12,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 12,
+      "features": 8,
+      "requirements": 93,
+      "relations": 29,
+      "promptAttempts": 486,
+      "promptEstimatedTokens": 2835191,
+      "maxPromptEstimatedTokens": 11789,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 486,
+      "inputTokens": 11825335,
+      "cachedInputTokens": 5863168,
+      "outputTokens": 215160,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

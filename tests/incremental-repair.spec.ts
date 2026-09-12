@@ -38,12 +38,30 @@ describe('增量修正写集合与提交',()=>{
     expect(planDetailRepairs([{...a,category:'unclassified'}],p)).toHaveLength(0);
     expect(classifyIssues([a,a,b],p).map(item=>item.id)).toEqual(['A-0040','A-0041']);
   });
+  it('按受影响对象校正模型误报的处理责任，主功能归属问题单独回到功能边界',()=>{
+    const p=project();
+    const detail={...issue('DETAIL',['R-0001']),owner:'runtime-output' as const};
+    const relation={...issue('ATTR',['R-0001','R-0009']),owner:'requirement-relation' as const,type:'requirement-attribution-error'};
+    const ownership={...issue('OWNER',['R-0001']),owner:'requirement-detail' as const,type:'requirement-ownership-mismatch'};
+    expect(classifyIssues([detail,relation,ownership],p).map(item=>[item.id,item.category,item.owner])).toEqual([
+      ['DETAIL','detail-mismatch','requirement-detail'],
+      ['ATTR','detail-mismatch','requirement-detail'],
+      ['OWNER','feature-boundary','feature-grouping'],
+    ]);
+  });
   it('来源无法唯一定位功能时保留未决，澄清引用补足证据及写冲突',()=>{
     const p=project();p.features[1].sourceUnitIds.push('S1');
     expect(planDetailRepairs([issue('A',[])],p)).toEqual([]);
     p.clarifications.push(clarification({id:'Q-0005',affectedIds:['R-0001','S2']}));
     const scope=planDetailRepairs([issue('A',['Q-0005'])],p)[0];
     expect(scope.requirementIds).toEqual(['R-0001']);expect(scope.sourceUnitIds).toEqual(['S1','S2']);expect(scope.clarificationIds).toEqual(['Q-0005']);
+  });
+  it('平台发现既有澄清已过时时进入澄清修正范围',()=>{
+    const p=project();p.clarifications.push(clarification({id:'Q-0005',affectedIds:['R-0001']}));
+    const stale={...issue('STALE',['Q-0005','R-0001']),owner:'source-decision' as const};
+    const scope=planDetailRepairs([stale],p)[0];
+    expect(scope.clarificationIds).toEqual(['Q-0005']);expect(scope.requirementIds).toEqual(['R-0001']);
+    expect(applyRequirementPatch(p,scope,{...empty(),deleteClarificationIds:['Q-0005']},true).clarifications).toEqual([]);
   });
   it('拒绝修改无关条目、越界来源、非LOCAL新增及移动主归属',()=>{
     const p=project(),scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];

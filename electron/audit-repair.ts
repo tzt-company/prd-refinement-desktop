@@ -22,7 +22,13 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
       else if(issue.affectedIds.some(id=>rules.has(id)))category='rule-extraction';
       else category='unclassified';
     }
-    const owner=issue.owner??(category==='source-ambiguity'?'source-decision':category==='feature-boundary'?'feature-grouping':category==='detail-mismatch'?'requirement-detail':'runtime-output');
+    const requirementIds=issue.affectedIds.filter(id=>details.has(id));
+    const ownershipIssue=/(?:requirement[-_ ]?ownership|需求归属)/i.test(issue.type)||/主所属功能/.test(issue.detail);
+    let owner=issue.owner??(category==='source-ambiguity'?'source-decision':category==='feature-boundary'?'feature-grouping':category==='detail-mismatch'?'requirement-detail':'runtime-output');
+    if(requirementIds.length){
+      if(ownershipIssue){category='feature-boundary';owner='feature-grouping'}
+      else if(category==='detail-mismatch'&&(owner!=='requirement-relation'||/(?:attribution|归属)/i.test(issue.type)))owner='requirement-detail';
+    }
     return[{...issue,category,owner,disposition:issue.disposition??(category==='source-ambiguity'?'needs-confirmation':'open')}];
   });
 }
@@ -41,7 +47,7 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
   const scopes:RepairScope[]=[];
   const requirementById=new Map(project.requirements.map(item=>[item.id,item]));
   const questionById=new Map(project.clarifications.map(item=>[item.id,item]));
-  for(const issue of issues.filter(item=>item.category==='detail-mismatch'&&(item.owner===undefined||item.owner==='requirement-detail')&&item.disposition==='open')){
+  for(const issue of issues.filter(item=>(item.owner==='requirement-detail'||(item.owner===undefined&&item.category==='detail-mismatch')||item.owner==='source-decision')&&item.disposition==='open'&&(item.owner!=='source-decision'||item.affectedIds.some(id=>questionById.has(id))))){
     let requirements=issue.affectedIds.filter(id=>requirementById.has(id));
     let questions=issue.affectedIds.filter(id=>questionById.has(id));
     requirements=distinct([...requirements,...questions.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref)))]);
@@ -79,7 +85,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
   if(!Array.isArray(raw.requirements)||!Array.isArray(raw.clarifications))throw new Error('增量必须包含 requirements 和 clarifications 数组');
   const sourceUnits=project.sourceUnits.filter(unit=>scope.sourceUnitIds.includes(unit.id));
   const rawRequirements=raw.requirements;
-  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits).requirements;
+  const accepted=acceptDirectDetails(rawRequirements.map(item=>{const copy={...record(item)};delete copy.evidenceBindings;return copy}),[],sourceUnits).requirements;
   const existing=new Set([...project.requirements,...project.clarifications,...project.features,...project.sourceUnits].map(item=>item.id));
   const checkId=(id:string,allowed:string[])=>{if(existing.has(id)){if(!allowed.includes(id))throw new Error(`越界修改 ${id}`)}else if(!/^LOCAL-[A-Za-z0-9_-]+$/.test(id))throw new Error(`新增项 ${id} 必须使用 LOCAL- ID`)};
   const requirements=accepted.map((item,index)=>{

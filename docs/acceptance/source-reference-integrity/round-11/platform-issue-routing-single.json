@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-09-12T00:36:32.811Z",
+  "completedAt": "2026-09-12T00:43:48.760Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T00-36-32.789Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-00CEE0AA",
+      "status": "failed",
+      "error": "平台未能完成“完整性与忠实性检查”（audit-17-fragment-0）的输出校验：issues[0].affectedIds 引用了不存在的 ID：R-0041",
+      "wallMs": 435590,
+      "within20Minutes": true,
+      "pipelineVersion": 12,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 6,
+      "features": 24,
+      "requirements": 105,
+      "relations": 13,
+      "promptAttempts": 182,
+      "promptEstimatedTokens": 783117,
+      "maxPromptEstimatedTokens": 8269,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 182,
+      "inputTokens": 3940368,
+      "cachedInputTokens": 2156032,
+      "outputTokens": 113021,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

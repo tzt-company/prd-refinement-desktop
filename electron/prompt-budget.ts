@@ -36,4 +36,4 @@ export function measurePrompt(text:string,budgetClass:PromptBudgetClass,sections
 }
 
 export function assertPromptBudget(measurement:PromptMeasurement){if(measurement.estimatedTokens>measurement.hardTokens)throw new PromptBudgetExceededError(measurement)}
-export function attemptTimeoutMs(deadlineAt:number,now=Date.now()){return Math.min(120_000,Math.max(1,deadlineAt-now))}
+export function attemptTimeoutMs(){return 120_000}

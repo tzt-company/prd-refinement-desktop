@@ -123,6 +123,18 @@ describe('直接需求域契约',()=>{
     expect(acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联 id']}],[],linked).requirements[0].explicitAcceptanceConditions).toEqual(['合并后统一使用关联 id']);
     expect(()=>acceptDirectDetails([{...requirement,explicitAcceptanceConditions:['合并后统一使用关联-ID']}],[],linked)).toThrow('不得推导或静默丢弃');
   });
+  it('明确要求的来源处置会确定性补入其关联候选',()=>{
+    const batch=acceptDirectFeatureBatch([{...feature('F1',['S1']),sourceUnitIds:['S1']}],[{sourceUnitId:'S1',contentRole:'requirement',reason:'正文要求',featureIds:['F1']},{sourceUnitId:'S2',contentRole:'requirement',reason:'标题要求',featureIds:['F1']},{sourceUnitId:'S3',contentRole:'context',reason:'文档结构',featureIds:['F1']}],sources);
+    expect(batch.features[0].sourceUnitIds).toEqual(['S1','S2']);
+    expect(batch.features[0].sourceRefs).toEqual([{sourceUnitId:'S1'},{sourceUnitId:'S2'}]);
+  });
+  it('章节标题只用于结构定位和功能命名，不进入需求覆盖门禁',()=>{
+    const heading={...sources[1],kind:'heading' as const,excerpt:'5.4 数据集表格'};
+    const batch=acceptDirectFeatureBatch([feature('F1',['S1'])],[{sourceUnitId:'S1',contentRole:'requirement',reason:'正文要求',featureIds:['F1']},{sourceUnitId:'S2',contentRole:'requirement',reason:'标题要求',featureIds:['F1']}],[sources[0],heading]);
+    expect(batch.dispositions[1]).toMatchObject({sourceUnitId:'S2',kind:'context',featureIds:['F1']});
+    expect(batch.features[0].sourceUnitIds).toEqual(['S1']);
+    expect(validateDirectGraph([sources[0],heading],batch.dispositions,[{...batch.features[0],requirementIds:['R1']}],[requirement],[]).uncovered).toEqual([]);
+  });
   it('功能引用的连续文字必须在指定原文中唯一并转换为稳定选区',()=>{
     const parsed=acceptDirectFeatures([{id:'LOCAL-F',name:'字段校验',kind:'function',sourceRefs:[{sourceUnitId:'S1',quote:'字段 X'}],state:'draft'}],sources);
     expect(parsed[0].name).toBe('字段校验');expect(parsed[0].sourceUnitIds).toEqual(['S1']);expect(parsed[0].sourceRefs).toEqual([{sourceUnitId:'S1',start:0,end:4}]);

@@ -31,12 +31,12 @@ const stages = [
   ['repair', '局部修正', '修改问题涉及条目并独立复核'],
   ['delivery', '交付', '校验最终快照并生成需求交付包'],
 ] as const;
-const featureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","evidenceIds":["从 evidenceCatalog 选择，不得自造"],"appliesToFeatureIds":[],"state":"draft"}';
-const unifiedFeatureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","appliesToFeatureIds":[],"state":"draft"}';
-const candidateSchema = `{"features":[${featureSchema}],"sourceDispositions":[{"sourceUnitId":"S-001","contentRole":"requirement|clarification|context|example|summary|out-of-scope","reason":"...","featureIds":["LOCAL-F1"]}]}。contentRole只表示该段原文在分析中的作用；业务约束仍使用 requirement，是否为跨功能约束由 features[].kind 单独表达。`;
+const featureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","evidenceIds":["从 evidenceCatalog 选择，不得自造"],"appliesToFeatureIds":["仅 kind=constraint 时填写；kind=function 必须返回空数组"],"state":"draft"}';
+const unifiedFeatureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","appliesToFeatureIds":["仅 kind=constraint 时填写；kind=function 必须返回空数组"],"state":"draft"}';
+const candidateSchema = `{"features":[${featureSchema}],"sourceDispositions":[{"sourceUnitId":"S-001","contentRole":"requirement|clarification|context|example|summary|out-of-scope","reason":"...","featureIds":["LOCAL-F1"]}]}。contentRole只表示该段原文在分析中的作用；业务约束仍使用 requirement，是否为跨功能约束由 features[].kind 单独表达。普通功能不得声明适用目标：kind=function 时 appliesToFeatureIds 必须为 []；只有 kind=constraint 才能填写目标功能 ID。`;
 const clarificationSchema = '{"id":"LOCAL-Q1","question":"包含业务对象、触发条件和待决定规则的完整问题","reason":"为什么原文仍不能得到唯一结论","level":"blocking|suggestion|ignorable","knownFacts":"原文已经明确的事实","unresolvedPoint":"唯一待决定点","impact":"不处理会怎样影响 Agent 实施或为什么不影响","levelReason":"为什么属于该级别","defaultResolution":"仅 suggestion 必填：暂不处理时沿用的明确原文口径","evidenceIds":["从 evidenceCatalog 选择，不得自造"],"affectedIds":["S-001"],"state":"open"}';
 const clarificationContract = '澄清分为三级：blocking 表示不回答会迫使 Agent 猜测业务行为、数据判定、权限、状态或验收口径，必须阻断；suggestion 表示已有明确依据可实施但值得确认以降低理解风险，必须给出暂不处理时沿用的 defaultResolution；ignorable 仅限不改变业务含义、实施结果或验收的轻微表述/文档形式，不需要用户作决定。不能把重复项、平台整理失败、缺少内部函数名或纯技术选型包装为澄清或可忽略项。每项必须合并完整语义上下文，写清已知事实、唯一未决点、影响和级别理由；不得输出 NULL、半句话、无指代的“上述/该内容”或“请人工整理原文”。同一业务决定跨多个来源只输出一项；一个来源包含两个独立决定时分别输出。';
-const detailSchema = `{"requirements":[{"id":"LOCAL-R1","title":"...","behavior":"...","conditions":[],"constraints":[],"explicitAcceptanceEvidenceIds":["仅选择原文明示验收条件对应的证据ID；没有则为空"],"sourceUnitIds":["S-001"],"evidenceBindings":{"behavior":["证据ID"],"conditions":[["证据ID"]],"constraints":[["证据ID"]]},"state":"draft"}],"clarifications":[${clarificationSchema}]}`;
+const detailSchema = `{"requirements":[{"id":"LOCAL-R1","title":"...","behavior":"...","conditions":[],"constraints":[],"explicitAcceptanceEvidenceIds":["仅选择原文明示验收条件对应的证据ID；没有则为空"],"sourceUnitIds":["S-001"],"state":"draft"}],"clarifications":[${clarificationSchema}]}`;
 const auditSchema = `{"issues":[{"id":"LOCAL-A1","direction":"forward|reverse|cross","type":"...","category":"source-ambiguity|feature-boundary|detail-mismatch|unclassified","owner":"feature-grouping|requirement-detail|requirement-relation|source-decision|runtime-output","sourceUnitIds":["S-001"],"affectedIds":["S-001"],"detail":"...","clarification":${clarificationSchema}}],"relations":[{"id":"LOCAL-REL-1","sourceRequirementId":"R-0001","targetRequirementId":"R-0002","kind":"depends-on|affects|exception-to","evidenceIds":["从 evidenceCatalog 选择"]}]}。每个问题的sourceUnitIds和affectedIds均须非空且引用输入中的真实编号。已有条目错误引用其R/Q/F编号；整项遗漏尚无需求编号或原文歧义没有对应条目时，affectedIds直接引用相关S原文编号，不得返回空数组或虚构编号。category 为 source-ambiguity 时必须包含 clarification 并遵循三级澄清契约；其他问题不得包含 clarification。若问题是多条已有澄清重复表达同一业务决定，affectedIds必须列出这些Q编号，clarification给出合并后的唯一问题；这是平台合并动作，不得新增一条重复澄清。所有 evidenceIds 只能从 evidenceCatalog 选择。只在原文明示业务前置、联动或例外时返回关系；共享来源、名称相似或开发顺序均不是关系依据`;
 const issueConfirmationSchema = '{"results":[{"issueId":"输入问题ID","status":"confirmed|already-satisfied|invalid","reason":"结合完整相关需求与原文得出的具体依据","satisfiedRequirementIds":["already-satisfied 时列出实际承接需求"],"correctedDetail":"仅 confirmed 且原问题范围需要收窄时填写"}]}'
 const repairReviewSchema = `{"originalIssueResults":[{"issueId":"输入问题ID","status":"resolved|unresolved","reason":"逐项说明指定缺口是否解决"}],"introducedIssues":[${auditSchema.slice(auditSchema.indexOf('{"id"'),auditSchema.indexOf('}],"relations"')+1)}],"discoveredIssues":[${auditSchema.slice(auditSchema.indexOf('{"id"'),auditSchema.indexOf('}],"relations"')+1)}]}。introducedIssues 只报告候选相对 before 新引入的回归；discoveredIssues 只报告修改前就存在、但不属于 originalIssues 的旁支问题。旁支问题不得冒充回归，也不得把原问题重复放入 discoveredIssues。`;
@@ -68,9 +68,6 @@ function prompt(title: string, instruction: string, input: unknown) {
   const serialized=JSON.stringify(compactPromptInput(input), (key, value) => key === 'asset' && value ? { mimeType: value.mimeType, readStatus: value.readStatus, extractedText: value.extractedText } : value);
   return{text:`${preamble}\n${instruction}\n仅输出合法 JSON，不要 Markdown。\n节点输入：${serialized}`,sections:{preamble,instruction,input:serialized}};
 }
-class TaskDeadlineExceededError extends Error {
-  constructor(){super('任务执行已达到 20 分钟硬截止，平台已停止继续调用模型并保留当前草稿');this.name='TaskDeadlineExceededError'}
-}
 function snapshot(config: RuntimeConfig): RuntimeConfigSnapshot {
   const { apiKey: _, ...plain } = config;
   return { ...plain, ...(config.apiKey ? { credentialRef: 'system-runtime-config' as const } : {}) };
@@ -79,7 +76,7 @@ function nodeConfig(config: RuntimeConfig, node: ModelNodeId): RuntimeConfig {
   const p = config.nodeProfiles?.[node];
   return { ...config, model: p?.model ?? (fastNodes.has(node) ? config.fastModel ?? config.model : config.model), reasoningEffort: p?.reasoningEffort ?? (fastNodes.has(node) ? config.fastReasoningEffort ?? 'low' : config.reasoningEffort) };
 }
-function batches(units: SourceUnit[], maxUnits = 24, maxChars = 12000) {
+function batches(units: SourceUnit[], maxUnits = 24, maxChars = 8000) {
   const result: SourceUnit[][] = []; let current: SourceUnit[] = [], size = 0;
   for (const unit of units) {
     const length = JSON.stringify(unit).length;
@@ -134,8 +131,9 @@ const clarificationSources = (item:Clarification,project:PrdProject) => new Set(
   ...item.affectedIds.flatMap(id=>project.requirements.find(requirement=>requirement.id===id)?.sourceUnitIds??(id.startsWith('S-')?[id]:[]))
 ]);
 const clarificationLevelRank:Record<NonNullable<Clarification['level']>,number>={ignorable:0,suggestion:1,blocking:2};
+const findClarification=(project:PrdProject,id:string)=>project.clarifications.find(item=>item.id===id||item.aliases?.includes(id));
 function mergeClarifications(project:PrdProject,ids:string[],draft:Clarification,auditIssueId:string){
-  const referenced=ids.map(id=>project.clarifications.find(item=>item.id===id)).filter((item):item is Clarification=>Boolean(item));
+  const referenced=[...new Set(ids.map(id=>findClarification(project,id)).filter((item):item is Clarification=>Boolean(item)))];
   if(!referenced.length)throw new Error(`${auditIssueId} 引用的待澄清项均不存在`);
   const canonical=referenced.reduce((best,item)=>(clarificationLevelRank[item.level??'ignorable']>clarificationLevelRank[best.level??'ignorable']?item:best));
   const strongest=[...referenced,draft].reduce((best,item)=>(clarificationLevelRank[item.level??'ignorable']>=clarificationLevelRank[best.level??'ignorable']?item:best));
@@ -155,11 +153,11 @@ function attachAuditClarifications(project:PrdProject,issues:AuditIssue[]){
   for(const issue of issues){
     const duplicateIds=issue.affectedIds.filter(id=>id.startsWith('Q-'));
     if(/duplicate|重复/i.test(`${issue.type} ${issue.detail}`)&&duplicateIds.length>1){
-      const existing=duplicateIds.map(id=>project.clarifications.find(item=>item.id===id)).filter((item):item is Clarification=>Boolean(item));
+      const existing=[...new Set(duplicateIds.map(id=>findClarification(project,id)).filter((item):item is Clarification=>Boolean(item)))];
       if(existing.length>1){const clarification=mergeClarifications(project,duplicateIds,issue.clarificationDraft??existing[0],issue.id);issue.affectedIds=[...clarification.affectedIds];issue.clarificationId=clarification.id;issue.owner='source-decision';issue.disposition='repaired';delete issue.clarificationDraft;continue}
     }
     if(issue.category!=='source-ambiguity')continue;
-    const persisted=issue.clarificationId?project.clarifications.find(item=>item.id===issue.clarificationId):undefined;
+    const persisted=issue.clarificationId?findClarification(project,issue.clarificationId):undefined;
     const referencedClarifications=issue.affectedIds.filter(id=>id.startsWith('Q-'));
     if(persisted&&referencedClarifications.length){
       const clarification=mergeClarifications(project,[...new Set([...referencedClarifications,persisted.id])],persisted,issue.id);
@@ -195,12 +193,11 @@ function acceptIssueConfirmations(value:unknown,issues:AuditIssue[],requirements
     if(!['confirmed','already-satisfied','invalid'].includes(status as string))throw new Error(`问题确认 ${issueId} 状态非法`);
     if(typeof item.reason!=='string'||!item.reason.trim())throw new Error(`问题确认 ${issueId} 缺少依据`);
     if(item.correctedDetail!==undefined&&item.correctedDetail!==null&&typeof item.correctedDetail!=='string')throw new Error(`问题确认 ${issueId} 的 correctedDetail 无效`);
-    const issue=issues.find(candidate=>candidate.id===issueId)!,satisfiedRequirementIds=Array.isArray(item.satisfiedRequirementIds)&&item.satisfiedRequirementIds.every(id=>typeof id==='string')?item.satisfiedRequirementIds as string[]:[];
-    if(issue.type==='原文来源未落实'&&status==='invalid')throw new Error(`问题确认 ${issueId} 是结构覆盖事实，只能确认需补或列出现有承接需求；来源角色错误应回到功能边界处理`);
+    const issue=issues.find(candidate=>candidate.id===issueId)!,satisfiedRequirementIds=Array.isArray(item.satisfiedRequirementIds)&&item.satisfiedRequirementIds.every(id=>typeof id==='string')?item.satisfiedRequirementIds as string[]:[],acceptedStatus=issue.type==='原文来源未落实'&&status==='invalid'?'confirmed':status;
     if(issue.type==='原文来源未落实'&&status==='already-satisfied'&&!satisfiedRequirementIds.length)throw new Error(`问题确认 ${issueId} 必须列出实际承接需求`);
     if(satisfiedRequirementIds.some(id=>!requirements.some(item=>item.id===id)))throw new Error(`问题确认 ${issueId} 引用了未提供的承接需求`);
     const correctedDetail=typeof item.correctedDetail==='string'&&item.correctedDetail.trim()?item.correctedDetail.trim():undefined;
-    return{issueId,status:status as 'confirmed'|'already-satisfied'|'invalid',reason:item.reason,correctedDetail,satisfiedRequirementIds};
+    return{issueId,status:acceptedStatus as 'confirmed'|'already-satisfied'|'invalid',reason:item.reason,correctedDetail,satisfiedRequirementIds};
   });
   if(seen.size!==expected.size)throw new Error('问题确认没有逐项返回全部输入问题');
   return results;
@@ -274,7 +271,7 @@ export class AnalysisTaskScheduler {
     const config = await this.getConfig(), now = Date.now();
     const task: AnalysisTask = {
       id: `T-${randomUUID().slice(0, 8).toUpperCase()}`, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
-      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 12, resultVersion:0, deadlineAt:Date.now()+20*60_000,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
+      runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: 12, resultVersion:0,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
     this.tasks.set(task.id, task); this.queue.push(task.id); await this.publish(task); void this.pump(); return structuredClone(task);
@@ -299,7 +296,6 @@ export class AnalysisTaskScheduler {
   }
   private assert(task: AnalysisTask, attempt: number) {
     if (task.attempt !== attempt || task.status !== 'running') throw new Error('当前执行尝试已取消或失效');
-    if(Date.now()>=(task.checkpoint?.deadlineAt??Number.POSITIVE_INFINITY))throw new TaskDeadlineExceededError();
   }
   private drainSlots() { while (this.slots < this.slotLimit && this.slotQueue.length) { this.slots++; this.slotQueue.shift()!(); } }
   private acquire() { return new Promise<void>(resolve => { this.slotQueue.push(resolve); this.drainSlots(); }); }
@@ -343,7 +339,7 @@ export class AnalysisTaskScheduler {
         const evidence = evidencePromptInput(input),built=prompt(title,instruction,evidence.input),budgetClass=budgetClassFor(node,purpose);
         const sessionId=`${session}-${purpose}-${sequence}`;
         let result:T;
-        try { result = await this.ask(await runtimeFor(node), sessionId, built.text, value => accept(materializeEvidenceSelections(value, evidence.catalog)), images, () => this.assert(task, attempt),()=>attemptTimeoutMs(cp.deadlineAt??Date.now()),async(validationAttempt,current)=>{const startedAt=Date.now(),measurement=measurePrompt(current,budgetClass,validationAttempt===1?built.sections:{request:current});assertPromptBudget(measurement);(cp.promptMetrics??=[]).push({sessionId:`${sessionId}-try${validationAttempt}`,attempt:validationAttempt,node,purpose,queuedAt,startedAt,queueMs:validationAttempt===1?startedAt-queuedAt:0,requestHash:createHash('sha256').update(current).digest('hex'),...measurement});await checkpoint()}, async (validationAttempt,response,message)=>{
+        try { result = await this.ask(await runtimeFor(node), sessionId, built.text, value => accept(materializeEvidenceSelections(value, evidence.catalog)), images, () => this.assert(task, attempt),()=>attemptTimeoutMs(),async(validationAttempt,current)=>{const startedAt=Date.now(),measurement=measurePrompt(current,budgetClass,validationAttempt===1?built.sections:{request:current});assertPromptBudget(measurement);(cp.promptMetrics??=[]).push({sessionId:`${sessionId}-try${validationAttempt}`,attempt:validationAttempt,node,purpose,queuedAt,startedAt,queueMs:validationAttempt===1?startedAt-queuedAt:0,requestHash:createHash('sha256').update(current).digest('hex'),...measurement});await checkpoint()}, async (validationAttempt,response,message)=>{
           const directory=path.join(workspace,'diagnostics');await mkdir(directory,{recursive:true});const responsePath=path.join(directory,`${sessionId}-try${validationAttempt}.json`);
           await writeFile(responsePath,JSON.stringify({sessionId,node,purpose,message,response,requestHash:createHash('sha256').update(JSON.stringify(evidence.input)).digest('hex'),at:Date.now()},null,2),'utf8');
           (cp.validationFailures??=[]).push({sessionId,node,purpose,message,responsePath,at:Date.now()});await checkpoint();
@@ -371,17 +367,36 @@ export class AnalysisTaskScheduler {
     let sourceReader: SourceIndex | undefined;
     const sourceUnits = (ids: Iterable<string>) => { const requested=Array.from(new Set(ids));const index=sourceReader??=new SourceIndex(task.project.sourceUnits,task.project.revision);const result:SourceUnit[]=[];for(let i=0;i<requested.length;i+=100)result.push(...index.read(requested.slice(i,i+100)));return result; };
     const inspectCandidates = (units: SourceUnit[], features: Feature[], dispositions: unknown, purpose: string) => call('featureCoverage', purpose, '功能候选完整性检查', sourceClassificationContract + '职责仅为功能层盘点，不审查需求细节。候选只有原文选区、类型、适用关系和来源映射，不要求复述DB列、字段属性、枚举、默认值、数值和全部条件。只要原文已关联到边界合理的功能，就不得因为候选没有摘要而报遗漏；这些由后续细化与审计处理。只报告整项业务功能缺失、来源挂到不相关功能、将明确要求误分类为背景等错误。纯表头、文档记法、保存原文结构是上下文，不是产品功能；但标题中明确的新增模块、字段重命名仍是业务要求，不能整个标题作为背景丢弃。摘要与正文重复提及同一功能属于正常证据，不要求每次出现都建立独立功能。核对枚举值与真正待确认事项，不能把需求整理活动当功能；澄清可不属于功能。无问题返回 {"issues":[]}；问题格式 {"issues":[{"sourceUnitIds":["S-001"],"detail":"具体功能层错误及依据"}]}。', { sourceUnits: units, currentCandidates: features, sourceDispositions: dispositions }, v => coverageIssues(v.issues, units));
-    const identify = (units: SourceUnit[], purpose: string, currentCandidates?: Feature[], issues?: unknown) => call(currentCandidates ? 'featureCandidateRepair' : 'featureCandidates', purpose, currentCandidates ? '功能候选识别·定点返工' : '功能候选识别', `${sourceClassificationContract}识别实际业务功能及真正跨功能约束。同一功能的必填、枚举、默认值等属性归入该功能，不另造跨功能约束。文档记法、表头、保存原文结构是上下文；标题中的新增模块、重命名等明确业务要求仍需关联实际功能。待澄清关联真实功能或保留空 featureIds，不创建“待确认事项管理”等伪功能。每来源恰好一条处置；存在明确要求时不能整段仅分类为背景。返工同时纠正候选与来源分类，保留无关候选。输出 ${candidateSchema}`, { sourceUnits: units, currentCandidates, coverageIssues: issues }, v => acceptDirectFeatureBatch(v.features, v.sourceDispositions, units));
-    const unify = async (candidates: Feature[], units: SourceUnit[], dispositions: SourceDisposition[], issues?: AuditIssue[]): Promise<Feature[]> => {
+    const identify = (units: SourceUnit[], purpose: string, currentCandidates?: Feature[], issues?: unknown) => {
+      const aliases=new Map(units.map((unit,index)=>[unit.id,`S${index+1}`])),sourceIds=new Map([...aliases].map(([id,alias])=>[alias,id])),mapValue=(value:unknown,restore=false):unknown=>Array.isArray(value)?value.map(item=>mapValue(item,restore)):value&&typeof value==='object'?Object.fromEntries(Object.entries(value as Record<string,unknown>).map(([key,item])=>[key,mapValue(item,restore)])):typeof value==='string'?(restore?(sourceIds.get(value)??value):(aliases.get(value)??value)):value,replaceContext=(value:string|undefined)=>{if(!value)return value;let result=value;for(const [id,alias] of aliases)result=result.split(id).join(alias);return result};
+      const promptUnits=units.map(unit=>({...unit,id:aliases.get(unit.id)!,context:replaceContext(unit.context)}));
+      return call(currentCandidates ? 'featureCandidateRepair' : 'featureCandidates', purpose, currentCandidates ? '功能候选识别·定点返工' : '功能候选识别', `${sourceClassificationContract}识别实际业务功能及真正跨功能约束。同一功能的必填、枚举、默认值等属性归入该功能，不另造跨功能约束。文档记法、表头、保存原文结构是上下文；标题中的新增模块、重命名等明确业务要求仍需关联实际功能。待澄清关联真实功能或保留空 featureIds，不创建“待确认事项管理”等伪功能。每来源恰好一条处置；存在明确要求时不能整段仅分类为背景。返工同时纠正候选与来源分类，保留无关候选。输出 ${candidateSchema}`, { sourceUnits: promptUnits, currentCandidates:mapValue(currentCandidates), coverageIssues:mapValue(issues) }, raw => {const v=mapValue(raw,true) as Record<string,unknown>;return acceptDirectFeatureBatch(v.features,v.sourceDispositions,units)});
+    };
+    const unify = async (candidates: Feature[], units: SourceUnit[], dispositions: SourceDisposition[], issues?: AuditIssue[], depth=0, mergeOnly=false): Promise<Feature[]> => {
       if (!issues && candidates.length < 2) return Promise.resolve(acceptFeatureUnification({ features: candidates, candidateMappings: candidates.map(f => ({ candidateId: f.id, featureIds: [f.id] })) }, candidates, units));
-      const resolve = (evidence?: SourceUnit[]) => call('featureGlobal', 'unify', issues ? '功能清单统一·定点返工' : '功能清单统一', `${sourceClassificationContract}sourceDispositions是当前来源分类账本；候选的sourceRefs和对应原文是唯一业务内容。name 只生成简短、可区分的导航名称，不得补充业务规则、范围或目标摘要。候选关联context来源不表示把它当产品要求，不能仅因该关联报告分类错误。按完整业务能力统一候选边界，必须处理跨包语义重叠：同一对象的字段属性、历史迁移、联动和附录枚举应组织到对应完整功能；概览候选映射到相关实际功能，不再保留一份宽泛重复功能。仅真正跨功能的独立约束单列。不得以保留候选ID为由原样照抄全部候选；也不得为减少数量合并无关业务。若发现候选把文档记法/表头/结构保存当产品功能或来源分类错误，先返回 {"classificationIssues":[{"candidateIds":["输入候选ID"],"sourceUnitIds":["来源ID"],"detail":"分类错误与业务依据"}]}，由控制器退回识别和独立检查；你不直接删除或改分类。每候选恰好一个映射记录，可以映射多个输出功能；每个输出均有候选依据。每候选来源必须在其目标功能并集中保留，禁止猜测或补入其他候选的来源。优先保留现有功能 ID，新增用 LOCAL ID。输出紧凑结构 {"features":[${unifiedFeatureSchema}],"candidateMappings":[{"candidateId":"输入候选ID","featureIds":["输出功能ID"]}]}。features禁止重复抄写来源。一个候选映射单个目标时，其全部精确选区由脚本自动并入该目标。映射多个目标时，必须先请求相关原文，再在该 mapping 增加 evidenceIdsByFeature:{"目标ID":["从 evidenceCatalog 选择的证据ID"]}；每个目标非空，候选选区覆盖完整且不得越界。尚未看到待拆分候选全部原文时返回 {"neededSourceUnitIds":["有争议的来源ID"]}，不得凭来源ID猜测。`, { candidates, sourceUnits: evidence, sourceDispositions: dispositions.filter(d => units.some(u => u.id === d.sourceUnitId)), issues }, v => {
+      if(candidates.length>10&&depth===0){
+        const groups=[...candidates.reduce((all,item)=>{const key=item.id.match(/^C-\d+/)?.[0]??item.id.match(/^H\d+-\d+/)?.[0]??item.id;const group=all.get(key)??[];group.push(item);all.set(key,group);return all},new Map<string,Feature[]>()).values()],chunks:Feature[][]=[];
+        for(const group of groups){const current=chunks.at(-1);if(!current||current.length+group.length>8)chunks.push([...group]);else current.push(...group)}
+        const partials=await mapPool(chunks,pool,async(chunk,index)=>{const ids=new Set(chunk.flatMap(item=>item.sourceUnitIds)),chunkIssues=issues?.filter(issue=>issue.sourceUnitIds.some(id=>ids.has(id))),merged=await unify(chunk,units.filter(unit=>ids.has(unit.id)),dispositions.filter(item=>ids.has(item.sourceUnitId)),chunkIssues?.length?chunkIssues:undefined,depth+1),remap=new Map(merged.map((item,itemIndex)=>[item.id,`H${depth+1}-${index+1}-${itemIndex+1}`]));return merged.map(item=>({...item,id:remap.get(item.id)!,appliesToFeatureIds:item.appliesToFeatureIds?.map(id=>remap.get(id)??id)}))});
+        const flattened=partials.flat();
+        return unify(flattened,units,dispositions,undefined,depth+1,true);
+      }
+      const sourceAliases=new Map(units.map((unit,index)=>[unit.id,`U${index+1}`])),sourceIds=new Map([...sourceAliases].map(([id,alias])=>[alias,id]));
+      const restoreSourceIds=(value:unknown):unknown=>Array.isArray(value)?value.map(restoreSourceIds):value&&typeof value==='object'?Object.fromEntries(Object.entries(value as Record<string,unknown>).map(([key,item])=>[key,restoreSourceIds(item)])):typeof value==='string'&&sourceIds.has(value)?sourceIds.get(value):value;
+      const aliasSourceIds=(value:unknown):unknown=>Array.isArray(value)?value.map(aliasSourceIds):value&&typeof value==='object'?Object.fromEntries(Object.entries(value as Record<string,unknown>).map(([key,item])=>[key,aliasSourceIds(item)])):typeof value==='string'&&sourceAliases.has(value)?sourceAliases.get(value):value;
+      const candidateProjection=candidates.map(({id,name,kind,appliesToFeatureIds,sourceUnitIds,state})=>({id,name,kind,appliesToFeatureIds,sourceUnitIds:sourceUnitIds.map(sourceUnitId=>sourceAliases.get(sourceUnitId)??sourceUnitId),state}));
+      const dispositionProjection=dispositions.filter(d=>units.some(u=>u.id===d.sourceUnitId)).map(({sourceUnitId,kind,featureIds})=>({sourceUnitId:sourceAliases.get(sourceUnitId)??sourceUnitId,kind,featureIds}));
+      const resolve = (evidence?: SourceUnit[]) => call('featureGlobal', 'unify', issues ? '功能清单统一·定点返工' : '功能清单统一', `${sourceClassificationContract}sourceDispositions是当前来源分类账本；候选的sourceRefs和对应原文是唯一业务内容。name 只生成简短、可区分的导航名称，不得补充业务规则、范围或目标摘要。候选关联context来源不表示把它当产品要求，不能仅因该关联报告分类错误。按完整业务能力统一候选边界，必须处理跨包语义重叠：同一对象的字段属性、历史迁移、联动和附录枚举应组织到对应完整功能；概览候选映射到相关实际功能，不再保留一份宽泛重复功能。仅真正跨功能的独立约束单列。不得以保留候选ID为由原样照抄全部候选；也不得为减少数量合并无关业务。${mergeOnly?'这是分片结果的全局合并层：每个输入候选只能映射到一个输出功能，禁止再次拆分或请求原文。':''}若发现候选把文档记法/表头/结构保存当产品功能或来源分类错误，先返回 {"classificationIssues":[{"candidateIds":["输入候选ID"],"sourceUnitIds":["来源ID"],"detail":"分类错误与业务依据"}]}，由控制器退回识别和独立检查；你不直接删除或改分类。每候选恰好一个映射记录，${mergeOnly?'且只能映射一个输出功能':'可以映射多个输出功能'}；每个输出均有候选依据。每候选来源必须在其目标功能并集中保留，禁止猜测或补入其他候选的来源。优先保留现有功能 ID，新增用 LOCAL ID。输出紧凑结构 {"features":[${unifiedFeatureSchema}],"candidateMappings":[{"candidateId":"输入候选ID","featureIds":["输出功能ID"]}]}。features禁止重复抄写来源。一个候选映射单个目标时，其全部精确选区由脚本自动并入该目标。${mergeOnly?'':'映射多个目标时，必须先请求相关原文，并且每个候选只能选择 evidenceCatalog 中 candidateIds 包含该候选 ID 的证据，再在该 mapping 增加 evidenceIdsByFeature:{"目标ID":["从 evidenceCatalog 选择的证据ID"]}；每个目标非空，候选选区覆盖完整且不得越界。尚未看到待拆分候选全部原文时返回 {"neededSourceUnitIds":["有争议的来源ID"]}，不得凭来源ID猜测。'}`, { candidates:candidateProjection, sourceUnits: evidence?.map(unit=>({...unit,id:sourceAliases.get(unit.id)??unit.id})), evidenceSourceRefs:evidence?candidates.flatMap(item=>(item.sourceRefs??[]).map(ref=>({...ref,sourceUnitId:sourceAliases.get(ref.sourceUnitId)??ref.sourceUnitId}))):undefined, candidateEvidenceRefs:evidence?candidates.map(item=>({candidateId:item.id,refs:(item.sourceRefs??[]).map(ref=>({...ref,sourceUnitId:sourceAliases.get(ref.sourceUnitId)??ref.sourceUnitId}))})):undefined, sourceDispositions: dispositionProjection, issues:aliasSourceIds(issues) }, raw => {const v=restoreSourceIds(raw) as Record<string,unknown>;
         if (Array.isArray(v.classificationIssues) && v.classificationIssues.length) return { classificationIssues: acceptCandidateClassificationIssues(v.classificationIssues, candidates, units) };
+        if (mergeOnly&&Array.isArray(v.neededSourceUnitIds)) throw new Error('全局合并层不得重新请求原文');
         if (Array.isArray(v.neededSourceUnitIds)) {
           const requested = v.neededSourceUnitIds;
           if (!requested.length || requested.some(id => typeof id !== 'string' || !units.some(u => u.id === id))) throw new Error('原文请求包含无效来源');
+          if(evidence&&requested.every(id=>evidence.some(unit=>unit.id===id)))throw new Error('所请求原文已完整提供，必须返回功能映射，不得重复请求同一来源');
           return { needed: requested as string[] };
         }
         // 拆分决定必须看到来源内容；单目标合并可由显式映射确定性编译。
+        if (mergeOnly&&Array.isArray(v.candidateMappings)&&v.candidateMappings.some(mapping=>Array.isArray(mapping?.featureIds)&&mapping.featureIds.length!==1)) throw new Error('全局合并层每个候选必须且只能映射一个输出功能');
         if (Array.isArray(v.candidateMappings)) {
           const splitIds = new Set(v.candidateMappings.filter(m => Array.isArray(m?.featureIds) && m.featureIds.length > 1).map(m => m.candidateId));
           const required = candidates.filter(c => splitIds.has(c.id)).flatMap(c => c.sourceUnitIds);
@@ -389,8 +404,14 @@ export class AnalysisTaskScheduler {
         }
         return { features: acceptFeatureUnification(v, candidates, units) };
       });
-      let resolved = await resolve(issues ? units : undefined);
-      for (let expansion = 0; resolved.needed && expansion < 3; expansion++) resolved = await resolve(units.filter(u => resolved.needed!.includes(u.id)));
+      const issueSourceIds=issues?new Set(issues.flatMap(issue=>issue.sourceUnitIds)):undefined;
+      const requestedSourceIds=new Set(issueSourceIds??[]);
+      let resolved = await resolve(requestedSourceIds.size ? units.filter(unit=>requestedSourceIds.has(unit.id)) : undefined);
+      for(let expansion=0;resolved.needed&&expansion<8;expansion++){
+        const before=requestedSourceIds.size;for(const id of resolved.needed)requestedSourceIds.add(id);
+        if(requestedSourceIds.size===before)break;
+        resolved=await resolve(units.filter(unit=>requestedSourceIds.has(unit.id)));
+      }
       if (resolved.classificationIssues) throw new CandidateClassificationError(resolved.classificationIssues);
       if (!resolved.features) throw new Error('补充原文后仍未返回功能映射');
       return resolved.features;
@@ -418,7 +439,9 @@ export class AnalysisTaskScheduler {
         if (unread.length) throw new Error(`存在 ${unread.length} 个未读取的原文单元：${unread.slice(0,8).map(u=>`${u.id} ${u.label}`).join('；')}${unread.length>8?'；更多项见来源记录':''}`);
       });
       // 两个职责独立、按候选内容流水并行；全部候选内容通过后才进入统一。
-      const packs = batches(task.project.sourceUnits);
+      const fixedSourceDispositions:SourceDisposition[]=task.project.sourceUnits.filter(unit=>unit.kind==='attachment'&&/HTML (?:样式|交互脚本)源码（来源数据，未执行；不是普通业务需求）/u.test(unit.context??'')).map(unit=>({sourceUnitId:unit.id,kind:'context',reason:'解析器已识别为 HTML 样式或交互脚本源码；可见业务文字已由独立 DOM 来源单元登记',featureIds:[]}));
+      const fixedSourceIds=new Set(fixedSourceDispositions.map(item=>item.sourceUnitId));
+      const packs = batches(task.project.sourceUnits.filter(unit=>!fixedSourceIds.has(unit.id)));
       const collectCandidates = async () => {
       if (task.steps[2].status !== 'completed') {
         activeStage = 2;
@@ -428,7 +451,7 @@ export class AnalysisTaskScheduler {
             const remap = new Map(result.features.map((f, n) => [f.id, `C-${index + 1}-${n + 1}`]));
             (cp.featureCandidateBatches ??= [])[index] = result.features.map(f => ({ ...f, id: remap.get(f.id)!, appliesToFeatureIds: f.appliesToFeatureIds?.map(id => remap.get(id)!) }));
             (cp.sourceDispositionBatches ??= [])[index] = result.dispositions.map(d => ({ ...d, featureIds: d.featureIds.map(id => remap.get(id)!) }));
-            task.project.sourceDispositions = cp.sourceDispositionBatches.flat();
+            task.project.sourceDispositions = [...fixedSourceDispositions,...cp.sourceDispositionBatches.flat()];
             cp.featureCandidateBatchCount = cp.featureCandidateBatches.filter(Boolean).length;
             if (clearFeedback) delete cp.unificationFeedback![index];
             task.steps[1].note = `已识别 ${cp.featureCandidateBatchCount}/${packs.length} 份候选内容`; await checkpoint();
@@ -463,10 +486,10 @@ export class AnalysisTaskScheduler {
       await collectCandidates();
       try {
       await stage(3, async () => {
-        const candidates = cp.featureCandidateBatches?.flat() ?? [], semantic = await unify(candidates, task.project.sourceUnits, cp.sourceDispositionBatches?.flat() ?? []);
+        const candidates = cp.featureCandidateBatches?.flat() ?? [], semantic = await unify(candidates, task.project.sourceUnits, [...fixedSourceDispositions,...cp.sourceDispositionBatches?.flat() ?? []]);
         const remap = new Map(semantic.map((f, i) => [f.id, `F-${String(i + 1).padStart(3, '0')}`]));
         task.project.features = semantic.map(f => ({ ...f, id: remap.get(f.id)!, appliesToFeatureIds: f.appliesToFeatureIds?.map(id => remap.get(id)!), requirementIds: [] }));
-        task.project.sourceDispositions = (cp.sourceDispositionBatches?.flat() ?? []).map(d => ({ ...d, featureIds: task.project.features.filter(f => f.sourceUnitIds.includes(d.sourceUnitId)).map(f => f.id) }));
+        task.project.sourceDispositions = [...fixedSourceDispositions,...cp.sourceDispositionBatches?.flat() ?? []].map(d => ({ ...d, featureIds: task.project.features.filter(f => f.sourceUnitIds.includes(d.sourceUnitId)).map(f => f.id) }));
         const orphaned=task.project.sourceDispositions.filter(d=>d.kind==='requirement'&&!d.featureIds.length);
         if(orphaned.length)throw new CandidateClassificationError(orphaned.map(item=>({candidateIds:[],sourceUnitIds:[item.sourceUnitId],detail:`${item.sourceUnitId} 已判定为明确要求，但统一后的功能没有承接该来源。请在候选识别中补齐或校正功能归属。`})));
       });
@@ -494,9 +517,9 @@ export class AnalysisTaskScheduler {
           await mapPool(task.project.features.filter(f => !results[f.id]), pool, async feature => {
             const applicableConstraints = task.project.features.filter(f => f.kind === 'constraint' && f.appliesToFeatureIds?.includes(feature.id));
             const units = sourceUnits([...feature.sourceUnitIds, ...applicableConstraints.flatMap(f => f.sourceUnitIds)]);
-            const instruction=`忠实细化该功能选区及适用约束。一个条目表达完整业务要求；同对象字段属性合并，能分别漏做的行为才拆分。不得输出功能概述。applicableConstraints仅用于保留当前要求的适用条件，不重复创建约束本身的条目。不自行增加常识、实现方案或测试；未指定内部函数、类结构、索引或代码目录不是业务待确认。只有缺少决定业务行为所必需的信息或原文冲突时才记录问题。不能把已明确要求改成待确认。${clarificationContract} 保留必须/可选/建议、否定、单位、新旧数据范围；原文明示验收条件只能摘录原句。每个非空业务字段用evidenceBindings关联真实来源。输出 ${detailSchema}`;
+            const instruction=`忠实细化该功能选区及适用约束。一个条目表达完整业务要求；同对象字段属性合并，能分别漏做的行为才拆分。不得输出功能概述。applicableConstraints仅用于保留当前要求的适用条件，不重复创建约束本身的条目。不自行增加常识、实现方案或测试；未指定内部函数、类结构、索引或代码目录不是业务待确认。只有缺少决定业务行为所必需的信息或原文冲突时才记录问题。不能把已明确要求改成待确认。${clarificationContract} 保留必须/可选/建议、否定、单位、新旧数据范围；原文明示验收条件只能摘录原句。字段证据由控制器根据 sourceUnitIds 确定性生成，不要返回 evidenceBindings。输出 ${detailSchema}`;
             const unitBatches=batches(units,12,8000),node=detailIsComplex(feature,units)?'details':'detailsFast';
-            const partials=await mapPool(unitBatches,pool,async(batch,batchIndex)=>{const visibleIds=new Set(batch.map(unit=>unit.id)),featureInput={...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>visibleIds.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>visibleIds.has(ref.sourceUnitId))},constraintInputs=applicableConstraints.map(item=>({...item,sourceUnitIds:item.sourceUnitIds.filter(id=>visibleIds.has(id)),sourceRefs:item.sourceRefs?.filter(ref=>visibleIds.has(ref.sourceUnitId))})).filter(item=>item.sourceUnitIds.length),input={feature:featureInput,applicableConstraints:constraintInputs,sourceUnits:batch},accept=(v:Record<string,unknown>)=>acceptDirectDetails(v.requirements,v.clarifications,batch);try{return await call(node,`details-${feature.id}-batch${batchIndex}`,'逐功能细化',instruction,input,accept)}catch(error){if(node!=='detailsFast'||!(error instanceof ModelOutputValidationError))throw error;return call('details',`details-escalated-${feature.id}-batch${batchIndex}`,'逐功能细化·增强纠错',`${instruction} 快速模型连续两次未通过字段证据契约，请严格保持数组字段与 evidenceBindings 一一对应。`,input,accept)}});
+            const partials=await mapPool(unitBatches,pool,async(batch,batchIndex)=>{const visibleIds=new Set(batch.map(unit=>unit.id)),featureInput={...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>visibleIds.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>visibleIds.has(ref.sourceUnitId))},constraintInputs=applicableConstraints.map(item=>({...item,sourceUnitIds:item.sourceUnitIds.filter(id=>visibleIds.has(id)),sourceRefs:item.sourceRefs?.filter(ref=>visibleIds.has(ref.sourceUnitId))})).filter(item=>item.sourceUnitIds.length),input={feature:featureInput,applicableConstraints:constraintInputs,sourceUnits:batch},accept=(v:Record<string,unknown>)=>acceptDirectDetails(Array.isArray(v.requirements)?v.requirements.map(item=>{const copy={...(item as Record<string,unknown>)};delete copy.evidenceBindings;return copy}):v.requirements,v.clarifications,batch);try{return await call(node,`details-${feature.id}-batch${batchIndex}`,'逐功能细化',instruction,input,accept)}catch(error){if(node!=='detailsFast'||!(error instanceof ModelOutputValidationError))throw error;return call('details',`details-escalated-${feature.id}-batch${batchIndex}`,'逐功能细化·增强纠错',`${instruction} 快速模型连续两次未通过需求结构契约，请严格按输出结构返回。`,input,accept)}});
             const result=combineDetailBatches(partials);
             results[feature.id] = result; cp.detailedFeatureIds = Object.keys(results);
             task.steps[4].note = `已细化 ${cp.detailedFeatureIds.length}/${task.project.features.length} 个功能`; await checkpoint();
@@ -529,8 +552,9 @@ export class AnalysisTaskScheduler {
             assigned.add(d.sourceUnitId); return true;
           }).map(d => d.sourceUnitId)) })).filter(x => x.units.length);
           const supplements = await mapPool(targets, pool, async ({ feature, units }) => {
-            const result = await call('details', `details-repair-${feature.id}`, '逐功能细化·定点补漏', `仅输出缺失原文要求的新条目或真实待澄清事项，不重复已有条目。${clarificationContract} 输出 ${detailSchema}`, { feature, sourceUnits: units, existingRequirements: task.project.requirements.filter(r => feature.requirementIds.includes(r.id)) }, v => acceptDirectDetails(v.requirements, v.clarifications, units));
-            return { feature, result };
+            const featureInput={id:feature.id,name:feature.name,kind:feature.kind,appliesToFeatureIds:feature.appliesToFeatureIds},existingRequirements=task.project.requirements.filter(r=>feature.requirementIds.includes(r.id)).map(({id,title,sourceUnitIds})=>({id,title,sourceUnitIds}));
+            const partials=await mapPool(batches(units,6,5000),pool,async(batch,index)=>call('details',`details-repair-${feature.id}-batch${index}`,'逐功能细化·定点补漏',`仅输出本批缺失原文要求的新条目或真实待澄清事项，不重复已有条目。existingRequirements 仅用于按标题和已承接来源避免语义重复。字段证据由控制器根据 sourceUnitIds 确定性生成，不要返回 evidenceBindings。${clarificationContract} 输出 ${detailSchema}`,{feature:featureInput,sourceUnits:batch,existingRequirements},v=>acceptDirectDetails(Array.isArray(v.requirements)?v.requirements.map(item=>{const copy={...(item as Record<string,unknown>)};delete copy.evidenceBindings;return copy}):v.requirements,v.clarifications,batch)));
+            return { feature, result:combineDetailBatches(partials) };
           });
           this.assert(task, attempt);
           for (const { feature, result } of supplements) {
@@ -545,13 +569,29 @@ export class AnalysisTaskScheduler {
           const checks = cp.auditIssueBatches ??= [];
           const relationChecks = cp.relationBatches ??= [];
           await mapPool(packs.map((units, index) => ({ units, index })).filter(x => !checks[x.index]), pool, async ({ units, index }) => {
-            const ids = new Set(units.map(u => u.id)), features = task.project.features.filter(f => f.sourceUnitIds.some(id => ids.has(id)));
+            const ids = new Set(units.map(u => u.id));
             const directlyRelated=task.project.requirements.filter(r=>r.sourceUnitIds.some(id=>ids.has(id))),relatedIds=new Set(directlyRelated.map(item=>item.id));for(const relation of task.project.relations??[])if(relatedIds.has(relation.sourceRequirementId)||relatedIds.has(relation.targetRequirementId)){relatedIds.add(relation.sourceRequirementId);relatedIds.add(relation.targetRequirementId)}
             const requirements = task.project.requirements.filter(r => relatedIds.has(r.id));
-            const clarifications = task.project.clarifications.filter(q => q.affectedIds.some(id => ids.has(id) || requirements.some(r => r.id === id)));
-            const evidence = sourceUnits([...ids, ...requirements.flatMap(r => r.sourceUnitIds), ...clarifications.flatMap(q => q.affectedIds.flatMap(id => task.project.requirements.find(r => r.id === id)?.sourceUnitIds ?? (id.startsWith('S-') ? [id] : [])))]);
-            const audited = await call('audit', `audit-${index}`, '完整性与忠实性检查', `逐项比较reviewSourceUnitIds里的原文要求与一条或多条相关需求，不能因某个S已被引用就视为内容已完整承接。uncoveredSourceUnits是脚本发现尚无需求或澄清引用的来源事实，不能把它们视为已覆盖。其他原文用于理解条件、表头和跨条目组合证据。先判断多条需求是否共同完整表达原文，再报告遗漏，避免要求重复条目。反向检查每条需求是否存在误读、模态改变、漏条件/例外、无依据新增、不必要澄清、错误归属或跨条目矛盾。未指定技术实现不是业务缺口。每个问题填写责任owner；真实原文歧义使用 source-ambiguity/source-decision，并同时返回唯一 clarification；系统整理问题使用对应节点责任。${clarificationContract} 只在原文明示业务前置、联动或例外时给出relations；共享来源和开发顺序不构成关系。不要要求拆出常识或单独测试场景；没有问题或关系返回空数组。输出 ${auditSchema}`, { reviewSourceUnitIds: [...ids], uncoveredSourceUnits: graph().uncovered.filter(d => ids.has(d.sourceUnitId)), sourceUnits: evidence, sourceDispositions: task.project.sourceDispositions?.filter(d => ids.has(d.sourceUnitId)), features, requirements, clarifications }, v => ({issues:acceptDirectAuditIssues(v.issues, evidence, features, requirements, clarifications),relations:acceptRequirementRelations(v.relations,evidence,requirements)}));
-            checks[index]=audited.issues;relationChecks[index]=audited.relations;
+            const compactRequirement=({id,title,behavior,conditions,constraints,explicitAcceptanceConditions,sourceUnitIds}:PrdProject['requirements'][number])=>({id,title,behavior,conditions,constraints,explicitAcceptanceConditions,sourceUnitIds});
+            const compactClarification=({id,question,reason,level,knownFacts,unresolvedPoint,impact,levelReason,defaultResolution,affectedIds,state}:Clarification)=>({id,question,reason,level,knownFacts,unresolvedPoint,impact,levelReason,defaultResolution,affectedIds,state});
+            const reverseBatches=requirements.length?Array.from({length:Math.ceil(requirements.length/4)},(_,fragment)=>requirements.slice(fragment*4,fragment*4+4)):[[]];
+            const reverse=await mapPool(reverseBatches,pool,async(requirementBatch,fragment)=>{
+              const requirementIds=new Set(requirementBatch.map(item=>item.id)),evidence=sourceUnits(requirementBatch.flatMap(item=>item.sourceUnitIds));
+              const features=task.project.features.filter(feature=>feature.requirementIds.some(id=>requirementIds.has(id)));
+              const clarifications=task.project.clarifications.filter(item=>item.affectedIds.some(id=>requirementIds.has(id)));
+              const promptFeatures=features.map(({id,name,kind,appliesToFeatureIds,requirementIds:featureRequirementIds})=>({id,name,kind,appliesToFeatureIds,requirementIds:featureRequirementIds.filter(requirementId=>requirementIds.has(requirementId))}));
+              return call('audit',`audit-${index}-reverse-${fragment}`,'完整性与忠实性检查',`这是需求反向忠实性检查。只检查 requirements 中每个现有需求是否误读、改变模态、遗漏其已绑定原文中的条件或例外、无依据新增、不必要澄清或归属错误。不得报告其他需求、功能或原文的整项遗漏，不得因为当前分片没有展示其他需求而推断缺失。每个问题必须 affectedIds 指向当前 requirements 中的 R 编号或当前 clarifications 中的 Q 编号。${clarificationContract} 只在当前需求之间存在原文明示的业务前置、联动或例外时给出 relations。没有问题或关系返回空数组。输出 ${auditSchema}`,{sourceUnits:evidence,features:promptFeatures,requirements:requirementBatch.map(compactRequirement),clarifications:clarifications.map(compactClarification)},v=>({issues:acceptDirectAuditIssues(v.issues,evidence,features,requirementBatch,clarifications),relations:acceptRequirementRelations(v.relations,evidence,requirementBatch)}));
+            });
+            const dispositionById=new Map((task.project.sourceDispositions??[]).map(item=>[item.sourceUnitId,item]));
+            const forwardUnits=units.filter(unit=>['requirement','clarification'].includes(dispositionById.get(unit.id)?.kind??''));
+            const forward=await mapPool(batches(forwardUnits,4,5000),pool,async(sourceBatch,fragment)=>{
+              const sourceIds=new Set(sourceBatch.map(unit=>unit.id)),linkedRequirements=task.project.requirements.filter(item=>item.sourceUnitIds.some(id=>sourceIds.has(id))),linkedIds=new Set(linkedRequirements.map(item=>item.id));
+              const features=task.project.features.filter(feature=>feature.sourceUnitIds.some(id=>sourceIds.has(id))||feature.requirementIds.some(id=>linkedIds.has(id)));
+              const clarifications=task.project.clarifications.filter(item=>item.affectedIds.some(id=>sourceIds.has(id)||linkedIds.has(id)));
+              const promptFeatures=features.map(({id,name,kind,appliesToFeatureIds,requirementIds})=>({id,name,kind,appliesToFeatureIds,requirementIds:requirementIds.filter(requirementId=>linkedIds.has(requirementId))}));
+              return call('audit',`audit-${index}-forward-${fragment}`,'原文正向完整性检查',`对 sourceUnits 中每个来源，结合与它直接绑定的全部 requirements 和 clarifications，判断原文明示的业务行为、条件、约束或真实未决点是否完整承接。只报告本批来源的遗漏；不得检查或改写现有需求中没有来源依据的内容。已有条目仅缺字段时 affectedIds 指向对应 R/Q；完全没有条目承接时 affectedIds 指向对应 S。结构标题和 context 不在本批，不得要求为标题创建需求。每个问题填写唯一责任 owner。${clarificationContract} 本检查不生成 relations。没有问题返回空数组。输出 ${auditSchema}`,{sourceUnits:sourceBatch,sourceDispositions:sourceBatch.map(unit=>dispositionById.get(unit.id)),features:promptFeatures,requirements:linkedRequirements.map(compactRequirement),clarifications:clarifications.map(compactClarification),uncoveredSourceUnits:graph().uncovered.filter(item=>sourceIds.has(item.sourceUnitId))},v=>({issues:acceptDirectAuditIssues(v.issues,sourceBatch,features,linkedRequirements,clarifications),relations:[] as NonNullable<PrdProject['relations']>}));
+            });
+            const audited=[...reverse,...forward];checks[index]=audited.flatMap(item=>item.issues);relationChecks[index]=audited.flatMap(item=>item.relations);
             cp.auditBatchCount = checks.filter(Boolean).length; task.steps[5].note = `已审计 ${cp.auditBatchCount}/${packs.length} 份候选内容`; await checkpoint();
           });
           const relationMap=new Map<string,NonNullable<PrdProject['relations']>[number]>();for(const relation of relationChecks.flat()){const key=JSON.stringify([relation.sourceRequirementId,relation.targetRequirementId,relation.kind,relation.sourceRefs]);if(!relationMap.has(key))relationMap.set(key,{...relation,id:`REL-${String(relationMap.size+1).padStart(4,'0')}`})}task.project.relations=[...relationMap.values()];
@@ -559,9 +599,11 @@ export class AnalysisTaskScheduler {
           const uncovered = graph().uncovered;
           const structuralIssues: AuditIssue[] = uncovered.map(d => ({ id: `SCRIPT-${d.sourceUnitId}`, direction: "forward", type: "原文来源未落实", category: d.featureIds.length?"detail-mismatch":"feature-boundary", owner:d.featureIds.length?'requirement-detail':'feature-grouping', sourceUnitIds: [d.sourceUnitId], affectedIds: d.featureIds.length ? d.featureIds : [d.sourceUnitId], detail: `${d.sourceUnitId} 当前没有任何需求或澄清承接（关联功能：${d.featureIds.join("、") || "无"}）。这仅是引用覆盖事实，请结合原文判断遗漏或功能边界错误，不推导额外要求。` }));
           registerAuditIssues(cp.auditIssues,[...checks.flat(),...structuralIssues],task.project);attachAuditClarifications(task.project,cp.auditIssues);
+          const knownFeatures=new Set(task.project.features.map(item=>item.id)),knownRequirements=new Set(task.project.requirements.map(item=>item.id));for(const issue of cp.auditIssues.filter(item=>item.category==='feature-boundary'&&item.disposition==='open')){const affectedFeatures=issue.affectedIds.filter(id=>knownFeatures.has(id)),affectedRequirements=issue.affectedIds.filter(id=>knownRequirements.has(id));if((!affectedFeatures.length&&affectedRequirements.length)||(affectedFeatures.length&&/(未被\s*requirements\s*承接|requirementIds\s*为空)/i.test(issue.detail))){issue.category='detail-mismatch';issue.owner='requirement-detail'}}
         });
-        let boundary = cp.auditIssues.filter(i => i.category === 'feature-boundary' && i.disposition === 'open');
-        if (!boundary.length || (cp.featureRepairRounds ?? 0) >= 3) break;
+        const boundaryFailedAttempts=(issueId:string)=>(cp.graphRepairs??[]).filter(record=>record.scope==='features'&&record.status==='rejected'&&record.issues.some(issue=>issue.id===issueId)).length;
+        let boundary = cp.auditIssues.filter(i => i.disposition === 'open' && boundaryFailedAttempts(i.id)<3 && (i.owner === 'feature-grouping' || (i.owner === 'runtime-output' && i.category === 'detail-mismatch' && i.affectedIds.every(id => id.startsWith('S-')))));
+        if (!boundary.length) break;
         const affected = new Set(boundary.flatMap(i => i.affectedIds)), scopeSource = new Set(boundary.flatMap(i => i.sourceUnitIds));
         const targets = task.project.features.filter(f => affected.has(f.id) || f.requirementIds.some(id => affected.has(id)) || f.sourceUnitIds.some(id => scopeSource.has(id)));
         // 约束适用关系是明确依赖；边界调整不能留下范围外悬空引用。
@@ -573,20 +615,37 @@ export class AnalysisTaskScheduler {
         const units = sourceUnits([...scopeSource, ...targets.flatMap(f => f.sourceUnitIds)]);
         const boundaryRecords=cp.confirmedIssues??{};cp.confirmedIssues=boundaryRecords;const confirmedBoundary=new Set(boundary.filter(issue=>boundaryRecords[issue.id]===issue.dependencyHash).map(issue=>issue.id)),unconfirmedBoundary=boundary.filter(issue=>!confirmedBoundary.has(issue.id));
         if(unconfirmedBoundary.length){
-          const relatedRequirements=task.project.requirements.filter(requirement=>targets.some(feature=>feature.requirementIds.includes(requirement.id)));
-          const decisions=await call('audit','confirm-feature-boundary','审计问题成立性确认',`基于完整相关功能、需求和原文确认功能边界问题是否成立。已有其他功能或需求完整承接时判 already-satisfied；判断不成立时判 invalid；确需调整边界才判 confirmed。输出 ${issueConfirmationSchema}`,{sourceUnits:sourceUnits([...units.map(unit=>unit.id),...relatedRequirements.flatMap(requirement=>requirement.sourceUnitIds)]),features:targets,requirements:relatedRequirements,issues:unconfirmedBoundary},v=>acceptIssueConfirmations(v.results,unconfirmedBoundary,relatedRequirements));
+          const issueGroups=Array.from({length:Math.ceil(unconfirmedBoundary.length/4)},(_,index)=>unconfirmedBoundary.slice(index*4,index*4+4));
+          const groupedDecisions=await mapPool(issueGroups,pool,async(issueGroup,groupIndex)=>{
+            const issueSourceIds=new Set(issueGroup.flatMap(issue=>issue.sourceUnitIds)),directIds=new Set(issueGroup.flatMap(issue=>issue.affectedIds.filter(id=>task.project.requirements.some(requirement=>requirement.id===id)))),groupFeatures=targets.filter(feature=>issueGroup.some(issue=>issue.affectedIds.includes(feature.id))||feature.sourceUnitIds.some(id=>issueSourceIds.has(id))||feature.requirementIds.some(id=>directIds.has(id))),featureRequirementIds=new Set(groupFeatures.flatMap(feature=>feature.requirementIds)),allRequirements=task.project.requirements.filter(requirement=>directIds.has(requirement.id)||(featureRequirementIds.has(requirement.id)&&requirement.sourceUnitIds.some(id=>issueSourceIds.has(id)))),direct=allRequirements.filter(requirement=>directIds.has(requirement.id)),remaining=allRequirements.filter(requirement=>!directIds.has(requirement.id)),requirementBatches=remaining.length?Array.from({length:Math.ceil(remaining.length/4)},(_,index)=>[...direct,...remaining.slice(index*4,index*4+4)]):[direct];
+            const fragments=await mapPool(requirementBatches,pool,async(requirements,batchIndex)=>{const visibleIds=new Set([...issueSourceIds,...requirements.flatMap(requirement=>requirement.sourceUnitIds)]),promptFeatures=groupFeatures.map(({id,name,kind,appliesToFeatureIds,requirementIds})=>({id,name,kind,appliesToFeatureIds,requirementIds:requirementIds.filter(requirementId=>requirements.some(requirement=>requirement.id===requirementId))}));return call('audit',`confirm-feature-boundary-${groupIndex}-batch${batchIndex}`,'审计问题成立性确认',`这是功能边界问题的一个完整需求分片。先横向比较本批 issues；若多个问题对同一归属提出互不相容的结论，必须依据直接原文将错误的一项判 invalid，禁止同时 confirmed。已有需求承接时判 already-satisfied 并列出需求 ID；仅问题本身不成立时判 invalid；当前分片未承接且问题成立时判 confirmed。控制器会汇总全部分片。只确认，不修改。输出 ${issueConfirmationSchema}`,{sourceUnits:sourceUnits(visibleIds),features:promptFeatures,requirements,issues:issueGroup},v=>acceptIssueConfirmations(v.results,issueGroup,requirements))});
+            return issueGroup.map(issue=>{const decisions=fragments.flat().filter(item=>item.issueId===issue.id),satisfied=decisions.find(item=>item.status==='already-satisfied');if(satisfied)return satisfied;if(decisions.every(item=>item.status==='invalid'))return decisions[0];const confirmedDecision=decisions.find(item=>item.status==='confirmed')!;return{...confirmedDecision,satisfiedRequirementIds:[]}});
+          });
+          const decisions=groupedDecisions.flat();
           for(const decision of decisions){const issue=cp.auditIssues.find(item=>item.id===decision.issueId)!;if(decision.status==='confirmed'){confirmedBoundary.add(issue.id);boundaryRecords[issue.id]=issue.dependencyHash??'';if(decision.correctedDetail)issue.detail=decision.correctedDetail}else issue.disposition='dismissed'}
           cp.confirmedIssueIds=[...confirmedBoundary];await checkpoint();boundary=boundary.filter(issue=>issue.disposition==='open');if(!boundary.length)break;
         }
+        const classificationBoundary=boundary.filter(issue=>issue.affectedIds.every(id=>id.startsWith('S-'))).slice(0,1);
+        if(classificationBoundary.length){
+          const classificationIds=new Set(classificationBoundary.flatMap(issue=>issue.sourceUnitIds)),classificationUnits=sourceUnits(classificationIds),classificationCandidates=task.project.features.filter(feature=>feature.sourceUnitIds.some(id=>classificationIds.has(id))).map(feature=>({...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>classificationIds.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>classificationIds.has(ref.sourceUnitId)),requirementIds:[]})),classified=await identify(classificationUnits,'candidate-boundary-classification',classificationCandidates,classificationBoundary);
+          const nonBusiness=new Set(classified.dispositions.filter(disposition=>['context','example','summary','out-of-scope'].includes(disposition.kind)).map(disposition=>disposition.sourceUnitId));
+          if(nonBusiness.size){
+            const replacements=new Map(classified.dispositions.filter(item=>nonBusiness.has(item.sourceUnitId)).map(item=>[item.sourceUnitId,item]));task.project.sourceDispositions=(task.project.sourceDispositions??[]).map(item=>replacements.get(item.sourceUnitId)??item);
+            task.project.clarifications=task.project.clarifications.filter(item=>{const sources=new Set((item.sourceRefs??[]).map(ref=>ref.sourceUnitId));return !sources.size||![...sources].every(id=>nonBusiness.has(id))});
+            for(const issue of classificationBoundary.filter(item=>item.sourceUnitIds.every(id=>nonBusiness.has(id))))closeIssue(issue,'repaired');for(let index=0;index<packs.length;index++)if(packs[index].some(unit=>nonBusiness.has(unit.id)))delete cp.auditIssueBatches![index];task.steps[5].status='pending';await checkpoint();continue;
+          }
+        }
+        boundary=[boundary[0]];const narrowedAffected=new Set(boundary.flatMap(issue=>issue.affectedIds)),narrowedSources=new Set(boundary.flatMap(issue=>issue.sourceUnitIds));targets.splice(0,targets.length,...task.project.features.filter(feature=>narrowedAffected.has(feature.id)||feature.requirementIds.some(id=>narrowedAffected.has(id))||feature.sourceUnitIds.some(id=>narrowedSources.has(id))));let narrowedExpanded=true;while(narrowedExpanded){narrowedExpanded=false;for(const feature of task.project.features)if(!targets.includes(feature)&&(feature.appliesToFeatureIds?.some(id=>targets.some(target=>target.id===id))||targets.some(target=>target.appliesToFeatureIds?.includes(feature.id)))){targets.push(feature);narrowedExpanded=true}}units.splice(0,units.length,...sourceUnits([...narrowedSources,...targets.flatMap(feature=>feature.sourceUnitIds)]));
         const boundaryWork=[...boundary,...(cp.boundaryFeedback??[])];
-        const discovered = cp.boundaryCandidate ?? await identify(units, 'candidate-boundary', targets, boundaryWork);
+        const boundaryPacks=batches(units,12,8000);
+        const discovered = (cp.boundaryCandidate ?? await mapPool(boundaryPacks,pool,async(batch,index)=>{const visible=new Set(batch.map(unit=>unit.id)),current=targets.map(feature=>({...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>visible.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>visible.has(ref.sourceUnitId)),requirementIds:[]})).filter(feature=>feature.sourceUnitIds.length),part=await identify(batch,`candidate-boundary-${index}`,current,boundaryWork.filter(issue=>issue.sourceUnitIds.some(id=>visible.has(id)))),remap=new Map(part.features.map((feature,itemIndex)=>[feature.id,`BC-${index+1}-${itemIndex+1}`]));return{features:part.features.map(feature=>({...feature,id:remap.get(feature.id)!,appliesToFeatureIds:feature.appliesToFeatureIds?.map(id=>remap.get(id)??id)})),dispositions:part.dispositions.map(item=>({...item,featureIds:item.featureIds.map(id=>remap.get(id)??id)}))}}).then(parts=>({features:parts.flatMap(part=>part.features),dispositions:parts.flatMap(part=>part.dispositions)})))!;
         cp.boundaryCandidate = discovered; await checkpoint();
         if (!cp.boundaryChecked) {
-          const defects = await inspectCandidates(units, discovered.features, discovered.dispositions, 'coverage-boundary');
+          const checked=await mapPool(boundaryPacks,pool,async(batch,index)=>{const visible=new Set(batch.map(unit=>unit.id));return inspectCandidates(batch,discovered.features.filter(feature=>feature.sourceUnitIds.some(id=>visible.has(id))),discovered.dispositions.filter(item=>visible.has(item.sourceUnitId)),`coverage-boundary-${index}`)}),defects=checked.flat();
           if (defects.length) { cp.featureRepairRounds = (cp.featureRepairRounds??0)+1;cp.boundaryFeedback=defects.map((item,index)=>({id:`BOUNDARY-CHECK-${index+1}`,direction:'forward',type:'功能边界候选检查未通过',category:'feature-boundary',owner:'feature-grouping',sourceUnitIds:item.sourceUnitIds,affectedIds:targets.map(feature=>feature.id),detail:item.detail,disposition:'open'}));cp.boundaryCandidate=undefined;cp.boundaryChecked=undefined;cp.boundaryUnified=undefined;(cp.graphRepairs ??= []).push({ scope: 'features', status: 'rejected', issues: boundary, beforeIds: targets.map(f => f.id), afterIds: [], reason: defects.map(i => i.detail).join('；') }); await checkpoint(); continue; }
           cp.boundaryChecked = true; await checkpoint();
         }
-        const revised = cp.boundaryUnified ?? await unify(discovered.features, units, discovered.dispositions, boundary);
+        const revised = cp.boundaryUnified ?? await unify(discovered.features, units, discovered.dispositions,boundary);
         cp.boundaryUnified = revised; await checkpoint();
         const remaining = task.project.features.filter(f => !targets.includes(f)), replacement: Feature[] = [];
         for (const feature of revised) {
@@ -626,7 +685,14 @@ export class AnalysisTaskScheduler {
         const repairAttempts=cp.repairAttemptsV2??=[];cp.repairAttemptsV2=repairAttempts;
         const confirmationRecords=cp.confirmedIssues??{};cp.confirmedIssues=confirmationRecords;const confirmed=new Set(cp.auditIssues.filter(issue=>confirmationRecords[issue.id]&&confirmationRecords[issue.id]===issue.dependencyHash).map(issue=>issue.id)),coverageDecisions=cp.sourceCoverageDecisions??{};cp.sourceCoverageDecisions=coverageDecisions;const resolvedSources=resolvedCoverageSources;const relationAttempts=cp.relationRepairAttempts??{};cp.relationRepairAttempts=relationAttempts;
         const registerIssues=(incoming:AuditIssue[])=>{
-          registerAuditIssues(cp.auditIssues,incoming,task.project);
+          const currentIds=new Set([
+            ...task.project.sourceUnits.map(item=>item.id),
+            ...task.project.features.map(item=>item.id),
+            ...task.project.requirements.map(item=>item.id),
+            ...task.project.clarifications.map(item=>item.id),
+            ...(task.project.relations??[]).map(item=>item.id),
+          ]);
+          registerAuditIssues(cp.auditIssues,incoming.filter(issue=>issue.affectedIds.every(id=>currentIds.has(id))),task.project);
           attachAuditClarifications(task.project,cp.auditIssues);
         };
         const failedAttempts=(issueId:string)=>repairAttempts.filter(entry=>entry.targetIssueIds.includes(issueId)&&(entry.state==='verified-rejected'||entry.state==='invalid-output'||entry.state==='no-progress')).length;
@@ -646,15 +712,17 @@ export class AnalysisTaskScheduler {
           const units=sourceUnits([...issues.flatMap(issue=>issue.sourceUnitIds),...requirements.flatMap(requirement=>requirement.sourceUnitIds),...clarifications.flatMap(question=>question.sourceRefs?.map(ref=>ref.sourceUnitId)??[])]);
           return{issues,features:relatedFeatures,requirements,clarifications,units};
         };
-        for(let round=1;round<=3;round++){
+        let round=0;
+        while(true){
+          round++;
           const uncoveredNow=new Set(graph().uncovered.map(item=>item.sourceUnitId));
           for(const issue of cp.auditIssues.filter(item=>item.type==='原文来源未落实'&&item.disposition==='open'))if(issue.sourceUnitIds.every(id=>!uncoveredNow.has(id))){closeIssue(issue,'repaired');confirmed.add(issue.id)}
-          let groups=planDetailRepairs(cp.auditIssues.filter(issue=>issue.disposition==='open'&&failedAttempts(issue.id)<3),task.project);
-          const confirmationScopes=mergeConfirmationScopes(groups.map(scope=>({...scope,issues:scope.issues.filter(issue=>!confirmed.has(issue.id))})).filter(scope=>scope.issues.length)).flatMap(scope=>Array.from({length:Math.ceil(scope.issues.length/4)},(_,index)=>({...scope,key:`${scope.key}-part${index+1}`,issues:scope.issues.slice(index*4,index*4+4)})));
+          let groups=planDetailRepairs(cp.auditIssues.filter(issue=>issue.disposition==='open'&&failedAttempts(issue.id)<3),task.project).map(scope=>({...scope,key:`scope-${createHash('sha256').update(scope.issues.map(issue=>issue.id).sort().join('|')).digest('hex').slice(0,12)}`}));
+          const confirmationScopes=mergeConfirmationScopes(groups.map(scope=>({...scope,issues:scope.issues.filter(issue=>!confirmed.has(issue.id))})).filter(scope=>scope.issues.length)).flatMap((scope,scopeIndex)=>Array.from({length:Math.ceil(scope.issues.length/4)},(_,index)=>({...scope,key:`confirm-${scopeIndex+1}-part${index+1}`,issues:scope.issues.slice(index*4,index*4+4)})));
           const confirmedBatches=await mapPool(confirmationScopes,pool,async scope=>{
             const context=relatedContext(scope.featureIds,scope.issues.map(issue=>issue.id),true);
             const directIds=new Set(scope.issues.flatMap(issue=>issue.affectedIds.filter(id=>context.requirements.some(item=>item.id===id)))),direct=context.requirements.filter(item=>directIds.has(item.id)),remaining=context.requirements.filter(item=>!directIds.has(item.id)),requirementBatches=remaining.length?Array.from({length:Math.ceil(remaining.length/4)},(_,index)=>[...direct,...remaining.slice(index*4,index*4+4)]):[direct];
-            const batchResults=await mapPool(requirementBatches,pool,async(requirements,index)=>{const ids=new Set([...scope.issues.flatMap(issue=>issue.sourceUnitIds),...requirements.flatMap(item=>item.sourceUnitIds)]),units=sourceUnits(ids),clarifications=context.clarifications.filter(item=>item.affectedIds.some(id=>requirements.some(requirement=>requirement.id===id)||ids.has(id))),features=context.features.map(feature=>({...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>ids.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>ids.has(ref.sourceUnitId)),requirementIds:feature.requirementIds.filter(id=>requirements.some(item=>item.id===id))}));return call('audit',`confirm-${scope.key}-batch${index}`,'审计问题成立性确认',`这是同一业务上下文的一个完整需求分片。逐项确认问题；若当前分片已有需求承接则判 already-satisfied 并列出需求 ID；仅当问题本身不成立时判 invalid；当前分片未承接且问题成立时判 confirmed。控制器会汇总全部分片。只确认，不修改。输出 ${issueConfirmationSchema}`,{sourceUnits:units,features,requirements,clarifications,issues:scope.issues},v=>acceptIssueConfirmations(v.results,scope.issues,requirements))});
+            const batchResults=await mapPool(requirementBatches,pool,async(requirements,index)=>{const ids=new Set([...scope.issues.flatMap(issue=>issue.sourceUnitIds),...requirements.flatMap(item=>item.sourceUnitIds)]),units=sourceUnits(ids),clarifications=context.clarifications.filter(item=>item.affectedIds.some(id=>requirements.some(requirement=>requirement.id===id)||ids.has(id))),features=context.features.map(feature=>({...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>ids.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>ids.has(ref.sourceUnitId)),requirementIds:feature.requirementIds.filter(id=>requirements.some(item=>item.id===id))}));return call('audit',`confirm-${scope.key}-batch${index}`,'审计问题成立性确认',`这是同一业务上下文的一个完整需求分片。先横向比较本批 issues：若两个问题要求对同一字段作互不相容的修改，必须依据直接原文将错误的一项判 invalid，禁止同时 confirmed。逐项确认问题；若当前分片已有需求承接则判 already-satisfied 并列出需求 ID；仅当问题本身不成立时判 invalid；当前分片未承接且问题成立时判 confirmed。控制器会汇总全部分片。只确认，不修改。输出 ${issueConfirmationSchema}`,{sourceUnits:units,features,requirements,clarifications,issues:scope.issues},v=>acceptIssueConfirmations(v.results,scope.issues,requirements))});
             return scope.issues.map(issue=>{const decisions=batchResults.flat().filter(item=>item.issueId===issue.id),satisfied=decisions.find(item=>item.status==='already-satisfied');if(satisfied)return satisfied;if(decisions.every(item=>item.status==='invalid'))return decisions[0];const confirmedDecision=decisions.find(item=>item.status==='confirmed')!;return{...confirmedDecision,satisfiedRequirementIds:[]}});
           });
           for(const decisions of confirmedBatches)for(const decision of decisions){const issue=cp.auditIssues.find(item=>item.id===decision.issueId)!;if(decision.status==='confirmed'){confirmed.add(issue.id);confirmationRecords[issue.id]=issue.dependencyHash??'';if(decision.correctedDetail)issue.detail=decision.correctedDetail}else{closeIssue(issue,'dismissed');if(issue.type==='原文来源未落实')for(const sourceUnitId of issue.sourceUnitIds)coverageDecisions[sourceUnitId]={status:'covered-by-existing',issueId:issue.id,reason:decision.reason,requirementIds:decision.satisfiedRequirementIds,dependencyHash:projectDependencyHash(task.project,decision.satisfiedRequirementIds,[sourceUnitId],false),at:Date.now()}}}
@@ -679,8 +747,9 @@ export class AnalysisTaskScheduler {
             let attemptRecord=repairAttempts.find(entry=>entry.scopeKey===scope.key&&entry.baseFingerprint===baseFingerprint&&(entry.state==='candidate-ready'||entry.state==='review-ready'));
             if(!attemptRecord){attemptRecord={id:`RA-${String(repairAttempts.length+1).padStart(4,'0')}`,scopeKey:scope.key,round,targetIssueIds:scope.issues.map(issue=>issue.id),baseFingerprint,dependencyHash:baseFingerprint,state:'planned',scope:{featureIds:scope.featureIds,requirementIds:scope.requirementIds,clarificationIds:scope.clarificationIds,sourceUnitIds:scope.sourceUnitIds,requiredSourceUnitIds:scope.requiredSourceUnitIds,readOnlyRequirementIds:scope.readOnlyRequirementIds??[]}};repairAttempts.push(attemptRecord);await checkpoint()}
             try{
-              const previousAttempts=repairAttempts.filter(entry=>entry.scopeKey===scope.key&&entry.id!==attemptRecord.id&&entry.review).map(entry=>entry.review);
-              const accepted=(attemptRecord.state==='candidate-ready'||attemptRecord.state==='review-ready')&&attemptRecord.patch?{patch:attemptRecord.patch,candidate:applyRequirementPatch(base,scope,attemptRecord.patch,false,resolvedSources())}:await call('repair',`repair-${scope.key}-round${round}`,'局部修正',`只输出问题涉及条目的增量；无关内容不返回。readOnlyRequirements仅供理解，禁止修改、删除或复制。修改保留正式ID；新增使用LOCAL-且标明featureId，clarifications新增同理使用LOCAL-。删除必须显式列出。必须逐项解决issues描述的确认缺口；未被issues指出的字段从currentRequirements逐字复制，不得润色。原文明示验收条件只允许通过 explicitAcceptanceEvidenceIds 选择 evidenceCatalog；issues 未指出该字段错误时保留现值，新增需求默认返回空数组，不得自造验收条件。输出 {"requirements":[],"deleteRequirementIds":[],"clarifications":[],"deleteClarificationIds":[]}。条目遵循 ${detailSchema}。`,{features:context.features,sourceUnits:context.units,requiredSourceUnitIds:scope.requiredSourceUnitIds,currentRequirements:before,readOnlyRequirements,currentClarifications:questions,issues:scope.issues,previousAttempts},v=>{const patch=acceptRequirementPatch(v,base,scope);return{patch,candidate:applyRequirementPatch(base,scope,patch,false,resolvedSources())}});
+              const targetIssueIds=new Set(scope.issues.map(issue=>issue.id)),targetRequirementIds=new Set(scope.requirementIds),targetClarificationIds=new Set(scope.clarificationIds);
+              const previousAttempts=repairAttempts.filter(entry=>entry.id!==attemptRecord.id&&(entry.targetIssueIds.some(id=>targetIssueIds.has(id))||entry.scope.requirementIds.some(id=>targetRequirementIds.has(id))||entry.scope.clarificationIds.some(id=>targetClarificationIds.has(id)))).map(entry=>({targetIssueIds:entry.targetIssueIds,state:entry.state,reason:entry.reason,originalIssueResults:entry.review?.originalIssueResults}));
+              const accepted=(attemptRecord.state==='candidate-ready'||attemptRecord.state==='review-ready')&&attemptRecord.patch?{patch:attemptRecord.patch,candidate:applyRequirementPatch(base,scope,attemptRecord.patch,false,resolvedSources())}:await call('repair',`repair-${scope.key}-round${round}`,'局部修正',`只输出问题涉及条目的增量；无关内容不返回。readOnlyRequirements仅供理解，禁止修改、删除或复制。修改保留正式ID；新增使用LOCAL-且标明featureId，clarifications新增同理使用LOCAL-。删除必须显式列出。必须逐项解决issues描述的确认缺口；未被issues指出的字段从currentRequirements逐字复制，不得润色。来源归属错误时必须把支持修改后字段的全部来源写入 sourceUnitIds，不能继续复制旧来源；每个 behavior、condition、constraint 和 explicitAcceptanceCondition 的 evidenceBindings 只能绑定直接支持该字段的证据，不得把多项来源合并绑定到每一个字段。一个来源同时包含不同功能职责时，保留当前条目的无关字段及其准确证据，只移动或拆分问题点，不能整段删除来源。问题指出既有澄清已经过时或与明确需求冲突时，应删除或收窄该澄清，不能保留原样。原文明示验收条件只允许通过 explicitAcceptanceEvidenceIds 选择 evidenceCatalog；issues 未指出该字段错误时保留现值，新增需求默认返回空数组，不得自造验收条件。输出 {"requirements":[],"deleteRequirementIds":[],"clarifications":[],"deleteClarificationIds":[]}。条目遵循 ${detailSchema}。`,{features:context.features,sourceUnits:context.units,requiredSourceUnitIds:scope.requiredSourceUnitIds,currentRequirements:before,readOnlyRequirements,currentClarifications:questions,issues:scope.issues,previousAttempts},v=>{const patch=acceptRequirementPatch(v,base,scope);return{patch,candidate:applyRequirementPatch(base,scope,patch,false,resolvedSources())}});
               const {patch,candidate}=accepted,changed=candidate.requirements.filter(r=>scope.requirementIds.includes(r.id)||!base.requirements.some(b=>b.id===r.id)),candidateQuestions=candidate.clarifications.filter(q=>scope.clarificationIds.includes(q.id)||!base.clarifications.some(b=>b.id===q.id));
               if(attemptRecord.state==='planned'){Object.assign(attemptRecord,{state:'candidate-ready' as const,patch,candidate:{requirements:changed,clarifications:candidateQuestions},candidateFingerprint:contentFingerprint(candidate)});await checkpoint()}
               const review=attemptRecord.state==='review-ready'&&attemptRecord.review?attemptRecord.review:await(async()=>{const full=relatedContext(scope.featureIds,scope.issues.map(issue=>issue.id),true),directIds=new Set(scope.requirementIds),direct=full.requirements.filter(item=>directIds.has(item.id)),remaining=full.requirements.filter(item=>!directIds.has(item.id)),reviewBatches=remaining.length?Array.from({length:Math.ceil(remaining.length/4)},(_,index)=>[...direct,...remaining.slice(index*4,index*4+4)]):[direct],reviews=await mapPool(reviewBatches,pool,async(requirements,index)=>{const ids=new Set([...scope.issues.flatMap(issue=>issue.sourceUnitIds),...requirements.flatMap(item=>item.sourceUnitIds),...changed.flatMap(item=>item.sourceUnitIds)]),units=sourceUnits(ids),features=full.features.map(feature=>({...feature,sourceUnitIds:feature.sourceUnitIds.filter(id=>ids.has(id)),sourceRefs:feature.sourceRefs?.filter(ref=>ids.has(ref.sourceUnitId)),requirementIds:feature.requirementIds.filter(id=>requirements.some(item=>item.id===id)||changed.some(item=>item.id===id))})),clarifications=full.clarifications.filter(item=>item.affectedIds.some(id=>requirements.some(requirement=>requirement.id===id)||ids.has(id)));return call('audit',`repair-review-${scope.key}-round${round}-batch${index}`,'完整性与忠实性检查·局部复核',`这是同一修正范围的一个完整需求分片。分别判断每个原问题是否解决、候选是否引入回归、是否发现修改前已有的旁支问题；控制器会汇总全部分片。只复核，不修改。输出 ${repairReviewSchema}`,{sourceUnits:units,features,beforeRequirements:requirements,requirements:candidate.requirements.filter(item=>requirements.some(old=>old.id===item.id)||changed.some(changedItem=>changedItem.id===item.id)),beforeClarifications:clarifications,clarifications:candidate.clarifications.filter(item=>clarifications.some(old=>old.id===item.id)||candidateQuestions.some(changedItem=>changedItem.id===item.id)),originalIssues:scope.issues},v=>acceptRepairReview(v,scope.issues,units,features,candidate.requirements,candidate.clarifications))}),originalIssueResults=scope.issues.map(issue=>{const results=reviews.flatMap(item=>item.originalIssueResults).filter(item=>item.issueId===issue.id),unresolved=results.find(item=>item.status==='unresolved');return unresolved??results[0]});return{originalIssueResults,introducedIssues:reviews.flatMap(item=>item.introducedIssues),discoveredIssues:reviews.flatMap(item=>item.discoveredIssues)}})();
@@ -734,7 +803,7 @@ export class AnalysisTaskScheduler {
       this.assert(task, attempt); const ready=task.project.delivery?.state==='ready',platformOpen=Boolean(task.project.audit?.issues.some(issue=>issue.disposition==='open'));task.status = ready?'completed':'needs-attention'; task.progress = ready?100:88;task.error=ready?undefined:platformOpen?'平台整理未完成：仍有平台问题，已保留当前草稿和逐项诊断。':'需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。'; task.completedAt = Date.now(); await this.publish(task);
     } catch (error) {
       if (task.attempt !== attempt) return;
-      task.status = 'failed'; task.completedAt = Date.now(); task.error = error instanceof TaskDeadlineExceededError?error.message:error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);
+      task.status = 'failed'; task.completedAt = Date.now(); task.error = error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);
       task.steps[error instanceof ModelOutputValidationError&&error.stepIndex!==undefined?error.stepIndex:activeStage].status = 'failed';
       for (const step of task.steps) if (step.status === 'running') step.status = 'failed';
       await this.publish(task);
@@ -743,10 +812,18 @@ export class AnalysisTaskScheduler {
   private async ask<T>(runtime: AnalysisRuntime, id: string, request: string, accept: (v: Record<string, unknown>) => T, images: RuntimeImage[], assert: () => void, timeoutMs:()=>number, onAttempt:(attempt:number,request:string)=>Promise<void>, onInvalid?:(attempt:number,response:string,message:string)=>Promise<void>) {
     let current = request, last: unknown;
     for (let attempt = 1; attempt <= 2; attempt++) {
-      assert();await onAttempt(attempt,current);assert();const response = await runtime.promptAndWait(`${id}-try${attempt}`, current,timeoutMs(), images); assert();
+      assert();await onAttempt(attempt,current);assert();const response = await this.promptWithTransientRetry(runtime,`${id}-try${attempt}`,current,timeoutMs(),images,assert); assert();
       try { return accept(parseObject(response)); } catch (error) { last = error; const message=error instanceof Error?error.message:String(error),extractive=message.includes('.explicitAcceptanceConditions')?'\n专项修正规则：该字段中的每一项都必须由 explicitAcceptanceEvidenceIds 选择 evidenceCatalog 中的原文证据，不得重新抄写。':'';await onInvalid?.(attempt,response,message); current = `上次响应未通过结构/引用校验：${message}${extractive}\n不要复述上次响应。只能选择原请求中 evidenceCatalog 已提供的证据编号；不得输出 quote、字符位置或自造证据。返回修正后的完整节点 JSON。以下为原始节点请求：\n${request}`; }
     }
     throw new ModelOutputValidationError(last instanceof Error?last.message:String(last),last);
+  }
+  private async promptWithTransientRetry(runtime:AnalysisRuntime,id:string,request:string,timeoutMs:number,images:RuntimeImage[],assert:()=>void){
+    const waits=[2_000,5_000,10_000];
+    for(let attempt=0;;attempt++)try{return await runtime.promptAndWait(attempt?`${id}-runtime${attempt+1}`:id,request,timeoutMs,images)}catch(error){
+      const message=error instanceof Error?error.message:String(error);
+      if(attempt>=waits.length||!/(?:selected model is at capacity|rate limit|too many requests|temporarily unavailable)/i.test(message))throw error;
+      await new Promise(resolve=>setTimeout(resolve,waits[attempt]));assert();
+    }
   }
   private async publish(task: AnalysisTask) {
     const merged = new Map((task.runtimeMetrics ?? []).map(m => [m.sessionId, m]));

@@ -270,7 +270,6 @@ export interface AnalysisTask {
     relationRepairAttempts?: Record<string,number>;
     boundaryFeedback?: AuditIssue[];
     modelCallSequence?: number;
-    deadlineAt?:number;
     promptMetrics?:PromptCallMetric[];
     verificationCompletedVersion?:number;
     verificationDependencyHash?:string;

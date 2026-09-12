@@ -1,0 +1,45 @@
+{
+  "startedAt": "2026-09-11T23:45:47.623Z",
+  "completedAt": "2026-09-12T00:10:41.048Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-11T23-45-47.562Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-FD7DFF63",
+      "status": "needs-attention",
+      "error": "平台整理未完成：仍有平台问题，已保留当前草稿和逐项诊断。",
+      "wallMs": 1491399,
+      "within20Minutes": false,
+      "pipelineVersion": 12,
+      "deliveryState": "blocked",
+      "platformOpen": 13,
+      "blockingClarifications": 4,
+      "features": 23,
+      "requirements": 88,
+      "relations": 1,
+      "promptAttempts": 539,
+      "promptEstimatedTokens": 2951616,
+      "maxPromptEstimatedTokens": 13829,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 539,
+      "inputTokens": 12852171,
+      "cachedInputTokens": 6710144,
+      "outputTokens": 317537,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

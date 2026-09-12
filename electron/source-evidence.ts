@@ -104,10 +104,14 @@ export function evidencePromptInput(input: unknown) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { input, catalog: [] as SourceEvidence[] };
   const result = structuredClone(input) as Record<string, unknown>;
   const units = Array.isArray(result.sourceUnits) ? result.sourceUnits as SourceUnit[] : [];
-  const catalog = buildEvidenceCatalog(units).map((item,index)=>({...item,id:`E${index+1}`}));
+  const allowedRefs=Array.isArray(result.evidenceSourceRefs)?result.evidenceSourceRefs as SourceRef[]:undefined;
+  const candidateRefs=Array.isArray(result.candidateEvidenceRefs)?result.candidateEvidenceRefs as Array<{candidateId:string;refs:SourceRef[]}>:undefined;
+  delete result.evidenceSourceRefs;
+  delete result.candidateEvidenceRefs;
+  const catalog = buildEvidenceCatalog(units).filter(item=>!allowedRefs||allowedRefs.some(ref=>ref.sourceUnitId===item.sourceUnitId&&item.start>=(ref.start??0)&&item.end<=(ref.end??Number.MAX_SAFE_INTEGER))).map((item,index)=>({...item,id:`E${index+1}`}));
   if (catalog.length) {
     result.sourceUnits = units.map(unit => ({id:unit.id,label:unit.label,kind:unit.kind,location:unit.location,...(unit.logicalPath?{logicalPath:unit.logicalPath}:{}),...(unit.sourceRole?{sourceRole:unit.sourceRole}:{}),...(unit.context?{context:unit.context}:{}),...(unit.asset?{asset:{mimeType:unit.asset.mimeType,readStatus:unit.asset.readStatus}}:{})}));
-    result.evidenceCatalog = catalog;
+    result.evidenceCatalog = candidateRefs?catalog.map(evidence=>({...evidence,candidateIds:candidateRefs.filter(item=>item.refs.some(ref=>ref.sourceUnitId===evidence.sourceUnitId&&evidence.start>=(ref.start??0)&&evidence.end<=(ref.end??Number.MAX_SAFE_INTEGER))).map(item=>item.candidateId)})):catalog;
   }
   return { input: result, catalog };
 }
