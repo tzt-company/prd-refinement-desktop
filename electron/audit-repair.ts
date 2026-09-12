@@ -85,7 +85,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
   if(!Array.isArray(raw.requirements)||!Array.isArray(raw.clarifications))throw new Error('增量必须包含 requirements 和 clarifications 数组');
   const sourceUnits=project.sourceUnits.filter(unit=>scope.sourceUnitIds.includes(unit.id));
   const rawRequirements=raw.requirements;
-  const accepted=acceptDirectDetails(rawRequirements.map(item=>{const copy={...record(item)};delete copy.evidenceBindings;return copy}),[],sourceUnits).requirements;
+  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits).requirements;
   const existing=new Set([...project.requirements,...project.clarifications,...project.features,...project.sourceUnits].map(item=>item.id));
   const checkId=(id:string,allowed:string[])=>{if(existing.has(id)){if(!allowed.includes(id))throw new Error(`越界修改 ${id}`)}else if(!/^LOCAL-[A-Za-z0-9_-]+$/.test(id))throw new Error(`新增项 ${id} 必须使用 LOCAL- ID`)};
   const requirements=accepted.map((item,index)=>{
@@ -135,6 +135,7 @@ export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch
   result.clarifications=result.clarifications.filter(item=>!changedQ.has(item.id)&&!validated.deleteClarificationIds.includes(item.id));
   result.clarifications.push(...validated.clarifications.map(item=>({...item,id:mapping.get(item.id)!,affectedIds:item.affectedIds.map(id=>mapping.get(id)??id)})));
   for(const feature of result.features){feature.requirementIds=feature.requirementIds.filter(id=>!changedR.has(id)&&!validated.deleteRequirementIds.includes(id));feature.requirementIds.push(...validated.requirements.filter(item=>item.featureId===feature.id).map(item=>mapping.get(item.id)!));}
+  const requirementIds=new Set(result.requirements.map(item=>item.id));result.relations=result.relations?.filter(relation=>requirementIds.has(relation.sourceRequirementId)&&requirementIds.has(relation.targetRequirementId));
   const graph=validateDirectGraph(result.sourceUnits,result.sourceDispositions??[],result.features,result.requirements,result.clarifications);
   const required=new Set(scope.requiredSourceUnitIds);
   const invalid=graph.uncovered.filter(item=>!resolvedSourceUnitIds.has(item.sourceUnitId)&&(!previouslyUncovered.has(item.sourceUnitId)||required.has(item.sourceUnitId)));

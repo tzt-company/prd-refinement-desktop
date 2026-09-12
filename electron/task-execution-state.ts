@@ -30,6 +30,14 @@ export function contentFingerprint(project:PrdProject){return hash({features:pro
 export function sourceCoverageDecisionValid(project:PrdProject,sourceUnitId:string,decision:NonNullable<NonNullable<import('../src/types.js').AnalysisTask['checkpoint']>['sourceCoverageDecisions']>[string]){
   return decision.requirementIds.length>0&&decision.requirementIds.every(id=>project.requirements.some(item=>item.id===id))&&decision.dependencyHash===projectDependencyHash(project,decision.requirementIds,[sourceUnitId],false);
 }
+export function invalidateSourceCoverageDecisions(project:PrdProject,issues:AuditIssue[],decisions:NonNullable<NonNullable<import('../src/types.js').AnalysisTask['checkpoint']>['sourceCoverageDecisions']>){
+  const reopened:string[]=[];
+  for(const [sourceUnitId,decision] of Object.entries(decisions))if(!sourceCoverageDecisionValid(project,sourceUnitId,decision)){
+    delete decisions[sourceUnitId];const issue=issues.find(item=>item.id===decision.issueId);if(!issue)continue;
+    issue.disposition='open';issue.dependencyHash=projectDependencyHash(project,issue.affectedIds,issue.sourceUnitIds,true);delete issue.closedDependencyHash;reopened.push(issue.id);
+  }
+  return reopened;
+}
 export function requiredChecks(project:PrdProject,resultVersion:number):Record<RequiredCheckId,AnalysisCheckRecord>{
   const now=Date.now(),base={resultVersion,checkedAt:now,issueIds:[] as string[]};
   const dependencyHash=contentFingerprint(project);

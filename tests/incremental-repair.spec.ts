@@ -9,6 +9,12 @@ const empty=()=>({requirements:[],deleteRequirementIds:[],clarifications:[],dele
 const clarification=(overrides:Partial<Clarification>={}):Clarification=>({id:'LOCAL-Q1',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level:'blocking',knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测业务规则',sourceRefs:[{sourceUnitId:'S1'}],affectedIds:['LOCAL-R1'],state:'open',...overrides});
 
 describe('增量修正写集合与提交',()=>{
+  it('保留模型选择的逐字段证据，不扩大为整条需求的全部来源',()=>{
+    const p=project();p.requirements[0]={...p.requirements[0],sourceUnitIds:['S1','S2'],constraints:['仅管理员可修改'],evidenceBindings:{behavior:[{sourceUnitId:'S1'}],conditions:[],constraints:[[{sourceUnitId:'S2'}]],explicitAcceptanceConditions:[]}};
+    const scope=planDetailRepairs([issue('A',['R-0001'],['S1','S2'])],p)[0];
+    const accepted=acceptRequirementPatch({...empty(),requirements:[{...p.requirements[0],featureId:'F1'}]},p,scope).requirements[0];
+    expect(accepted.evidenceBindings?.behavior).toEqual([{sourceUnitId:'S1'}]);expect(accepted.evidenceBindings?.constraints).toEqual([[{sourceUnitId:'S2'}]]);
+  });
   it('独立范围可依次补各自缺口，范围外已有缺口不阻挡提交',()=>{
     const p=project();p.requirements=[p.requirements[0]];p.features[0].requirementIds=['R-0001'];p.features[1].requirementIds=[];
     const scopes=planDetailRepairs([issue('A',['S2'],['S2']),issue('B',['S3'],['S3'])],p);expect(scopes).toHaveLength(2);
@@ -37,6 +43,11 @@ describe('增量修正写集合与提交',()=>{
     expect(planDetailRepairs([a,b,issue('A-0042',['R-0001','R-0009'])],p)).toHaveLength(1);
     expect(planDetailRepairs([{...a,category:'unclassified'}],p)).toHaveLength(0);
     expect(classifyIssues([a,a,b],p).map(item=>item.id)).toEqual(['A-0040','A-0041']);
+  });
+  it('删除需求时原子清理引用该需求的关系',()=>{
+    const p=project();p.relations=[{id:'REL-0001',sourceRequirementId:'R-0001',targetRequirementId:'R-0009',kind:'depends-on',sourceRefs:[{sourceUnitId:'S1'}]}];
+    p.requirements[1].sourceUnitIds.push('S1');const scope=planDetailRepairs([issue('A',['R-0001'])],p)[0];
+    const result=applyRequirementPatch(p,scope,{...empty(),deleteRequirementIds:['R-0001']},true);expect(result.relations).toEqual([]);
   });
   it('按受影响对象校正模型误报的处理责任，主功能归属问题单独回到功能边界',()=>{
     const p=project();

@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-09-12T07:54:41.990Z",
+  "completedAt": "2026-09-12T07:58:29.667Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T07-54-41.891Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-867D38F6",
+      "status": "failed",
+      "error": "平台未能完成“功能清单统一”（unify）的输出校验：C-1-1 证据分配遗漏候选选区",
+      "wallMs": 225785,
+      "within20Minutes": true,
+      "pipelineVersion": 13,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 0,
+      "checksPassed": false,
+      "unverifiedScopeIds": [],
+      "features": 0,
+      "requirements": 0,
+      "relations": 13,
+      "promptAttempts": 71,
+      "promptEstimatedTokens": 219865,
+      "maxPromptEstimatedTokens": 5525,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 71,
+      "inputTokens": 1411142,
+      "cachedInputTokens": 771072,
+      "outputTokens": 31666,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}
