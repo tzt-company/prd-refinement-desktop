@@ -139,6 +139,14 @@ export interface RequirementRelation {
   sourceRefs: SourceRef[];
 }
 
+export interface ClarificationAction {
+  action: 'merge' | 'keep' | 'keep-distinct' | 'remove-answered' | 'revise';
+  clarificationIds: string[];
+  reason: string;
+  satisfiedRequirementIds: string[];
+  revisedClarification?: Clarification;
+}
+
 export type DeliveryState = 'ready'|'blocked'|'unchecked';
 export interface DeliveryAssessment {
   state: DeliveryState;
@@ -252,7 +260,8 @@ export interface AnalysisTask {
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+    clarificationResults?: { dependencyHash: string; results: Record<string, ClarificationAction[]> };
     resultVersion?:number;
     checks?:Partial<Record<RequiredCheckId,AnalysisCheckRecord>>;
     validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;

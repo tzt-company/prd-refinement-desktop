@@ -1,0 +1,35 @@
+{
+  "duplicates": {
+    "status": "needs-attention",
+    "batchSizes": [
+      9,
+      9,
+      9,
+      8,
+      4
+    ],
+    "remaining": [
+      {
+        "id": "Q-0001",
+        "question": "字段为空是否允许继续提交？",
+        "unresolvedPoint": "空值规则"
+      }
+    ],
+    "clarificationCheck": {
+      "id": "clarification",
+      "status": "passed",
+      "dependencyHash": "630ac364db145cfe4a58e10357820991c5d18ac4d87831960148d64b00bba359",
+      "resultVersion": 0,
+      "checkedAt": 1789206348033,
+      "issueIds": []
+    }
+  },
+  "broad": {
+    "status": "needs-attention",
+    "error": "需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。",
+    "requirements": 12,
+    "questions": 1,
+    "finalCalled": true,
+    "maxClarificationTokens": 11553
+  }
+}

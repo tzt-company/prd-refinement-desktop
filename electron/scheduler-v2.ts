@@ -2,7 +2,8 @@ import { SourceIndex } from './source-index.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { AnalysisTask, AuditIssue, Clarification, DeliveryAssessment, Feature, ModelNodeId, PrdProject, RepairAttemptRecord, RepairReview, RepairTargetResult, RuntimeConfig, RuntimeConfigSnapshot, SourceDisposition, SourceUnit } from '../src/types.js';
+import type { AnalysisTask, AuditIssue, Clarification, ClarificationAction, DeliveryAssessment, Feature, ModelNodeId, PrdProject, RepairAttemptRecord, RepairReview, RepairTargetResult, RuntimeConfig, RuntimeConfigSnapshot, SourceDisposition, SourceUnit } from '../src/types.js';
+import { reconcileClarifications } from './clarification-reconciliation.js';
 import { applyRequirementPatch, acceptRequirementPatch, classifyIssues, planDetailRepairs } from './audit-repair.js';
 import { acceptCandidateClassificationIssues, acceptDirectAuditIssues, acceptDirectClarifications, acceptDirectDetails, acceptDirectFeatureBatch, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from './domain.js';
 import { writeAgentPackage } from './export-agent-package.js';
@@ -43,7 +44,7 @@ const repairReviewSchema = `{"originalIssueResults":[{"issueId":"输入问题ID"
 const fastNodes = new Set<ModelNodeId>(['featureCandidates', 'detailsFast']);
 const sourceClassificationContract = '统一来源分类契约：仅数量统计或章节索引、未表达具体业务行为的摘要归为 context，不需要独立功能，检查不得要求为其创建功能，统一不得因其未独立成项重复反馈。摘要若包含正文未展开的具体业务要求，必须保留并关联实际功能；不能因位于摘要就丢弃。文档记法和纯表头归为 context；标题或摘要明确的新增模块、字段重命名等业务要求必须保留。';
 const nodeStep: Record<ModelNodeId, number> = { imageReading: 0, featureCandidates: 1, featureCandidateRepair: 1, featureCoverage: 2, featureGlobal: 3, detailsFast: 4, details: 4, audit: 5, repair: 6 };
-export const CURRENT_PIPELINE_VERSION = 14;
+export const CURRENT_PIPELINE_VERSION = 15;
 
 function parseObject(value: string) {
   return JSON.parse(value.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()) as Record<string, unknown>;
@@ -181,10 +182,11 @@ function attachAuditClarifications(project:PrdProject,issues:AuditIssue[]){
     issue.clarificationId=clarification.id;issue.disposition='needs-confirmation';delete issue.clarificationDraft;
   }
 }
-function acceptClarificationReconciliation(value:unknown,clarifications:Clarification[],requirements:PrdProject['requirements'],sourceUnits:SourceUnit[]){
+function acceptClarificationReconciliation(value:unknown,clarifications:Clarification[],requirements:PrdProject['requirements'],sourceUnits:SourceUnit[]):ClarificationAction[]{
   if(!Array.isArray(value))throw new Error('澄清一致性检查必须返回 actions 数组');
   const known=new Set(clarifications.map(item=>item.id)),knownRequirements=new Set(requirements.map(item=>item.id)),used=new Set<string>();
-  const result=value.map((raw,index)=>{if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error(`actions[${index}] 必须是对象`);const item=raw as Record<string,unknown>,action=item.action,ids=item.clarificationIds;
+  const result=value.map<ClarificationAction>((raw,index)=>{if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error(`actions[${index}] 必须是对象`);const item=raw as Record<string,unknown>,action=item.action,ids=item.clarificationIds;
+    if(Array.isArray(ids)&&new Set(ids).size!==ids.length)throw new Error(`actions[${index}].clarificationIds 不得重复`);
     if(action!=='merge'&&action!=='keep'&&action!=='keep-distinct'&&action!=='remove-answered'&&action!=='revise')throw new Error(`actions[${index}].action 非法`);const minimum=action==='merge'||action==='keep-distinct'?2:1;if(!Array.isArray(ids)||ids.length<minimum||ids.some(id=>typeof id!=='string'||!known.has(id)))throw new Error(`actions[${index}].clarificationIds 非法`);if(action==='revise'&&ids.length!==1)throw new Error(`actions[${index}].revise 只能修改一个澄清`);if(ids.some(id=>used.has(id as string)))throw new Error('同一澄清不能出现在多个一致性动作中');for(const id of ids)used.add(id as string);if(typeof item.reason!=='string'||!item.reason.trim())throw new Error(`actions[${index}].reason 缺失`);const satisfiedRequirementIds=Array.isArray(item.satisfiedRequirementIds)&&item.satisfiedRequirementIds.every(id=>typeof id==='string'&&knownRequirements.has(id))?item.satisfiedRequirementIds as string[]:[];if(action==='remove-answered'&&!satisfiedRequirementIds.length)throw new Error(`actions[${index}].satisfiedRequirementIds 缺失`);let revisedClarification:Clarification|undefined;if(action==='revise'){const parsed=acceptDirectClarifications([item.revisedClarification],sourceUnits,[...knownRequirements,...sourceUnits.map(unit=>unit.id)])[0];if(parsed.id!==ids[0])throw new Error(`actions[${index}].revisedClarification 必须保留原 ID`);revisedClarification=parsed}return{action,clarificationIds:ids as string[],reason:item.reason,satisfiedRequirementIds,revisedClarification};});
   if(used.size!==known.size)throw new Error('澄清有效性检查没有逐项覆盖全部 open 澄清');
   return result;
@@ -799,15 +801,18 @@ export class AnalysisTaskScheduler {
         attachAuditClarifications(task.project,cp.auditIssues);
         if(task.project.clarifications.some(item=>item.state==='open')){
           const instruction=`逐项执行最终有效性检查：原文或需求已有唯一答案时返回 remove-answered，并列出 satisfiedRequirementIds；原文明确把业务判断交给用户时，不得反问平台需要系统判定规则。问题真实但表述、未决点或级别不准确时返回 revise，并按三级契约给出 revisedClarification；业务行为已经明确、只剩文案等不影响实现的选择必须为 suggestion 并给 defaultResolution，不能保留 blocking。准确且仍无答案的单项返回 keep。多个事项表达同一个决定时返回 merge，否则返回 keep-distinct。输出 {"actions":[{"action":"remove-answered|revise|keep|merge|keep-distinct","clarificationIds":["Q-0001"],"satisfiedRequirementIds":["R-0001"],"revisedClarification":${clarificationSchema},"reason":"原文和需求中的明确依据"}]}。每个 open 澄清必须恰好出现在一个动作中；revise 保留原澄清 ID。`;
-          const open=task.project.clarifications.filter(item=>item.state==='open').sort((a,b)=>normalizedDecision(a).localeCompare(normalizedDecision(b),'zh-CN'));
-          const scope=(questions:Clarification[])=>{const questionSourceIds=new Set(questions.flatMap(item=>[...(item.sourceRefs??[]).map(ref=>ref.sourceUnitId),...item.affectedIds.filter(id=>id.startsWith('S-'))])),relatedRequirementIds=new Set(questions.flatMap(item=>item.affectedIds.filter(id=>task.project.requirements.some(requirement=>requirement.id===id)))),requirements=task.project.requirements.filter(item=>relatedRequirementIds.has(item.id)||item.sourceUnitIds.some(id=>questionSourceIds.has(id))),relatedSourceIds=new Set([...questionSourceIds,...requirements.flatMap(item=>item.sourceUnitIds)]),units=sourceUnits(relatedSourceIds);return{requirements,units,input:{sourceUnits:units,requirements,clarifications:questions}}};
-          const reconciliationBatches:Clarification[][]=[];let current:Clarification[]=[];
-          for(const question of open){const candidate=[...current,question],candidateScope=scope(candidate),evidence=evidencePromptInput(candidateScope.input),built=prompt('待澄清事项全局有效性与一致性检查',instruction,evidence.input),measurement=measurePrompt(built.text,'repair',built.sections);if(current.length&&measurement.estimatedTokens>measurement.targetTokens){reconciliationBatches.push(current);current=[question]}else current=candidate}
-          if(current.length)reconciliationBatches.push(current);
-          const actions=(await mapPool(reconciliationBatches,pool,async(questions,index)=>{const batch=scope(questions);return call('audit',`clarification-reconciliation-${index+1}`,'待澄清事项全局有效性与一致性检查',instruction,batch.input,v=>acceptClarificationReconciliation(v.actions,questions,batch.requirements,batch.units))})).flat();
-          for(const action of actions.filter(item=>item.action==='remove-answered')){const removed=new Set(action.clarificationIds);task.project.clarifications=task.project.clarifications.filter(item=>!removed.has(item.id));for(const issue of cp.auditIssues)if(issue.owner==='source-decision'&&((issue.clarificationId&&removed.has(issue.clarificationId))||issue.affectedIds.some(id=>removed.has(id))))closeIssue(issue,'repaired')}
-          for(const action of actions.filter(item=>item.action==='revise')){const current=task.project.clarifications.find(item=>item.id===action.clarificationIds[0]);if(current&&action.revisedClarification)Object.assign(current,action.revisedClarification)}
-          for(const action of actions.filter(item=>item.action==='merge')){const items=action.clarificationIds.map(id=>task.project.clarifications.find(item=>item.id===id)!).filter(Boolean);if(items.length>1){const canonical=mergeClarifications(task.project,action.clarificationIds,items[0],`clarification-merge:${action.clarificationIds.join('+')}`),removed=new Set(action.clarificationIds.filter(id=>id!==canonical.id));for(const issue of cp.auditIssues){if(issue.clarificationId&&removed.has(issue.clarificationId))issue.clarificationId=canonical.id;issue.affectedIds=[...new Set(issue.affectedIds.map(id=>removed.has(id)?canonical.id:id))]}}}
+          const dependencyHash=contentFingerprint(task.project),reconciled=structuredClone(task.project),reconciledIssues=structuredClone(cp.auditIssues);
+          if(cp.clarificationResults?.dependencyHash!==dependencyHash)cp.clarificationResults={dependencyHash,results:{}};
+          const saved=cp.clarificationResults.results;
+          await reconcileClarifications({project:reconciled,instruction,units:sourceUnits,accept:acceptClarificationReconciliation,parallel:(items,work)=>mapPool(items,pool,work),
+            measure:(title,contract,input)=>{const built=prompt(title,contract,evidencePromptInput(input).input);return measurePrompt(built.text,'repair',built.sections)},
+            ask:async(title,purpose,contract,input,accept)=>{const key=createHash('sha256').update(JSON.stringify({title,contract,input})).digest('hex');if(saved[key])return structuredClone(saved[key]);const actions=await call('audit',`${purpose}-${key.slice(0,12)}`,title,contract,input,accept);saved[key]=structuredClone(actions);await checkpoint();return actions},
+            apply:actions=>{
+              for(const action of actions.filter(item=>item.action==='remove-answered')){const removed=new Set(action.clarificationIds);reconciled.clarifications=reconciled.clarifications.filter(item=>!removed.has(item.id));for(const issue of reconciledIssues)if(issue.owner==='source-decision'&&((issue.clarificationId&&removed.has(issue.clarificationId))||issue.affectedIds.some(id=>removed.has(id))))closeIssue(issue,'repaired')}
+              for(const action of actions.filter(item=>item.action==='revise')){const current=reconciled.clarifications.find(item=>item.id===action.clarificationIds[0]);if(current&&action.revisedClarification)Object.assign(current,action.revisedClarification)}
+              for(const action of actions.filter(item=>item.action==='merge')){const items=action.clarificationIds.map(id=>reconciled.clarifications.find(item=>item.id===id)!).filter(Boolean);if(items.length>1){const canonical=mergeClarifications(reconciled,action.clarificationIds,items[0],`clarification-merge:${action.clarificationIds.join('+')}`),removed=new Set(action.clarificationIds.filter(id=>id!==canonical.id));for(const issue of reconciledIssues){if(issue.clarificationId&&removed.has(issue.clarificationId))issue.clarificationId=canonical.id;issue.affectedIds=[...new Set(issue.affectedIds.map(id=>removed.has(id)?canonical.id:id))]}}}
+            }});
+          this.assert(task,attempt);task.project=reconciled;cp.auditIssues=reconciledIssues;
         }
         const platformIssues=cp.auditIssues.filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId));
         const blockingQuestions=task.project.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
