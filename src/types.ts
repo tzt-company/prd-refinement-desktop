@@ -198,15 +198,59 @@ export interface RefinementAdjustmentRequest {
   operationId?: string;
   baseTaskId: string;
   baseVersion: number;
-  kind: 'feature' | 'clarification' | 'supplement';
-  scope: 'feature' | 'all';
-  featureId?: string;
-  clarificationId?: string;
-  clarificationDisposition?: 'answered' | 'supplemented' | 'not-applicable';
-  instruction: string;
+  /** 用户一次提交的完整调整说明。 */
+  feedback: string;
+  /** 可选的界面引用，只辅助定位，不限制自然语言可影响的范围。 */
+  references?: Array<{ kind: 'feature' | 'requirement' | 'clarification'; id: string }>;
 }
 
-export type RefinementAdjustment = Omit<RefinementAdjustmentRequest, 'baseTaskId' | 'baseVersion'>;
+export type FeedbackOperationKind = 'organization' | 'business-fact' | 'replace-fact' | 'defer' | 'question';
+export interface FeedbackOperation {
+  id: string;
+  /** 必须逐字存在于 feedback 中，用于切分事实依据。 */
+  quote: string;
+  kind: FeedbackOperationKind;
+  instruction: string;
+  featureIds: string[];
+  clarificationIds: string[];
+  atomicGroupId?: string;
+}
+export interface FeedbackPendingItem {
+  id: string;
+  quote: string;
+  question: string;
+  candidateFeatureIds: string[];
+  candidateClarificationIds: string[];
+}
+export interface FeedbackAdjustmentPlan {
+  operations: FeedbackOperation[];
+  pending: FeedbackPendingItem[];
+}
+export interface FeedbackOperationResult {
+  operationId: string;
+  status: 'applied' | 'deferred' | 'needs-confirmation' | 'failed';
+  featureIds: string[];
+  clarificationIds: string[];
+  detail: string;
+}
+export interface RefinementAdjustment {
+  feedback: string;
+  references?: RefinementAdjustmentRequest['references'];
+  plan?: FeedbackAdjustmentPlan;
+  results?: FeedbackOperationResult[];
+  /** 旧任务只读字段。 */
+  kind?: 'feature' | 'clarification' | 'supplement';
+  /** 旧任务只读字段。 */
+  scope?: 'feature' | 'all';
+  /** 旧任务只读字段。 */
+  featureId?: string;
+  /** 旧任务只读字段。 */
+  clarificationId?: string;
+  /** 旧任务只读字段。 */
+  clarificationDisposition?: 'answered' | 'supplemented' | 'not-applicable';
+  /** 旧任务只读字段。 */
+  instruction?: string;
+}
 
 export interface RuntimeStatus {
   available: boolean;

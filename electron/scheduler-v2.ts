@@ -299,13 +299,12 @@ export class AnalysisTaskScheduler {
     const rootTaskId=base.rootTaskId??base.id,latest=this.latestResult(rootTaskId);
     const baseVersion=base.resultVersion??1;
     if(!latest||latest.id!==base.id||request.baseVersion!==baseVersion)throw new Error(`结果已更新到第 ${latest?.resultVersion??baseVersion} 版，请在最新版上重新提交`);
+    if(!request.feedback.trim())throw new Error('调整说明不能为空');
     const config=await this.getConfig(),now=Date.now(),id=`T-${randomUUID().slice(0,8).toUpperCase()}`;
-    const featureIds=request.scope==='all'?base.project.features.map(item=>item.id):request.featureId?[request.featureId]:request.clarificationId?base.project.features.filter(feature=>{const clarification=base.project.clarifications.find(item=>item.id===request.clarificationId),affected=new Set(clarification?.affectedIds??[]);return feature.requirementIds.some(requirementId=>affected.has(requirementId))||feature.sourceUnitIds.some(sourceUnitId=>affected.has(sourceUnitId))}).map(item=>item.id):[];
-    const evidenceId=`USER-${baseVersion+1}-${createHash('sha256').update(JSON.stringify([request.kind,request.instruction,featureIds])).digest('hex').slice(0,12)}`;
-    const persistedProject=structuredClone(base.project);persistedProject.userEvidence=[...(persistedProject.userEvidence??[]).filter(item=>item.id!==evidenceId),{id:evidenceId,author:'user',kind:request.kind==='feature'?'refinement-instruction':request.kind==='clarification'?'clarification-answer':'supplement',content:request.instruction.trim(),createdAt:new Date(now).toISOString(),appliesTo:{scope:request.scope,featureIds,clarificationIds:request.clarificationId?[request.clarificationId]:[]},version:baseVersion+1,businessFact:request.kind!=='feature'}];
+    const persistedProject=structuredClone(base.project);
     const task:AnalysisTask={
       id,operationId,rootTaskId,parentTaskId:base.id,baseResultVersion:baseVersion,
-      adjustment:{kind:request.kind,scope:request.scope,featureId:request.featureId,clarificationId:request.clarificationId,clarificationDisposition:request.clarificationDisposition,instruction:request.instruction},
+      adjustment:{feedback:request.feedback.trim(),references:request.references},
       project:persistedProject,runtimeConfig:snapshot(config),attempt:1,
       checkpoint:{pipelineVersion:CURRENT_PIPELINE_VERSION,resultVersion:base.checkpoint?.resultVersion??0,promptMetrics:[],detailedFeatureIds:[],auditIssues:[],validationFailures:[]},
       status:'queued',progress:0,createdAt:now,
@@ -471,20 +470,15 @@ export class AnalysisTaskScheduler {
       if(task.adjustment&&task.parentTaskId&&task.resultVersion===undefined){
         const base=this.tasks.get(task.parentTaskId);if(!base)throw new Error('基础结果不存在，无法继续调整');
         const adjustmentStep=task.steps[4];adjustmentStep.status='running';adjustmentStep.startedAt=Date.now();adjustmentStep.runs=(adjustmentStep.runs??0)+1;await checkpoint();
-        const request={...task.adjustment,baseTaskId:base.id,baseVersion:task.baseResultVersion??base.resultVersion??1};
+        if(!task.adjustment.feedback)throw new Error('旧版逐项调整任务只能查看，不能按新版流程续跑');
+        const request={feedback:task.adjustment.feedback,references:task.adjustment.references,baseTaskId:base.id,baseVersion:task.baseResultVersion??base.resultVersion??1};
         const engine=new RefinementAdjustmentEngine({generate:async input=>call('details','adjustment',input.title,input.instruction,input.input,value=>value,[],true)});
         const run=await engine.run({taskId:base.id,version:base.resultVersion??1,project:base.project,userEvidence:task.project.userEvidence},request);
-        task.project=structuredClone(run.project);task.project.userEvidence=[...(task.project.userEvidence??[]).filter(item=>item.id!==run.userEvidence.id),run.userEvidence];
+        task.project=structuredClone(run.project);task.adjustment.plan=run.plan;task.adjustment.results=run.results;
         adjustmentStep.completedAt=Date.now();adjustmentStep.startedAt=undefined;
         if(run.status==='failed'){adjustmentStep.status='failed';throw new Error(run.error??'调整生成失败')}
         adjustmentStep.status='completed';task.progress=62.5;await checkpoint();
-        if(run.status==='full-regeneration-required'){
-          task.project={...task.project,sourceDispositions:[],rules:[],features:[],requirements:[],relations:[],clarifications:[],audit:undefined,delivery:undefined};
-          cp.resultVersion=0;cp.detailedFeatureIds=[];cp.auditIssues=[];cp.featureCandidateBatches=[];cp.sourceDispositionBatches=[];cp.featureCoverageBatches=[];cp.detailResults={};cp.auditIssueBatches=[];cp.relationBatches=[];
-          for(const step of task.steps){step.status='pending';step.startedAt=undefined;step.completedAt=undefined}
-          task.progress=0;await checkpoint();
-        }else{
-          validateDirectGraph(task.project.sourceUnits,task.project.sourceDispositions??[],task.project.features,task.project.requirements,task.project.clarifications);
+        validateDirectGraph(task.project.sourceUnits,task.project.sourceDispositions??[],task.project.features,task.project.requirements,task.project.clarifications);
           if(task.project.relations?.length)task.project.relations=acceptRequirementRelations(task.project.relations,task.project.sourceUnits,task.project.requirements);
           delete task.project.delivery;
           const proofVersion=(cp.resultVersion??0)+1;cp.resultVersion=proofVersion;
@@ -499,10 +493,9 @@ export class AnalysisTaskScheduler {
             const result=path.join(workspace,'result'),packageRoot=path.join(result,task.project.delivery?.state==='ready'?'deliveries':'drafts');await mkdir(result,{recursive:true});
             await writeAgentPackage(task.project,task,packageRoot);await this.writeAtomic(path.join(this.root,`${task.project.id}.project.json`),task.project);
             task.resultVersion=baseVersion+1;deliveryStep.status='completed';deliveryStep.completedAt=Date.now();deliveryStep.startedAt=undefined;
-            const ready=task.project.delivery?.state==='ready';task.status=ready?'completed':'needs-attention';task.progress=ready?100:88;task.error=ready?undefined:'调整结果已生成，但仍有待处理事项';task.completedAt=Date.now();await this.publish(task);
+            const ready=task.project.delivery?.state==='ready',feedbackPending=task.adjustment?.results?.some(item=>item.status==='needs-confirmation'||item.status==='failed')??false;task.status=ready&&!feedbackPending?'completed':'needs-attention';task.progress=ready&&!feedbackPending?100:88;task.error=feedbackPending?'已应用可独立处理的意见，仍有反馈需要确认或未能应用':ready?undefined:'调整结果已生成，但仍有待处理事项';task.completedAt=Date.now();await this.publish(task);
           });
-          return;
-        }
+        return;
       }
       await stage(0, async () => {
         task.project.sourceUnits = task.project.sourceDocuments ? task.project.sourceUnits : enrichSourceContext(task.project.sourceUnits.length ? task.project.sourceUnits : buildSourceUnits(task.project.rawText));
@@ -933,7 +926,7 @@ export class AnalysisTaskScheduler {
       }else await this.publish(task);
     } catch (error) {
       if (task.attempt !== attempt) return;
-      task.status = 'failed'; task.completedAt = Date.now(); const failure=error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);task.error=task.adjustment?`${failure}；本次调整输入已保存：${task.adjustment.instruction}`:failure;
+      task.status = 'failed'; task.completedAt = Date.now(); const failure=error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);task.error=task.adjustment?`${failure}；本次调整输入已保存：${task.adjustment.feedback??task.adjustment.instruction??''}`:failure;
       task.steps[error instanceof ModelOutputValidationError&&error.stepIndex!==undefined?error.stepIndex:activeStage].status = 'failed';
       for (const step of task.steps) if (step.status === 'running') step.status = 'failed';
       await this.publish(task);

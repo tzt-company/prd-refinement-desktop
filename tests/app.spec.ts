@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Progress, RuntimeCost, runtimeTiming } from '../src/App.js';
+import { clearFeedbackDraft, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, runtimeTiming } from '../src/App.js';
+import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
@@ -50,5 +51,44 @@ describe('需求细化数据契约', () => {
     expect(runtimeTiming(task)).toEqual({active:7000,retryWait:5000});
     const cost=renderToStaticMarkup(React.createElement(RuntimeCost,{task}));
     expect(cost).toContain('模型活跃耗时');expect(cost).toContain('墙钟耗时');expect(cost).toContain('等待重试');expect(cost).toContain('7 秒');expect(cost).toContain('12 秒');expect(cost).toContain('5 秒');
+  });
+
+  it('结果页使用一个任务级自然语言调整入口',()=>{
+    const task={id:'T-1',resultVersion:3,status:'completed',progress:100,steps:[],adjustment:{feedback:'统一含税',results:[{operationId:'OP-1',status:'applied',featureIds:['F-1'],clarificationIds:[],detail:'退款金额已统一为含税口径。'},{operationId:'OP-2',status:'needs-confirmation',featureIds:[],clarificationIds:[],detail:'仍需确认支付超时范围。'}]},project:{name:'订单',features:[],requirements:[],clarifications:[],sourceUnits:[]}} as unknown as AnalysisTask;
+    const html=renderToStaticMarkup(React.createElement(TaskFeedback,{task,onAdjust:async()=>undefined}));
+    expect(html).toContain('描述你希望怎么调整');
+    expect(html).toContain('可以一次写多条意见');
+    expect(html).toContain('按说明调整');
+    expect(html).toContain('已落实 1 项，1 项仍需处理');
+    expect(html).toContain('退款金额已统一为含税口径。');
+    expect(html).toContain('仍需确认支付超时范围。');
+    expect(html).not.toContain('OP-1');
+    expect(html).toContain('noValidate=""');
+    expect(html).not.toContain('调整方式');
+    expect(html).not.toContain('处理方式');
+  });
+
+  it('待处理事项首屏直接显示问题、已知事实和影响',()=>{
+    const project={features:[],requirements:[],sourceUnits:[],clarifications:[{id:'Q-1',question:'退款金额是否含税？',reason:'原文未明确',level:'blocking',knownFacts:'退款金额来自原订单。',unresolvedPoint:'税额口径未确定。',impact:'会影响退款金额计算。',levelReason:'阻塞金额实现。',affectedIds:[],state:'open'}]} as any;
+    const html=renderToStaticMarkup(React.createElement(ResultIssues,{project}));
+    expect(html).toContain('退款金额是否含税？');
+    expect(html).toContain('退款金额来自原订单。');
+    expect(html).toContain('会影响退款金额计算。');
+    expect(html).toContain('查看依据');
+    expect(html).not.toContain('填写答案');
+    expect(html).not.toContain('处理方式');
+  });
+
+  it('草稿存储不可用时不阻断页面',()=>{
+    const unavailable={getItem(){throw new Error('blocked')},setItem(){throw new Error('blocked')},removeItem(){throw new Error('blocked')}};
+    expect(loadFeedbackDraft(unavailable,'draft')).toBe('');
+    expect(()=>saveFeedbackDraft(unavailable,'draft','调整内容')).not.toThrow();
+    expect(()=>clearFeedbackDraft(unavailable,'draft')).not.toThrow();
+  });
+
+  it('输入法组合态不会触发快捷提交',()=>{
+    expect(shouldSubmitFeedback({ctrlKey:true,metaKey:false,key:'Enter',nativeEvent:{isComposing:true}})).toBe(false);
+    expect(shouldSubmitFeedback({ctrlKey:true,metaKey:false,key:'Enter',nativeEvent:{isComposing:false}})).toBe(true);
+    expect(shouldSubmitFeedback({ctrlKey:false,metaKey:true,key:'Enter',nativeEvent:{isComposing:false}})).toBe(true);
   });
 });
