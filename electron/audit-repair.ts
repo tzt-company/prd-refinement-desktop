@@ -85,7 +85,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
   if(!Array.isArray(raw.requirements)||!Array.isArray(raw.clarifications))throw new Error('增量必须包含 requirements 和 clarifications 数组');
   const sourceUnits=project.sourceUnits.filter(unit=>scope.sourceUnitIds.includes(unit.id));
   const rawRequirements=raw.requirements;
-  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits).requirements;
+  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits,true).requirements;
   const existing=new Set([...project.requirements,...project.clarifications,...project.features,...project.sourceUnits].map(item=>item.id));
   const checkId=(id:string,allowed:string[])=>{if(existing.has(id)){if(!allowed.includes(id))throw new Error(`越界修改 ${id}`)}else if(!/^LOCAL-[A-Za-z0-9_-]+$/.test(id))throw new Error(`新增项 ${id} 必须使用 LOCAL- ID`)};
   const requirements=accepted.map((item,index)=>{

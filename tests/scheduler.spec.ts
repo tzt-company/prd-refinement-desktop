@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { AnalysisTaskScheduler, compactPromptInput, schedulerConcurrency } from '../electron/scheduler-v2';
+import { AnalysisTaskScheduler, compactPromptInput, schedulerConcurrency, semanticallyRelatedRequirements } from '../electron/scheduler-v2';
 import type { AnalysisRuntime } from '../electron/runtime';
 import type { Clarification, PrdProject, RuntimeConfig, SourceUnit } from '../src/types';
 
@@ -31,7 +31,7 @@ function answer(prompt:string){
   if(prompt.includes('“局部修正”'))return{requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]};
   throw new Error('未处理的提示词');
 }
-function runtime(fn:(prompt:string)=>unknown=answer,gate?:(prompt:string)=>Promise<void>):AnalysisRuntime{return{start:async()=>{},stop:async()=>{},diagnostics:()=>'',promptAndWait:async(_id,prompt)=>{await gate?.(prompt);const output=fn(prompt) as {sourceDispositions?:Array<Record<string,unknown>>};if(Array.isArray(output?.sourceDispositions))output.sourceDispositions=output.sourceDispositions.map(({kind,...item})=>({...item,contentRole:item.contentRole??kind}));return JSON.stringify(output)}}}
+function runtime(fn:(prompt:string)=>unknown=answer,gate?:(prompt:string)=>Promise<void>):AnalysisRuntime{return{start:async()=>{},stop:async()=>{},diagnostics:()=>'',promptAndWait:async(_id,prompt)=>{await gate?.(prompt);const output=fn(prompt) as {sourceDispositions?:Array<Record<string,unknown>>;requirements?:Array<Record<string,unknown>>};if(Array.isArray(output?.sourceDispositions))output.sourceDispositions=output.sourceDispositions.map(({kind,...item})=>({...item,contentRole:item.contentRole??kind}));if(Array.isArray(output?.requirements)){const value=input(prompt),catalog=Array.isArray(value.evidenceCatalog)?value.evidenceCatalog:[];for(const requirement of output.requirements)if(!requirement.evidenceBindings){const sourceIds=Array.isArray(requirement.sourceUnitIds)?requirement.sourceUnitIds:[],ids=catalog.filter((item:{sourceUnitId:string})=>sourceIds.includes(item.sourceUnitId)).map((item:{id:string})=>item.id);if(ids.length)requirement.evidenceBindings={behavior:ids,conditions:(requirement.conditions as unknown[]??[]).map(()=>ids),constraints:(requirement.constraints as unknown[]??[]).map(()=>ids),explicitAcceptanceConditions:(requirement.explicitAcceptanceConditions as unknown[]??[]).map(()=>ids)}}}return JSON.stringify(output)}}}
 function deferred(){let resolve!:()=>void;const promise=new Promise<void>(r=>{resolve=r});return{promise,resolve}}
 const emptyPatch=()=>({requirements:[],clarifications:[],deleteRequirementIds:[],deleteClarificationIds:[]});
 const clarification=(sourceUnitId:string,affectedIds:string[],overrides:Partial<Clarification>={}):Clarification=>({id:'LOCAL-Q',question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level:'blocking',knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:'不回答会迫使开发 Agent 猜测业务规则',sourceRefs:[{sourceUnitId}],affectedIds,state:'open',...overrides});
@@ -376,5 +376,21 @@ describe('八节点需求细化调度器',()=>{
       if(ready&&!fired){fired=true;cancellation=s.cancel(t.id)}
     },()=>{const r=runtime();r.stop=async()=>{stopped.resolve()};return r});
     await s.initialize();await s.create(project());await stopped.promise;await cancellation;const done=s.list()[0];expect(fired).toBe(true);expect(done.error).toBe('用户已取消任务');expect(done.project.requirements).toEqual([]);expect(done.checkpoint?.materializedFeatureIds??[]).toEqual([]);expect(done.steps[where==='candidate'?1:4].status).not.toBe('completed');
+  });
+  it('功能边界修复三次无变化后结束并保留平台问题',async()=>{
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'LOCAL-A',direction:'cross',type:'边界错误',category:'feature-boundary',owner:'feature-grouping',sourceUnitIds:[v.sourceUnits[0].id],affectedIds:[v.features[0].id],detail:'功能需要调整'}]};if(p.includes('“功能候选识别·定点返工”'))return answer(p.replace('功能候选识别·定点返工','功能候选识别'));if(p.includes('“功能清单统一·定点返工”'))return{features:v.candidates,candidateMappings:v.candidates.map((item:{id:string})=>({candidateId:item.id,featureIds:[item.id]}))};return answer(p)}));
+    await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status,done.error).toBe('needs-attention');expect(done.checkpoint?.graphRepairs?.filter(item=>item.scope==='features'&&item.status==='rejected')).toHaveLength(3);expect(done.project.audit?.issues.some(issue=>issue.owner==='feature-grouping'&&issue.disposition==='open')).toBe(true);
+  });
+  it('删除已回答澄清不能顺带关闭仍未修复的明细问题',async()=>{
+    const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);if(p.includes('“逐功能细化”')){const base=answer(p) as {requirements:Array<Record<string,unknown>>;clarifications:unknown[]};base.requirements.push({...base.requirements[0],id:'LOCAL-R2',title:'冲突要求',behavior:'字段 X 可选'});base.clarifications=[clarification(v.sourceUnits[0].id,['LOCAL-R1'])];return base}if(p.includes('“完整性与忠实性检查”'))return{issues:[{id:'LOCAL-A',direction:'reverse',type:'需求与澄清冲突',category:'detail-mismatch',owner:'requirement-detail',sourceUnitIds:[v.sourceUnits[0].id],affectedIds:[v.requirements[1].id,v.clarifications[0].id],detail:'第二条需求错误地写成可选，且澄清已由第一条需求回答'}]};if(p.includes('“待澄清事项全局有效性与一致性检查”'))return{actions:[{action:'remove-answered',clarificationIds:[v.clarifications[0].id],satisfiedRequirementIds:[v.requirements[0].id],reason:'第一条需求已回答'}]};return answer(p)}));
+    await s.initialize();await s.create(project());const done=await terminal(s);expect(done.status).toBe('needs-attention');expect(done.project.delivery?.state).toBe('blocked');expect(done.project.requirements.map(item=>item.behavior)).toContain('字段 X 可选');expect(done.project.audit?.issues[0].disposition).toBe('open');
+  });
+  it('仅关联来源的澄清也能读取同来源已有需求',async()=>{
+    let visible:string[]=[];const s=new AnalysisTaskScheduler(caseRoot(),async()=>config,()=>{},()=>runtime(p=>{const v=input(p);if(p.includes('“逐功能细化”'))return{...(answer(p) as object),clarifications:[clarification(v.sourceUnits[0].id,[v.sourceUnits[0].id])]};if(p.includes('“待澄清事项全局有效性与一致性检查”')){visible=v.requirements.map((item:{id:string})=>item.id);return{actions:v.clarifications.map((item:{id:string})=>({action:'keep',clarificationIds:[item.id],reason:'仍需确认'}))}}return answer(p)}));
+    await s.initialize();await s.create(project());await terminal(s);expect(visible).toEqual(['R-0001']);
+  });
+  it('有界语义检索补入同功能的跨来源直接依据',()=>{
+    const candidates=[{id:'R-1',title:'关闭提醒',behavior:'再次点击时重新检查',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S1'],ruleIds:[],state:'draft' as const},{id:'R-2',title:'再次生成',behavior:'再次点击生成版本时重新检查最新范围',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S2'],ruleIds:[],state:'draft' as const},{id:'R-3',title:'权限',behavior:'管理员可以编辑',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S3'],ruleIds:[],state:'draft' as const}];
+    expect(semanticallyRelatedRequirements('再次点击生成版本时重新检查',candidates,1).map(item=>item.id)).toEqual(['R-2']);
   });
 });

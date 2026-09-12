@@ -149,4 +149,7 @@ describe('直接需求域契约',()=>{
     const second={...requirement,id:'R2',sourceUnitIds:['S2']};expect(acceptRequirementRelations([{sourceRequirementId:'R1',targetRequirementId:'R2',kind:'affects',sourceRefs:[{sourceUnitId:'S1'}]}],sources,[requirement,second])).toHaveLength(1);
     expect(()=>acceptRequirementRelations([{sourceRequirementId:'R1',targetRequirementId:'R1',kind:'depends-on',sourceRefs:[{sourceUnitId:'S1'}]}],sources,[requirement])).toThrow('禁止自引用');
   });
+  it('当前模型流程缺少逐字段证据时拒绝需求输出',()=>{
+    expect(()=>acceptDirectDetails([requirement],[],sources,true)).toThrow('evidenceBindings 缺失');
+  });
 });
