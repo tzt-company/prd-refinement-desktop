@@ -18,7 +18,7 @@ describe('需求细化数据契约', () => {
     expect(progress).toContain('逐份候选内容提取功能候选');
     expect(progress).toContain('gpt-5.6-luna');
     expect(progress).toContain('定点返工');
-    expect(progress).toContain('只修订检查发现问题的候选');
+    expect(progress).toContain('只修订边界或分类问题');
     expect(progress).toContain('gpt-5.6-terra');
     expect(progress).toContain('推理 高');
     expect(cost).toContain('gpt-5.6-luna');
@@ -33,8 +33,8 @@ describe('需求细化数据契约', () => {
     expect(progress).not.toContain('运行 3 轮');
     expect(progress).toContain('简单功能细化');
     expect(progress).toContain('处理短小且无复杂联动的功能');
-    expect(progress).toContain('复杂功能与补漏');
-    expect(progress).toContain('处理状态、权限、依赖、例外及定点补漏');
+    expect(progress).toContain('复杂功能细化');
+    expect(progress).toContain('处理状态、权限、依赖和例外');
   });
   it('旧任务持久化的来源包文案在界面统一显示为候选内容',()=>{
     const task={status:'running',progress:25,startedAt:1000,steps:[{id:'candidates',name:'功能候选识别',note:'已识别 17/17 个来源包',runs:19,status:'completed'}],project:{}} as AnalysisTask;

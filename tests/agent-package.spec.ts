@@ -38,7 +38,7 @@ describe('Agent 交付包',()=>{
     const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
     const {project,task}=fixture();const assetPath=path.join(root,'原始图片.png'),asset=Buffer.from('fixture-image');await writeFile(assetPath,asset);project.sourceUnits[0].asset={path:assetPath,mimeType:'image/png',sha256:hash(asset),readStatus:'read'};const result=await writeAgentPackage(project,task,root,'delivery-1');
     expect(path.basename(result.directory)).toBe('delivery-1');expect(result.manifest.qualityState).toBe('ready');
-    const names=(await readdir(result.directory)).sort();expect(names).toEqual(['README.md','features','manifest.json','requirements.json','requirements.xlsx','sources']);
+    const names=(await readdir(result.directory)).sort();expect(names).toEqual(['README.md','features','manifest.json','pending.json','requirements.json','requirements.xlsx','sources']);
     const requirements=JSON.parse(await readFile(path.join(result.directory,'requirements.json'),'utf8'));
     expect(requirements.requirements.map((item:{id:string})=>item.id)).toEqual(['R-001','R-900']);expect(requirements.delivery.state).toBe('ready');
     expect(requirements.sources[0].asset.path).toBe(`sources/assets/${hash(asset)}.png`);expect(JSON.stringify(requirements)).not.toContain(assetPath);
@@ -47,6 +47,44 @@ describe('Agent 交付包',()=>{
     const readme=await readFile(path.join(result.directory,'README.md'),'utf8');expect(readme).toContain('(features/F-001.md)');
     for(const file of result.manifest.files){const data=await readFile(path.join(result.directory,...file.path.split('/')));expect(hash(data)).toBe(file.sha256);expect(data.length).toBe(file.size)}
     expect((await readdir(root)).some(name=>name.endsWith('.tmp'))).toBe(false);
+  });
+
+  it('只交付已选且通过核查的功能，并将受阻和未选内容放入独立清单',async()=>{
+    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const {project,task}=fixture();
+    project.sourceUnits.push({id:'S-3',label:'取消订单',kind:'paragraph',excerpt:'用户可以取消订单。',location:'第 3 段',status:'processed'});
+    project.features.push({id:'F-002',name:'取消订单',goal:'',sourceUnitIds:['S-3'],ruleIds:[],requirementIds:['R-002'],state:'reviewed'});
+    project.requirements.push({id:'R-002',title:'取消订单',behavior:'用户取消订单',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-3'],ruleIds:[],state:'needs-clarification'});
+    project.clarifications.push({id:'Q-B',level:'blocking',question:'取消后库存如何处理？',reason:'原文未明确',affectedIds:['R-002'],state:'open'});
+    const result=await writeAgentPackage(project,task,root,'scoped', {selectedFeatureIds:['F-001','F-002']});
+    const requirements=JSON.parse(await readFile(path.join(result.directory,'requirements.json'),'utf8'));
+    const pending=JSON.parse(await readFile(path.join(result.directory,'pending.json'),'utf8'));
+    expect(result.manifest.selectedFeatureIds).toEqual(['F-001','F-002']);
+    expect(result.manifest.executableFeatureIds).toEqual(['F-001']);
+    expect(result.manifest.blockedFeatureIds).toEqual(['F-002']);
+    expect(requirements.features.map((item:{id:string})=>item.id)).toEqual(['F-001','F-900']);
+    expect(requirements.requirements.map((item:{id:string})=>item.id)).toEqual(['R-001','R-900']);
+    expect(pending.items).toEqual(expect.arrayContaining([expect.objectContaining({id:'F-002',kind:'blocked-feature'}),expect.objectContaining({id:'Q-B',kind:'clarification'})]));
+    expect(await readdir(path.join(result.directory,'features'))).toEqual(expect.arrayContaining(['F-001.md','F-900.md']));
+    expect(await readdir(path.join(result.directory,'features'))).not.toContain('F-002.md');
+    const workbook=new (await import('exceljs')).default.Workbook();await workbook.xlsx.readFile(path.join(result.directory,'requirements.xlsx'));
+    expect(JSON.stringify(workbook.getWorksheet('阅读说明与汇总')!.getSheetValues())).toContain('F-001、F-002');
+    expect(JSON.stringify(workbook.getWorksheet('阅读说明与汇总')!.getSheetValues())).toContain('受阻功能');
+  });
+
+  it('显式关系指向受阻功能时，依赖功能也不能进入执行包',async()=>{
+    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const {project,task}=fixture();
+    project.sourceUnits.push({id:'S-3',label:'支付',kind:'paragraph',excerpt:'订单提交后发起支付。',location:'第 3 段',status:'processed'});
+    project.features.push({id:'F-002',name:'支付',goal:'',sourceUnitIds:['S-3'],ruleIds:[],requirementIds:['R-002'],state:'reviewed'});
+    project.requirements.push({id:'R-002',title:'发起支付',behavior:'发起支付',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:['S-3'],ruleIds:[],state:'needs-clarification'});
+    project.relations=[{id:'REL-1',sourceRequirementId:'R-001',targetRequirementId:'R-002',kind:'depends-on',sourceRefs:[{sourceUnitId:'S-3'}]}];
+    const result=await writeAgentPackage(project,task,root,'dependency', {selectedFeatureIds:['F-001','F-002']});
+    const requirements=JSON.parse(await readFile(path.join(result.directory,'requirements.json'),'utf8'));
+    expect(result.manifest.executableFeatureIds).toEqual([]);
+    expect(result.manifest.blockedFeatureIds).toEqual(['F-001','F-002']);
+    expect(requirements.requirements).toEqual([]);
+    expect(result.manifest.qualityState).toBe('blocked');
   });
 
   it('目标目录已存在时不覆盖旧包，并清理临时目录',async()=>{

@@ -179,7 +179,34 @@ export interface PrdProject {
   relations?: RequirementRelation[];
   audit?: RequirementAudit;
   delivery?: DeliveryAssessment;
+  userEvidence?: UserEvidence[];
 }
+
+export interface UserEvidence {
+  id: string;
+  author: 'user';
+  kind: 'refinement-instruction' | 'clarification-answer' | 'supplement';
+  content: string;
+  createdAt: string;
+  appliesTo: { scope: 'feature' | 'all'; featureIds: string[]; clarificationIds: string[] };
+  version: number;
+  businessFact: boolean;
+}
+
+export interface RefinementAdjustmentRequest {
+  /** 客户端重试幂等键；未提供时由主进程生成。 */
+  operationId?: string;
+  baseTaskId: string;
+  baseVersion: number;
+  kind: 'feature' | 'clarification' | 'supplement';
+  scope: 'feature' | 'all';
+  featureId?: string;
+  clarificationId?: string;
+  clarificationDisposition?: 'answered' | 'supplemented' | 'not-applicable';
+  instruction: string;
+}
+
+export type RefinementAdjustment = Omit<RefinementAdjustmentRequest, 'baseTaskId' | 'baseVersion'>;
 
 export interface RuntimeStatus {
   available: boolean;
@@ -256,12 +283,18 @@ export interface PromptCallMetric {
 
 export interface AnalysisTask {
   id: string;
+  operationId?: string;
+  rootTaskId?: string;
+  parentTaskId?: string;
+  baseResultVersion?: number;
+  resultVersion?: number;
+  adjustment?: RefinementAdjustment;
   project: PrdProject;
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
-    clarificationResults?: { dependencyHash: string; results: Record<string, ClarificationAction[]> };
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+    clarificationResults?: { dependencyHash: string; results: Record<string, { status: 'candidate' | 'verified' | 'rejected'; value?: unknown; attempts: number; feedback?: string }> };
     resultVersion?:number;
     checks?:Partial<Record<RequiredCheckId,AnalysisCheckRecord>>;
     validationFailures?: Array<{sessionId:string;node:ModelNodeId;purpose:string;message:string;responsePath:string;at:number}>;
@@ -329,6 +362,7 @@ declare global {
       inspectRuntime(config?: RuntimeConfig): Promise<RuntimeStatus>;
       prepareResult(project: PrdProject): Promise<string>;
       openResultDirectory(projectId: string): Promise<string>;
+      exportAgentPackage(taskId: string, selectedFeatureIds: string[]): Promise<string>;
       loadRuntimeConfig(): Promise<RuntimeConfig>;
       saveRuntimeConfig(config: RuntimeConfig): Promise<void>;
       testRuntime(config: RuntimeConfig): Promise<RuntimeStatus>;
@@ -336,6 +370,7 @@ declare global {
       startAnalysis(project: PrdProject): Promise<AnalysisTask>;
       cancelAnalysis(taskId: string): Promise<void>;
       retryAnalysis(taskId: string): Promise<void>;
+      adjustAnalysis(request: RefinementAdjustmentRequest): Promise<AnalysisTask>;
       onAnalysisTaskUpdate(callback: (task: AnalysisTask) => void): () => void;
     };
   }

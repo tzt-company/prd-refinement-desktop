@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('prdApp', {
   inspectRuntime: (config?: import('../src/types.js').RuntimeConfig) => ipcRenderer.invoke('runtime:inspect', config),
   prepareResult: (project: PrdProject) => ipcRenderer.invoke('projects:prepare-result', project),
   openResultDirectory: (taskId: string) => ipcRenderer.invoke('analysis:open-result', taskId),
+  exportAgentPackage: (taskId: string, selectedFeatureIds: string[]) => ipcRenderer.invoke('analysis:export-package', taskId, selectedFeatureIds),
   loadRuntimeConfig: () => ipcRenderer.invoke('runtime:config:get'),
   saveRuntimeConfig: (config: import('../src/types.js').RuntimeConfig) => ipcRenderer.invoke('runtime:config:save', config),
   testRuntime: (config: import('../src/types.js').RuntimeConfig) => ipcRenderer.invoke('runtime:test', config),
@@ -38,6 +39,7 @@ contextBridge.exposeInMainWorld('prdApp', {
   startAnalysis: (project: PrdProject) => ipcRenderer.invoke('analysis:start', project),
   cancelAnalysis: (taskId: string) => ipcRenderer.invoke('analysis:cancel', taskId),
   retryAnalysis: (taskId: string) => ipcRenderer.invoke('analysis:retry', taskId),
+  adjustAnalysis: (request: import('../src/types.js').RefinementAdjustmentRequest) => ipcRenderer.invoke('analysis:adjust', request),
   onAnalysisTaskUpdate: (callback: (task: import('../src/types.js').AnalysisTask) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, task: import('../src/types.js').AnalysisTask) => callback(task);
     ipcRenderer.on('analysis:task-update', listener);

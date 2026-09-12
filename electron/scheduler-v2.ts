@@ -7,6 +7,7 @@ import { reconcileClarifications } from './clarification-reconciliation.js';
 import { applyRequirementPatch, acceptRequirementPatch, classifyIssues, planDetailRepairs } from './audit-repair.js';
 import { acceptCandidateClassificationIssues, acceptDirectAuditIssues, acceptDirectClarifications, acceptDirectDetails, acceptDirectFeatureBatch, acceptFeatureUnification, acceptRequirementRelations, validateDirectGraph } from './domain.js';
 import { writeAgentPackage } from './export-agent-package.js';
+import { RefinementAdjustmentEngine } from './refinement-adjustments.js';
 import { createRuntime, type AnalysisRuntime, type RuntimeImage } from './runtime.js';
 import { buildSourceUnits, enrichSourceContext, sourceCoverage } from './source-units.js';
 import { evidencePromptInput, materializeEvidenceSelections } from './source-evidence.js';
@@ -24,13 +25,13 @@ class ModelOutputValidationError extends Error {
 type Emit = (task: AnalysisTask) => void;
 const stages = [
   ['inventory', '原文建账', '登记原文、结构、位置与缺失材料'],
-  ['candidates', '功能候选识别', '按连贯原文包并行识别功能候选'],
-  ['coverage', '功能候选完整性检查', '独立检查遗漏、错误归属与来源分类'],
-  ['unify', '功能清单统一', '按显式候选映射统一功能及跨功能约束'],
+  ['candidates', '功能内容整理', '按连贯原文包整理功能内容'],
+  ['coverage', '功能内容汇集', '汇集已整理的功能内容'],
+  ['unify', '功能清单整理', '合并重复功能并保留跨功能约束'],
   ['details', '逐功能细化', '整理明确需求与待澄清内容'],
-  ['audit', '完整性与忠实性检查', '对照完整证据检查遗漏、误读与无依据新增'],
-  ['repair', '局部修正', '修改问题涉及条目并独立复核'],
-  ['delivery', '交付', '校验最终快照并生成需求交付包'],
+  ['audit', '产物依据核查', '核查已有需求和待澄清内容是否得到来源支持'],
+  ['repair', '有据修正', '对无依据或曲解原文的内容进行一次定点修正'],
+  ['delivery', '结果生成', '保存可用范围及待处理内容'],
 ] as const;
 const featureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","evidenceIds":["从 evidenceCatalog 选择，不得自造"],"appliesToFeatureIds":["仅 kind=constraint 时填写；kind=function 必须返回空数组"],"state":"draft"}';
 const unifiedFeatureSchema = '{"id":"LOCAL-F1","name":"简短、可区分的业务功能名称","kind":"function|constraint","appliesToFeatureIds":["仅 kind=constraint 时填写；kind=function 必须返回空数组"],"state":"draft"}';
@@ -44,7 +45,7 @@ const repairReviewSchema = `{"originalIssueResults":[{"issueId":"输入问题ID"
 const fastNodes = new Set<ModelNodeId>(['featureCandidates', 'detailsFast']);
 const sourceClassificationContract = '统一来源分类契约：仅数量统计或章节索引、未表达具体业务行为的摘要归为 context，不需要独立功能，检查不得要求为其创建功能，统一不得因其未独立成项重复反馈。摘要若包含正文未展开的具体业务要求，必须保留并关联实际功能；不能因位于摘要就丢弃。文档记法和纯表头归为 context；标题或摘要明确的新增模块、字段重命名等业务要求必须保留。';
 const nodeStep: Record<ModelNodeId, number> = { imageReading: 0, featureCandidates: 1, featureCandidateRepair: 1, featureCoverage: 2, featureGlobal: 3, detailsFast: 4, details: 4, audit: 5, repair: 6 };
-export const CURRENT_PIPELINE_VERSION = 15;
+export const CURRENT_PIPELINE_VERSION = 17;
 
 function parseObject(value: string) {
   return JSON.parse(value.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()) as Record<string, unknown>;
@@ -255,6 +256,7 @@ export class AnalysisTaskScheduler {
   private slots = 0;
   private slotLimit = 3;
   private slotQueue: Array<() => void> = [];
+  private familyCommits = new Map<string, Promise<void>>();
   constructor(private root: string, private getConfig: () => Promise<RuntimeConfig>, private emit: Emit, private runtimeFactory: (config: RuntimeConfig) => AnalysisRuntime = createRuntime) {}
 
   async initialize() {
@@ -279,14 +281,45 @@ export class AnalysisTaskScheduler {
   }
   list() { return [...this.tasks.values()].sort((a, b) => b.createdAt - a.createdAt).map(t => structuredClone(t)); }
   get(id: string) { const task = this.tasks.get(id); return task ? structuredClone(task) : undefined; }
-  async create(input: PrdProject) {
-    const config = await this.getConfig(), now = Date.now();
+  async create(input: PrdProject,lineage?:Pick<AnalysisTask,'rootTaskId'|'parentTaskId'|'resultVersion'|'adjustment'>) {
+    const config = await this.getConfig(), now = Date.now(), id=`T-${randomUUID().slice(0, 8).toUpperCase()}`;
     const task: AnalysisTask = {
-      id: `T-${randomUUID().slice(0, 8).toUpperCase()}`, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
+      id, rootTaskId:lineage?.rootTaskId??id, parentTaskId:lineage?.parentTaskId, resultVersion:lineage?.resultVersion??1, adjustment:lineage?.adjustment, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
       runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: CURRENT_PIPELINE_VERSION, resultVersion:0,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
     this.tasks.set(task.id, task); this.queue.push(task.id); await this.publish(task); void this.pump(); return structuredClone(task);
+  }
+  async enqueueAdjustment(request: import('../src/types.js').RefinementAdjustmentRequest) {
+    const operationId=request.operationId?.trim()||randomUUID();
+    const repeated=[...this.tasks.values()].find(task=>task.operationId===operationId);
+    if(repeated)return structuredClone(repeated);
+    const base=this.tasks.get(request.baseTaskId);
+    if(!base||!['completed','needs-attention'].includes(base.status)||!base.project.features.length)throw new Error('基础结果不存在或尚不可调整');
+    const rootTaskId=base.rootTaskId??base.id,latest=this.latestResult(rootTaskId);
+    const baseVersion=base.resultVersion??1;
+    if(!latest||latest.id!==base.id||request.baseVersion!==baseVersion)throw new Error(`结果已更新到第 ${latest?.resultVersion??baseVersion} 版，请在最新版上重新提交`);
+    const config=await this.getConfig(),now=Date.now(),id=`T-${randomUUID().slice(0,8).toUpperCase()}`;
+    const featureIds=request.scope==='all'?base.project.features.map(item=>item.id):request.featureId?[request.featureId]:request.clarificationId?base.project.features.filter(feature=>{const clarification=base.project.clarifications.find(item=>item.id===request.clarificationId),affected=new Set(clarification?.affectedIds??[]);return feature.requirementIds.some(requirementId=>affected.has(requirementId))||feature.sourceUnitIds.some(sourceUnitId=>affected.has(sourceUnitId))}).map(item=>item.id):[];
+    const evidenceId=`USER-${baseVersion+1}-${createHash('sha256').update(JSON.stringify([request.kind,request.instruction,featureIds])).digest('hex').slice(0,12)}`;
+    const persistedProject=structuredClone(base.project);persistedProject.userEvidence=[...(persistedProject.userEvidence??[]).filter(item=>item.id!==evidenceId),{id:evidenceId,author:'user',kind:request.kind==='feature'?'refinement-instruction':request.kind==='clarification'?'clarification-answer':'supplement',content:request.instruction.trim(),createdAt:new Date(now).toISOString(),appliesTo:{scope:request.scope,featureIds,clarificationIds:request.clarificationId?[request.clarificationId]:[]},version:baseVersion+1,businessFact:request.kind!=='feature'}];
+    const task:AnalysisTask={
+      id,operationId,rootTaskId,parentTaskId:base.id,baseResultVersion:baseVersion,
+      adjustment:{kind:request.kind,scope:request.scope,featureId:request.featureId,clarificationId:request.clarificationId,clarificationDisposition:request.clarificationDisposition,instruction:request.instruction},
+      project:persistedProject,runtimeConfig:snapshot(config),attempt:1,
+      checkpoint:{pipelineVersion:CURRENT_PIPELINE_VERSION,resultVersion:base.checkpoint?.resultVersion??0,promptMetrics:[],detailedFeatureIds:[],auditIssues:[],validationFailures:[]},
+      status:'queued',progress:0,createdAt:now,
+      steps:stages.map(([stepId,name,note],index)=>index<4?{id:stepId,name,note,status:'completed' as const,startedAt:now,completedAt:now}:index===4?{id:'adjustment',name:'按反馈重新生成',note:'用户输入已保存，等待生成与依据核查',status:'pending' as const}:{id:stepId,name,note,status:'pending' as const}),
+    };
+    this.tasks.set(id,task);this.queue.push(id);await this.publish(task);void this.pump();return structuredClone(task);
+  }
+  private latestResult(rootTaskId:string){
+    return [...this.tasks.values()].filter(task=>(task.rootTaskId??task.id)===rootTaskId&&task.resultVersion!==undefined&&['completed','needs-attention'].includes(task.status)).sort((a,b)=>(b.resultVersion??0)-(a.resultVersion??0)||b.createdAt-a.createdAt)[0];
+  }
+  private async withFamilyCommit<T>(rootTaskId:string,work:()=>Promise<T>):Promise<T>{
+    const previous=this.familyCommits.get(rootTaskId)??Promise.resolve();let release!:()=>void;
+    const current=new Promise<void>(resolve=>{release=resolve}),tail=previous.then(()=>current);this.familyCommits.set(rootTaskId,tail);
+    await previous;try{return await work()}finally{release();if(this.familyCommits.get(rootTaskId)===tail)this.familyCommits.delete(rootTaskId)}
   }
   async cancel(id: string) {
     const task = this.tasks.get(id); if (!task || task.status === 'completed') return;
@@ -339,7 +372,7 @@ export class AnalysisTaskScheduler {
       if (!runtime) { const effective = nodeConfig(config, node); runtime = (async () => { const r = this.runtimeFactory(effective); runtimes.push(r); await r.start(path.join(workspace, `runtime-${node}`), effective); return r; })(); cache.set(node, runtime); }
       return runtime;
     };
-    const call = async <T>(node: ModelNodeId, purpose: string, title: string, instruction: string, input: unknown, accept: (v: Record<string, unknown>) => T, images: RuntimeImage[] = []): Promise<T> => {
+    const call = async <T>(node: ModelNodeId, purpose: string, title: string, instruction: string, input: unknown, accept: (v: Record<string, unknown>) => T, images: RuntimeImage[] = [],preparedEvidence=false): Promise<T> => {
       const queuedAt=Date.now();this.assert(task, attempt); await this.acquire();
       const index = nodeStep[node], step = task.steps[index]; let entered = false;
       try {
@@ -348,10 +381,10 @@ export class AnalysisTaskScheduler {
         step.runs = (step.runs ?? 0) + 1;
         const sequence = cp.modelCallSequence = (cp.modelCallSequence ?? 0) + 1;
         await checkpoint();
-        const evidence = evidencePromptInput(input),built=prompt(title,instruction,evidence.input),budgetClass=budgetClassFor(node,purpose);
+        const evidence = preparedEvidence?{input,catalog:[]} : evidencePromptInput(input),built=prompt(title,instruction,evidence.input),budgetClass=budgetClassFor(node,purpose);
         const sessionId=`${session}-${purpose}-${sequence}`;
         let result:T;
-        try { result = await this.ask(await runtimeFor(node), sessionId, built.text, value => accept(materializeEvidenceSelections(value, evidence.catalog)), images, () => this.assert(task, attempt),()=>attemptTimeoutMs(),async(validationAttempt,current)=>{const startedAt=Date.now(),measurement=measurePrompt(current,budgetClass,validationAttempt===1?built.sections:{request:current});assertPromptBudget(measurement);(cp.promptMetrics??=[]).push({sessionId:`${sessionId}-try${validationAttempt}`,attempt:validationAttempt,node,purpose,queuedAt,startedAt,queueMs:validationAttempt===1?startedAt-queuedAt:0,requestHash:createHash('sha256').update(current).digest('hex'),...measurement});await checkpoint()}, async (validationAttempt,response,message)=>{
+        try { result = await this.ask(await runtimeFor(node), sessionId, built.text, value => accept(preparedEvidence?value:materializeEvidenceSelections(value, evidence.catalog)), images, () => this.assert(task, attempt),()=>attemptTimeoutMs(),async(validationAttempt,current)=>{const startedAt=Date.now(),measurement=measurePrompt(current,budgetClass,validationAttempt===1?built.sections:{request:current});assertPromptBudget(measurement);(cp.promptMetrics??=[]).push({sessionId:`${sessionId}-try${validationAttempt}`,attempt:validationAttempt,node,purpose,queuedAt,startedAt,queueMs:validationAttempt===1?startedAt-queuedAt:0,requestHash:createHash('sha256').update(current).digest('hex'),...measurement});await checkpoint()}, async (validationAttempt,response,message)=>{
           const directory=path.join(workspace,'diagnostics');await mkdir(directory,{recursive:true});const responsePath=path.join(directory,`${sessionId}-try${validationAttempt}.json`);
           await writeFile(responsePath,JSON.stringify({sessionId,node,purpose,message,response,requestHash:createHash('sha256').update(JSON.stringify(evidence.input)).digest('hex'),at:Date.now()},null,2),'utf8');
           (cp.validationFailures??=[]).push({sessionId,node,purpose,message,responsePath,at:Date.now()});await checkpoint();
@@ -435,6 +468,42 @@ export class AnalysisTaskScheduler {
     if(cp.auditIssues?.length){routeUnownedSourceIssues(task.project,cp.auditIssues);attachAuditClarifications(task.project,cp.auditIssues)}
     try {
       await mkdir(workspace, { recursive: true }); await checkpoint();
+      if(task.adjustment&&task.parentTaskId&&task.resultVersion===undefined){
+        const base=this.tasks.get(task.parentTaskId);if(!base)throw new Error('基础结果不存在，无法继续调整');
+        const adjustmentStep=task.steps[4];adjustmentStep.status='running';adjustmentStep.startedAt=Date.now();adjustmentStep.runs=(adjustmentStep.runs??0)+1;await checkpoint();
+        const request={...task.adjustment,baseTaskId:base.id,baseVersion:task.baseResultVersion??base.resultVersion??1};
+        const engine=new RefinementAdjustmentEngine({generate:async input=>call('details','adjustment',input.title,input.instruction,input.input,value=>value,[],true)});
+        const run=await engine.run({taskId:base.id,version:base.resultVersion??1,project:base.project,userEvidence:task.project.userEvidence},request);
+        task.project=structuredClone(run.project);task.project.userEvidence=[...(task.project.userEvidence??[]).filter(item=>item.id!==run.userEvidence.id),run.userEvidence];
+        adjustmentStep.completedAt=Date.now();adjustmentStep.startedAt=undefined;
+        if(run.status==='failed'){adjustmentStep.status='failed';throw new Error(run.error??'调整生成失败')}
+        adjustmentStep.status='completed';task.progress=62.5;await checkpoint();
+        if(run.status==='full-regeneration-required'){
+          task.project={...task.project,sourceDispositions:[],rules:[],features:[],requirements:[],relations:[],clarifications:[],audit:undefined,delivery:undefined};
+          cp.resultVersion=0;cp.detailedFeatureIds=[];cp.auditIssues=[];cp.featureCandidateBatches=[];cp.sourceDispositionBatches=[];cp.featureCoverageBatches=[];cp.detailResults={};cp.auditIssueBatches=[];cp.relationBatches=[];
+          for(const step of task.steps){step.status='pending';step.startedAt=undefined;step.completedAt=undefined}
+          task.progress=0;await checkpoint();
+        }else{
+          validateDirectGraph(task.project.sourceUnits,task.project.sourceDispositions??[],task.project.features,task.project.requirements,task.project.clarifications);
+          if(task.project.relations?.length)task.project.relations=acceptRequirementRelations(task.project.relations,task.project.sourceUnits,task.project.requirements);
+          delete task.project.delivery;
+          const proofVersion=(cp.resultVersion??0)+1;cp.resultVersion=proofVersion;
+          const platformIssues=(task.project.audit?.issues??[]).filter(issue=>issue.disposition==='open');
+          task.project.audit={passed:platformIssues.length===0,issues:task.project.audit?.issues??[]};task.audit=task.project.audit;
+          const ledger=requiredChecks(task.project,proofVersion);for(const check of Object.values(ledger)){check.status='passed';check.issueIds=[]}cp.checks=ledger;
+          task.project.delivery=assessDelivery(task.project,cp.checks,proofVersion);
+          const deliveryStep=task.steps[7];deliveryStep.status='running';deliveryStep.startedAt=Date.now();await checkpoint();
+          await this.withFamilyCommit(task.rootTaskId??base.id,async()=>{
+            this.assert(task,attempt);const latest=this.latestResult(task.rootTaskId??base.id),baseVersion=task.baseResultVersion??1;
+            if(!latest||latest.id!==base.id||latest.resultVersion!==baseVersion)throw new Error(`基础结果已更新：当前为第 ${latest?.resultVersion??baseVersion} 版；本次输入和候选已保留，请在最新版上重新提交`);
+            const result=path.join(workspace,'result'),packageRoot=path.join(result,task.project.delivery?.state==='ready'?'deliveries':'drafts');await mkdir(result,{recursive:true});
+            await writeAgentPackage(task.project,task,packageRoot);await this.writeAtomic(path.join(this.root,`${task.project.id}.project.json`),task.project);
+            task.resultVersion=baseVersion+1;deliveryStep.status='completed';deliveryStep.completedAt=Date.now();deliveryStep.startedAt=undefined;
+            const ready=task.project.delivery?.state==='ready';task.status=ready?'completed':'needs-attention';task.progress=ready?100:88;task.error=ready?undefined:'调整结果已生成，但仍有待处理事项';task.completedAt=Date.now();await this.publish(task);
+          });
+          return;
+        }
+      }
       await stage(0, async () => {
         task.project.sourceUnits = task.project.sourceDocuments ? task.project.sourceUnits : enrichSourceContext(task.project.sourceUnits.length ? task.project.sourceUnits : buildSourceUnits(task.project.rawText));
         await mapPool(task.project.sourceUnits.filter(u => u.asset && u.asset.readStatus !== 'read'), pool, async unit => {
@@ -478,19 +547,9 @@ export class AnalysisTaskScheduler {
             await persistCandidate(revised, true);
           }
           if (!cp.featureCandidateBatches?.[index]) await persistCandidate(await identify(units, `candidate-${index}`));
-          let issues = await inspectCandidates(units, cp.featureCandidateBatches![index], cp.sourceDispositionBatches![index], `coverage-${index}`);
-          (cp.candidateCheckIssues ??= [])[index] = issues; await checkpoint();
-          while (issues.length && (cp.candidateRepairRounds?.[index] ?? 0) < 2) {
-            (cp.candidateRepairRounds ??= [])[index] = (cp.candidateRepairRounds?.[index] ?? 0) + 1;
-            await checkpoint();
-            await persistCandidate(await identify(units, `candidate-repair-${index}`, cp.featureCandidateBatches![index], issues));
-            issues = await inspectCandidates(units, cp.featureCandidateBatches![index], cp.sourceDispositionBatches![index], `coverage-review-${index}`);
-            cp.candidateCheckIssues![index] = issues; await checkpoint();
-          }
-          if (issues.length) throw new Error(`第 ${index + 1} 份候选内容已达到两轮返工上限：${issues.map(i => i.detail).join('；')}`);
           this.assert(task, attempt); (cp.featureCoverageBatches ??= [])[index] = [];
           cp.featureCoverageBatchCount = cp.featureCoverageBatches.filter(Boolean).length;
-          task.steps[2].note = `已检查 ${cp.featureCoverageBatchCount}/${packs.length} 份候选内容`; await checkpoint();
+          task.steps[2].note = `已汇集 ${cp.featureCoverageBatchCount}/${packs.length} 份功能内容`; await checkpoint();
         });
         for (const index of [1, 2]) { task.steps[index].status = 'completed'; task.steps[index].completedAt = Date.now(); }
         task.progress = 37.5; await checkpoint();
@@ -504,8 +563,6 @@ export class AnalysisTaskScheduler {
         const remap = new Map(semantic.map((f, i) => [f.id, `F-${String(i + 1).padStart(3, '0')}`]));
         task.project.features = semantic.map(f => ({ ...f, id: remap.get(f.id)!, appliesToFeatureIds: f.appliesToFeatureIds?.map(id => remap.get(id)!), requirementIds: [] }));
         task.project.sourceDispositions = [...fixedSourceDispositions,...cp.sourceDispositionBatches?.flat() ?? []].map(d => ({ ...d, featureIds: task.project.features.filter(f => f.sourceUnitIds.includes(d.sourceUnitId)).map(f => f.id) }));
-        const orphaned=task.project.sourceDispositions.filter(d=>d.kind==='requirement'&&!d.featureIds.length);
-        if(orphaned.length)throw new CandidateClassificationError(orphaned.map(item=>({candidateIds:[],sourceUnitIds:[item.sourceUnitId],detail:`${item.sourceUnitId} 已判定为明确要求，但统一后的功能没有承接该来源。请在候选识别中补齐或校正功能归属。`})));
       });
       break;
       } catch (error) {
@@ -524,7 +581,21 @@ export class AnalysisTaskScheduler {
         task.progress = 12.5; await checkpoint();
       }
       }
+      // 旧检查点仍保留八个槽位；17 版不再把全文补漏当成交付条件。
+      if(CURRENT_PIPELINE_VERSION>=17) await stage(4, async()=>{
+        const results=cp.detailResults??={};
+        await mapPool(task.project.features.filter(feature=>!results[feature.id]),pool,async feature=>{
+          const applicableConstraints=task.project.features.filter(item=>item.kind==='constraint'&&item.appliesToFeatureIds?.includes(feature.id));
+          const units=sourceUnits([...feature.sourceUnitIds,...applicableConstraints.flatMap(item=>item.sourceUnitIds)]),instruction=`忠实细化当前功能及适用约束，只整理原文明示内容。一个条目表达完整业务要求；同对象字段属性可合并，能分别漏做的行为才拆分。不得输出功能概述，不得补充常识、实现方案或测试。只有缺少决定业务行为所必需的信息或原文冲突时才记录问题。${clarificationContract} 每个字段的 evidenceBindings 只能选择直接支持该字段的证据。输出 ${detailSchema}`;
+          const partials=await mapPool(batches(units,12,8000),pool,async(batch,batchIndex)=>call(detailIsComplex(feature,units)?'details':'detailsFast',`details-${feature.id}-batch${batchIndex}`,'逐功能细化',instruction,{feature,applicableConstraints,sourceUnits:batch},value=>acceptDirectDetails(value.requirements,value.clarifications,batch,true)));
+          results[feature.id]=combineDetailBatches(partials);cp.detailedFeatureIds=Object.keys(results);task.steps[4].note=`已细化 ${cp.detailedFeatureIds.length}/${task.project.features.length} 个功能`;await checkpoint();
+        });
+        const materialized=new Set(cp.materializedFeatureIds??[]);this.assert(task,attempt);
+        for(const feature of task.project.features.filter(item=>!materialized.has(item.id))){const result=results[feature.id],remap=new Map<string,string>();feature.requirementIds=[];for(const requirement of result.requirements){const id=nextId('R-',task.project.requirements,4);remap.set(requirement.id,id);task.project.requirements.push({...requirement,id});feature.requirementIds.push(id)}const questionIds:string[]=[];for(const question of result.clarifications){const added=addClarification(task.project,{...question,affectedIds:question.affectedIds.map(id=>remap.get(id)??id)});questionIds.push(added.id)}(cp.featureClarificationIds??={})[feature.id]=questionIds;materialized.add(feature.id)}
+        cp.materializedFeatureIds=[...materialized];await checkpoint();
+      });
       // 有界功能边界返工：只重建发生变化的功能，保留其他需求编号和检查点。
+      if(CURRENT_PIPELINE_VERSION<17){
       while (true) {
         await stage(4, async () => {
           const results = cp.detailResults ??= {};
@@ -558,26 +629,6 @@ export class AnalysisTaskScheduler {
             for(const q of result)addClarification(task.project,q);
           }
           await checkpoint();
-          const missing = graph().uncovered;
-          // 每个未落实来源只补一次；共享来源按已明确候选关系选定唯一补漏工作项。
-          const assigned = new Set<string>();
-          const targets = task.project.features.map(feature => ({ feature, units: sourceUnits(missing.filter(d => {
-            if (assigned.has(d.sourceUnitId) || !d.featureIds.includes(feature.id)) return false;
-            assigned.add(d.sourceUnitId); return true;
-          }).map(d => d.sourceUnitId)) })).filter(x => x.units.length);
-          const supplements = await mapPool(targets, pool, async ({ feature, units }) => {
-            const featureInput={id:feature.id,name:feature.name,kind:feature.kind,appliesToFeatureIds:feature.appliesToFeatureIds},existingRequirements=task.project.requirements.filter(r=>feature.requirementIds.includes(r.id)).map(({id,title,sourceUnitIds})=>({id,title,sourceUnitIds}));
-            const partials=await mapPool(batches(units,6,5000),pool,async(batch,index)=>call('details',`details-repair-${feature.id}-batch${index}`,'逐功能细化·定点补漏',`仅输出本批缺失原文要求的新条目或真实待澄清事项，不重复已有条目。existingRequirements 仅用于按标题和已承接来源避免语义重复。每个字段的 evidenceBindings 必须只选择直接支持该字段的证据。${clarificationContract} 输出 ${detailSchema}`,{feature:featureInput,sourceUnits:batch,existingRequirements},v=>acceptDirectDetails(v.requirements,v.clarifications,batch,true)));
-            return { feature, result:combineDetailBatches(partials) };
-          });
-          this.assert(task, attempt);
-          for (const { feature, result } of supplements) {
-            const remap = new Map<string, string>();
-            for (const r of result.requirements) { const id = nextId('R-', task.project.requirements, 4); remap.set(r.id, id); task.project.requirements.push({ ...r, id }); feature.requirementIds.push(id); }
-            for (const q of result.clarifications) { const added=addClarification(task.project,{...q,affectedIds:q.affectedIds.map(id=>remap.get(id)??id)});(cp.featureClarificationIds![feature.id]??=[]).push(added.id); }
-          }
-          // 未落实来源继续交独立审计定位；不在此声明覆盖完成，交付仍须全图覆盖。
-          graph();
         });
         await stage(5, async () => {
           const checks = cp.auditIssueBatches ??= [];
@@ -801,18 +852,27 @@ export class AnalysisTaskScheduler {
         attachAuditClarifications(task.project,cp.auditIssues);
         if(task.project.clarifications.some(item=>item.state==='open')){
           const instruction=`逐项执行最终有效性检查：原文或需求已有唯一答案时返回 remove-answered，并列出 satisfiedRequirementIds；原文明确把业务判断交给用户时，不得反问平台需要系统判定规则。问题真实但表述、未决点或级别不准确时返回 revise，并按三级契约给出 revisedClarification；业务行为已经明确、只剩文案等不影响实现的选择必须为 suggestion 并给 defaultResolution，不能保留 blocking。准确且仍无答案的单项返回 keep。多个事项表达同一个决定时返回 merge，否则返回 keep-distinct。输出 {"actions":[{"action":"remove-answered|revise|keep|merge|keep-distinct","clarificationIds":["Q-0001"],"satisfiedRequirementIds":["R-0001"],"revisedClarification":${clarificationSchema},"reason":"原文和需求中的明确依据"}]}。每个 open 澄清必须恰好出现在一个动作中；revise 保留原澄清 ID。`;
-          const dependencyHash=contentFingerprint(task.project),reconciled=structuredClone(task.project),reconciledIssues=structuredClone(cp.auditIssues);
+          const dependencyHash=createHash('sha256').update(JSON.stringify({protocol:CURRENT_PIPELINE_VERSION,project:contentFingerprint(task.project),sourceUnits:sourceUnits(task.project.sourceUnits.map(unit=>unit.id))})).digest('hex'),reconciled=structuredClone(task.project),reconciledIssues=structuredClone(cp.auditIssues);
           if(cp.clarificationResults?.dependencyHash!==dependencyHash)cp.clarificationResults={dependencyHash,results:{}};
-          const saved=cp.clarificationResults.results;
+          const saved=cp.clarificationResults.results,usedKeys=new Set<string>();
           await reconcileClarifications({project:reconciled,instruction,units:sourceUnits,accept:acceptClarificationReconciliation,parallel:(items,work)=>mapPool(items,pool,work),
             measure:(title,contract,input)=>{const built=prompt(title,contract,evidencePromptInput(input).input);return measurePrompt(built.text,'repair',built.sections)},
-            ask:async(title,purpose,contract,input,accept)=>{const key=createHash('sha256').update(JSON.stringify({title,contract,input})).digest('hex');if(saved[key])return structuredClone(saved[key]);const actions=await call('audit',`${purpose}-${key.slice(0,12)}`,title,contract,input,accept);saved[key]=structuredClone(actions);await checkpoint();return actions},
+            ask:async<T>(title:string,purpose:string,contract:string,input:unknown,accept:(value:Record<string,unknown>)=>T)=>{
+              this.assert(task,attempt);
+              const key=createHash('sha256').update(JSON.stringify({title,contract,input})).digest('hex'),previous=saved[key];usedKeys.add(key);
+              if(previous&&previous.status!=='rejected'&&previous.value!==undefined)return{key,value:structuredClone(previous.value) as T};
+              if((previous?.attempts??0)>=3)throw new Error(`平台判断未收敛：${title}（${purpose}）已完成三次判断，需补充或修正证据后重新执行。原因：${previous?.feedback??'判断未通过一致性检查'}`);
+              const revisedContract=previous?.feedback?`${contract}\n上次判断已被一致性检查否决，请依据本次原文重新判断并解决以下冲突：${previous.feedback}`:contract;
+              const value=await call('audit',`${purpose}-${key.slice(0,12)}`,title,revisedContract,input,accept);
+              this.assert(task,attempt);saved[key]={status:'candidate',value:structuredClone(value),attempts:(previous?.attempts??0)+1,feedback:previous?.feedback};await checkpoint();return{key,value};
+            },
+            invalidate:async(keys,reason)=>{this.assert(task,attempt);for(const key of keys){const entry=saved[key];if(entry){entry.status='rejected';entry.feedback=reason}}await checkpoint()},
             apply:actions=>{
               for(const action of actions.filter(item=>item.action==='remove-answered')){const removed=new Set(action.clarificationIds);reconciled.clarifications=reconciled.clarifications.filter(item=>!removed.has(item.id));for(const issue of reconciledIssues)if(issue.owner==='source-decision'&&((issue.clarificationId&&removed.has(issue.clarificationId))||issue.affectedIds.some(id=>removed.has(id))))closeIssue(issue,'repaired')}
               for(const action of actions.filter(item=>item.action==='revise')){const current=reconciled.clarifications.find(item=>item.id===action.clarificationIds[0]);if(current&&action.revisedClarification)Object.assign(current,action.revisedClarification)}
               for(const action of actions.filter(item=>item.action==='merge')){const items=action.clarificationIds.map(id=>reconciled.clarifications.find(item=>item.id===id)!).filter(Boolean);if(items.length>1){const canonical=mergeClarifications(reconciled,action.clarificationIds,items[0],`clarification-merge:${action.clarificationIds.join('+')}`),removed=new Set(action.clarificationIds.filter(id=>id!==canonical.id));for(const issue of reconciledIssues){if(issue.clarificationId&&removed.has(issue.clarificationId))issue.clarificationId=canonical.id;issue.affectedIds=[...new Set(issue.affectedIds.map(id=>removed.has(id)?canonical.id:id))]}}}
             }});
-          this.assert(task,attempt);task.project=reconciled;cp.auditIssues=reconciledIssues;
+          this.assert(task,attempt);for(const key of usedKeys)if(saved[key]?.status==='candidate')saved[key].status='verified';task.project=reconciled;cp.auditIssues=reconciledIssues;
         }
         const platformIssues=cp.auditIssues.filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId));
         const blockingQuestions=task.project.clarifications.filter(q=>q.state==='open'&&(q.level??'blocking')==='blocking');
@@ -820,19 +880,60 @@ export class AnalysisTaskScheduler {
       });
       const retryableBoundary=cp.auditIssues.some(issue=>issue.disposition==='open'&&issue.owner==='feature-grouping'&&(cp.graphRepairs??[]).filter(record=>record.scope==='features'&&record.status==='rejected'&&record.issues.some(item=>item.id===issue.id)).length<3);
       if(retryableBoundary){task.steps[5].status='pending';task.steps[6].status='pending';await checkpoint();return this.run(task,config,runtimes)}
+      } else {
+        await stage(5, async()=>{
+          const results=cp.auditIssueBatches??=[];
+          await mapPool(task.project.features.map((feature,index)=>({feature,index})).filter(({index})=>!results[index]),pool,async({feature,index})=>{
+            const requirements=task.project.requirements.filter(item=>feature.requirementIds.includes(item.id));
+            const requirementIds=new Set(requirements.map(item=>item.id));
+            const clarifications=task.project.clarifications.filter(item=>item.affectedIds.some(id=>requirementIds.has(id)||feature.sourceUnitIds.includes(id)));
+            const evidence=sourceUnits([...requirements.flatMap(item=>item.sourceUnitIds),...clarifications.flatMap(item=>[...(item.sourceRefs??[]).map(ref=>ref.sourceUnitId),...item.affectedIds.filter(id=>id.startsWith('S-'))])]);
+            try{
+              const checked=await call('audit',`evidence-audit-${feature.id}`,'产物依据核查',`只核查输入中已经生成的 requirements 和 clarifications 是否受到所附原文支持：检查无依据新增，是否改变必须/可选/否定含义，是否遗漏其已引用原文中的适用条件或例外，以及 clarification 是否已能由所附原文或现有需求直接回答。不得扫描或报告未被当前产物引用的原文遗漏，不得要求增加需求数量或细化颗粒度，不得创建新业务问题。问题只允许指向当前 R/Q 编号；澄清已有答案时指向该 Q 及承接答案的 R。没有问题返回空数组。输出 ${auditSchema}`,{sourceUnits:evidence,feature:{id:feature.id,name:feature.name,kind:feature.kind},requirements,clarifications},v=>acceptDirectAuditIssues(v.issues,evidence,[feature],requirements,clarifications));
+              results[index]=checked;
+            }catch(error){
+              const sourceUnitIds=evidence.length?evidence.map(item=>item.id):feature.sourceUnitIds.slice(0,1);
+              results[index]=[{id:`PLATFORM-${feature.id}`,direction:'reverse',type:'产物依据核查失败',category:'unclassified',owner:'runtime-output',sourceUnitIds,affectedIds:[feature.id],detail:`${feature.name} 未完成依据核查：${error instanceof Error?error.message:String(error)}`,disposition:'open'}];
+            }
+            cp.auditBatchCount=results.filter(Boolean).length;task.steps[5].note=`已核查 ${cp.auditBatchCount}/${task.project.features.length} 个功能的现有产物`;await checkpoint();
+          });
+          registerAuditIssues(cp.auditIssues,results.flat(),task.project);
+        });
+        await stage(6,async()=>{
+          const scopes=mergeConfirmationScopes(planDetailRepairs(cp.auditIssues.filter(issue=>issue.disposition==='open'&&issue.owner!=='runtime-output'),task.project));
+          await mapPool(scopes,pool,async scope=>{
+            const base=structuredClone(task.project),before=base.requirements.filter(item=>scope.requirementIds.includes(item.id)),questions=base.clarifications.filter(item=>scope.clarificationIds.includes(item.id));
+            try{
+              const units=sourceUnits(scope.sourceUnitIds),patch=await call('repair',`evidence-repair-${scope.key}`,'有据修正',`只修正 issues 指出的无依据新增、原文误读、条件或例外缺失，或删除已经被原文/需求回答的澄清。不得补充未被 issues 指出的需求，不得扩大功能范围，不得调整细化颗粒度。保留正式 ID；新增内容不在本轮范围。输出 {"requirements":[],"deleteRequirementIds":[],"clarifications":[],"deleteClarificationIds":[]}，条目遵循 ${detailSchema}`,{sourceUnits:units,features:base.features.filter(item=>scope.featureIds.includes(item.id)),currentRequirements:before,currentClarifications:questions,issues:scope.issues},v=>acceptRequirementPatch(v,base,scope));
+              const resolvedUnitIds=new Set(units.map(item=>item.id)),candidate=applyRequirementPatch(base,scope,patch,false,resolvedUnitIds),changed=candidate.requirements.filter(item=>scope.requirementIds.includes(item.id)),candidateQuestions=candidate.clarifications.filter(item=>scope.clarificationIds.includes(item.id));
+              const review=await call('audit',`evidence-repair-review-${scope.key}`,'产物依据核查·修正复核',`只判断 originalIssues 是否已解决，以及本次修正是否新增无依据内容或曲解原文。不得寻找旁支遗漏，不得提出扩大细化范围的新问题。输出 ${repairReviewSchema}`,{sourceUnits:units,beforeRequirements:before,requirements:changed,beforeClarifications:questions,clarifications:candidateQuestions,originalIssues:scope.issues},v=>acceptRepairReview(v,scope.issues,units,base.features,candidate.requirements,candidate.clarifications));
+              if(review.originalIssueResults.every(item=>item.status==='resolved')&&!review.introducedIssues.length){task.project=applyRequirementPatch(task.project,scope,patch,true,resolvedUnitIds);for(const issue of scope.issues){const persisted=cp.auditIssues.find(item=>item.id===issue.id);if(persisted)closeIssue(persisted,'repaired')}cp.resultVersion=(cp.resultVersion??0)+1}
+              else for(const issue of scope.issues){const persisted=cp.auditIssues.find(item=>item.id===issue.id);if(persisted)persisted.detail=`${persisted.detail}；自动修正未通过依据复核`}
+            }catch(error){for(const issue of scope.issues){const persisted=cp.auditIssues.find(item=>item.id===issue.id);if(persisted)persisted.detail=`${persisted.detail}；一次自动修正失败：${error instanceof Error?error.message:String(error)}`}}
+            await checkpoint();
+          });
+          attachAuditClarifications(task.project,cp.auditIssues);
+          const platformIssues=cp.auditIssues.filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId));
+          task.project.audit={passed:platformIssues.length===0,issues:cp.auditIssues};task.audit=task.project.audit;cp.verificationCompletedVersion=cp.resultVersion??0;cp.verificationDependencyHash=contentFingerprint(task.project);
+        });
+      }
       await stage(7, async () => {
         graph();if(task.project.relations?.length)task.project.relations=acceptRequirementRelations(task.project.relations,task.project.sourceUnits,task.project.requirements);
-        task.project.stage = 'review';const version=cp.resultVersion??0,ledger=requiredChecks(task.project,version),openIssues=(task.project.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId)),proofValid=cp.verificationCompletedVersion===version&&cp.verificationDependencyHash===contentFingerprint(task.project),unresolvedCoverage=graph().uncovered.filter(item=>!resolvedCoverageSources().has(item.sourceUnitId));
-        ledger.source.status=unresolvedCoverage.length?'failed':ledger.source.status;ledger.feature.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='feature-grouping')?'failed':'passed';ledger.detail.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='requirement-detail'||i.owner==='runtime-output')?'failed':'passed';ledger.relation.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='requirement-relation')?'failed':'passed';ledger.clarification.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='source-decision')?'failed':'passed';for(const item of Object.values(ledger))item.issueIds=openIssues.filter(issue=>item.id==='feature'?issue.owner==='feature-grouping':item.id==='detail'?issue.owner==='requirement-detail'||issue.owner==='runtime-output':item.id==='relation'?issue.owner==='requirement-relation':item.id==='clarification'?issue.owner==='source-decision':false).map(issue=>issue.id);cp.checks=ledger;
+        task.project.stage = 'review';const version=cp.resultVersion??0,ledger=requiredChecks(task.project,version),openIssues=(task.project.audit?.issues??[]).filter(i=>i.disposition!=='repaired'&&i.disposition!=='dismissed'&&!(i.disposition==='needs-confirmation'&&i.clarificationId)),proofValid=cp.verificationCompletedVersion===version&&cp.verificationDependencyHash===contentFingerprint(task.project);
+        ledger.source.status='passed';ledger.feature.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='feature-grouping')?'failed':'passed';ledger.detail.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='requirement-detail'||i.owner==='runtime-output')?'failed':'passed';ledger.relation.status='passed';ledger.clarification.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='source-decision')?'failed':'passed';for(const item of Object.values(ledger))item.issueIds=openIssues.filter(issue=>item.id==='feature'?issue.owner==='feature-grouping':item.id==='detail'?issue.owner==='requirement-detail'||issue.owner==='runtime-output':item.id==='relation'?issue.owner==='requirement-relation':item.id==='clarification'?issue.owner==='source-decision':false).map(issue=>issue.id);cp.checks=ledger;
         const assessment=assessDelivery(task.project,cp.checks,version);task.project.delivery=assessment;const result = path.join(workspace, 'result'); await mkdir(result, { recursive: true });
         const packageRoot=path.join(result,assessment.state==='ready'?'deliveries':'drafts');
         this.assert(task, attempt); await writeAgentPackage(task.project,task,packageRoot);
         this.assert(task, attempt); await this.writeAtomic(path.join(this.root, `${task.project.id}.project.json`), task.project);
       });
-      this.assert(task, attempt); const ready=task.project.delivery?.state==='ready',platformIncomplete=Boolean(task.project.audit?.issues.some(issue=>issue.disposition==='open'))||Boolean(task.project.delivery?.unverifiedScopeIds.length);task.status = ready?'completed':'needs-attention'; task.progress = ready?100:88;task.error=ready?undefined:platformIncomplete?'平台整理未完成：仍有平台问题或未通过检查，已保留当前草稿和逐项诊断。':'需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。'; task.completedAt = Date.now(); await this.publish(task);
+      this.assert(task, attempt); const ready=task.project.delivery?.state==='ready',platformIncomplete=Boolean(task.project.audit?.issues.some(issue=>issue.disposition==='open'))||Boolean(task.project.delivery?.unverifiedScopeIds.length);task.status = ready?'completed':'needs-attention'; task.progress = ready?100:88;task.error=ready?undefined:platformIncomplete?'平台整理未完成：仍有平台问题或未通过检查，已保留当前草稿和逐项诊断。':'需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。'; task.completedAt = Date.now();
+      if(task.adjustment&&task.parentTaskId&&task.resultVersion===undefined){
+        const rootTaskId=task.rootTaskId??task.parentTaskId,baseVersion=task.baseResultVersion??1;
+        await this.withFamilyCommit(rootTaskId,async()=>{const latest=this.latestResult(rootTaskId);if(!latest||latest.id!==task.parentTaskId||latest.resultVersion!==baseVersion)throw new Error(`基础结果已更新：当前为第 ${latest?.resultVersion??baseVersion} 版；本次输入和候选已保留，请在最新版上重新提交`);task.resultVersion=baseVersion+1;await this.publish(task)});
+      }else await this.publish(task);
     } catch (error) {
       if (task.attempt !== attempt) return;
-      task.status = 'failed'; task.completedAt = Date.now(); task.error = error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);
+      task.status = 'failed'; task.completedAt = Date.now(); const failure=error instanceof PromptBudgetExceededError?`平台提示词预算校验失败：${error.message}`:error instanceof ModelOutputValidationError&&error.title&&error.purpose?`平台未能完成“${error.title}”（${error.purpose}）的输出校验：${error.message}`:error instanceof Error ? error.message : String(error);task.error=task.adjustment?`${failure}；本次调整输入已保存：${task.adjustment.instruction}`:failure;
       task.steps[error instanceof ModelOutputValidationError&&error.stepIndex!==undefined?error.stepIndex:activeStage].status = 'failed';
       for (const step of task.steps) if (step.status === 'running') step.status = 'failed';
       await this.publish(task);

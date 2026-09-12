@@ -1,0 +1,111 @@
+import {createHash} from 'node:crypto';
+import type {Clarification,Feature,PrdProject,RequirementDetail,RequirementRelation,SourceUnit} from '../src/types.js';
+import {acceptDirectDetails,acceptRequirementRelations} from './domain.js';
+import {evidencePromptInput,materializeEvidenceSelections} from './source-evidence.js';
+
+export type AdjustmentKind='feature'|'clarification'|'supplement';
+export type AdjustmentScope='feature'|'all';
+export interface RefinementAdjustmentRequest {kind:AdjustmentKind;baseTaskId:string;baseVersion:number;featureId?:string;clarificationId?:string;clarificationDisposition?:'answered'|'supplemented'|'not-applicable';instruction:string;scope:AdjustmentScope}
+export interface UserEvidence {id:string;author:'user';createdAt:string;appliesTo:{scope:AdjustmentScope;featureIds:string[];clarificationIds:string[]};version:number;kind:'refinement-instruction'|'clarification-answer'|'supplement';content:string;businessFact:boolean}
+export interface AdjustmentDiff {updatedFeatureIds:string[];addedRequirementIds:string[];removedRequirementIds:string[];changedRequirementIds:string[];resolvedClarificationIds:string[]}
+export interface FullRegenerationRoute {kind:'full-regeneration';project:PrdProject;request:{baseTaskId:string;baseVersion:number;userEvidenceId:string}}
+export interface AdjustmentRun {status:'completed'|'failed'|'full-regeneration-required';baseTaskId:string;parentVersion:number;version:number;scope:AdjustmentScope;project:PrdProject;userEvidence:UserEvidence;diff:AdjustmentDiff;error?:string;fullRegeneration?:FullRegenerationRoute}
+export interface AdjustmentModelAdapter {generate(input:{title:string;instruction:string;input:unknown}):Promise<unknown>}
+export interface AdjustmentBase {taskId:string;version:number;project:PrdProject;userEvidence?:UserEvidence[]}
+
+type RequirementAction={action:'create'|'update'|'delete';targetId?:string;requirement?:RequirementDetail};
+type ClarificationAction={action:'create'|'update'|'keep'|'resolve'|'dismiss';targetId?:string;clarification?:Clarification;satisfiedRequirementIds:string[];resolutionEvidenceIds:string[]};
+type RelationAction={action:'create'|'update'|'delete';targetId?:string;relation?:RequirementRelation};
+interface CandidateActions {requirementActions:RequirementAction[];clarificationActions:ClarificationAction[];relationActions:RelationAction[]}
+interface SemanticReview {passed:boolean;issues:string[];clarificationResolutions:Array<{clarificationId:string;status:'supported'|'unsupported';reason:string}>}
+
+const emptyDiff=():AdjustmentDiff=>({updatedFeatureIds:[],addedRequirementIds:[],removedRequirementIds:[],changedRequirementIds:[],resolvedClarificationIds:[]});
+const clone=<T>(value:T):T=>structuredClone(value);
+const fingerprint=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0,12);
+const sourceFor=(evidence:UserEvidence):SourceUnit=>({id:evidence.id,label:'用户补充',kind:'paragraph',excerpt:evidence.content,location:`用户输入 · ${evidence.createdAt}`,status:'processed',synthetic:true});
+const changed=(before:RequirementDetail,after:RequirementDetail)=>JSON.stringify(before)!==JSON.stringify(after);
+const object=(value:unknown,label:string):Record<string,unknown>=>{if(!value||typeof value!=='object'||Array.isArray(value))throw new Error(`${label} 必须是对象`);return value as Record<string,unknown>};
+const array=(value:unknown,label:string):unknown[]=>{if(!Array.isArray(value))throw new Error(`${label} 必须是数组`);return value};
+const strings=(value:unknown,label:string):string[]=>array(value,label).map((item,index)=>{if(typeof item!=='string'||!item.trim())throw new Error(`${label}[${index}] 必须是非空字符串`);return item.trim()});
+const featureSources=(feature:Feature,project:PrdProject)=>new Set([...feature.sourceUnitIds,...feature.requirementIds.flatMap(id=>project.requirements.find(item=>item.id===id)?.sourceUnitIds??[])]);
+
+export class RefinementAdjustmentEngine {
+  constructor(private readonly adapter:AdjustmentModelAdapter,private readonly now:()=>Date=()=>new Date()){}
+
+  async run(base:AdjustmentBase,request:RefinementAdjustmentRequest):Promise<AdjustmentRun>{
+    if(request.baseTaskId!==base.taskId)throw new Error('调整请求不属于当前任务');
+    if(request.baseVersion!==base.version)throw new Error(`结果版本已变化：请求基于 ${request.baseVersion}，当前为 ${base.version}`);
+    if(!request.instruction.trim())throw new Error('调整内容不能为空');
+    if(request.kind==='clarification'&&!request.clarificationDisposition)throw new Error('处理澄清必须明确选择回答、补充或不适用');
+    const nextVersion=base.version+1,featureIds=this.affectedFeatures(base.project,request),evidenceId=`USER-${nextVersion}-${fingerprint([request.kind,request.instruction,featureIds])}`;
+    const evidence:UserEvidence=clone(base.userEvidence?.find(item=>item.id===evidenceId)??{id:evidenceId,author:'user',createdAt:this.now().toISOString(),appliesTo:{scope:request.scope,featureIds,clarificationIds:request.clarificationId?[request.clarificationId]:[]},version:nextVersion,kind:request.kind==='feature'?'refinement-instruction':request.kind==='clarification'?'clarification-answer':'supplement',content:request.instruction.trim(),businessFact:request.kind!=='feature'});
+    if(evidence.content!==request.instruction.trim()||evidence.version!==nextVersion)throw new Error('已保存的用户依据与调整请求不一致');
+    const baseResult={baseTaskId:base.taskId,parentVersion:base.version,version:nextVersion,scope:request.scope,userEvidence:evidence};
+    if(request.kind==='supplement'&&request.scope==='all'){const project=this.withEvidence(base.project,evidence);return{...baseResult,status:'full-regeneration-required',project,diff:emptyDiff(),fullRegeneration:{kind:'full-regeneration',project,request:{baseTaskId:base.taskId,baseVersion:nextVersion,userEvidenceId:evidence.id}}}}
+    try{
+      const updated=this.withEvidence(base.project,evidence),diff=emptyDiff();
+      for(const featureId of featureIds){
+        const feature=updated.features.find(item=>item.id===featureId);if(!feature)throw new Error(`功能不存在：${featureId}`);
+        const sourceIds=featureSources(feature,updated),sourceUnits=updated.sourceUnits.filter(unit=>sourceIds.has(unit.id)||unit.id===evidence.id),oldRequirements=updated.requirements.filter(item=>feature.requirementIds.includes(item.id));
+        const relatedQuestions=updated.clarifications.filter(item=>item.affectedIds.some(id=>feature.requirementIds.includes(id)||sourceIds.has(id))||item.id===request.clarificationId);
+        const scoped={feature,requirements:oldRequirements,clarifications:relatedQuestions,relations:(updated.relations??[]).filter(item=>feature.requirementIds.includes(item.sourceRequirementId)||feature.requirementIds.includes(item.targetRequirementId)),sourceUnits,userEvidence:{...evidence,notice:evidence.businessFact?'这是用户明确提供的业务依据':'这只是粒度或表达调整指令，不是业务事实'}};
+        const prepared=evidencePromptInput(scoped);
+        let raw=await this.adapter.generate({title:'按需调整功能需求',instruction:this.generationInstruction(request),input:prepared.input});
+        let candidate=this.applyActions(updated,feature,relatedQuestions,this.acceptActions(raw,prepared.catalog,sourceUnits),nextVersion,request,evidence);
+        let review=await this.review(candidate,feature,sourceUnits,relatedQuestions,request,evidence);
+        if(!review.passed){
+          raw=await this.adapter.generate({title:'按需调整功能需求·有据修正',instruction:`上个候选未通过依据核查。只修正所列问题，仍返回完整显式动作对象，不得增加其他业务内容。问题：${review.issues.join('；')}`,input:{originalInput:prepared.input,candidate:this.snapshot(candidate,feature),review}});
+          candidate=this.applyActions(updated,feature,relatedQuestions,this.acceptActions(raw,prepared.catalog,sourceUnits),nextVersion,request,evidence);
+          review=await this.review(candidate,feature,sourceUnits,relatedQuestions,request,evidence);
+          if(!review.passed)throw new Error(`调整候选依据核查未通过：${review.issues.join('；')||'语义依据不足'}`);
+        }
+        this.assertResolution(candidate,request,review);
+        const previousIds=new Set(feature.requirementIds),nextFeature=candidate.features.find(item=>item.id===feature.id)!;
+        updated.requirements=candidate.requirements;updated.clarifications=candidate.clarifications;updated.relations=candidate.relations;Object.assign(feature,nextFeature);
+        const current=updated.requirements.filter(item=>feature.requirementIds.includes(item.id)),oldById=new Map(oldRequirements.map(item=>[item.id,item]));
+        diff.updatedFeatureIds.push(feature.id);diff.addedRequirementIds.push(...current.filter(item=>!oldById.has(item.id)).map(item=>item.id));diff.changedRequirementIds.push(...current.filter(item=>oldById.has(item.id)&&changed(oldById.get(item.id)!,item)).map(item=>item.id));diff.removedRequirementIds.push(...[...previousIds].filter(id=>!feature.requirementIds.includes(id)));diff.resolvedClarificationIds.push(...relatedQuestions.filter(old=>old.state==='open'&&updated.clarifications.find(item=>item.id===old.id)?.state==='resolved').map(item=>item.id));
+      }
+      updated.revision=nextVersion;return{...baseResult,status:'completed',project:updated,diff};
+    }catch(error){return{...baseResult,status:'failed',project:clone(base.project),diff:emptyDiff(),error:error instanceof Error?error.message:String(error)}}
+  }
+
+  private generationInstruction(request:RefinementAdjustmentRequest){return `只重新整理当前功能。返回 {"requirementActions":[{"action":"create|update|delete","targetId":"update/delete 必填","requirement":"create/update 必填"}],"clarificationActions":[{"action":"create|update|keep|resolve|dismiss","targetId":"除 create 外必填","clarification":"create/update 必填","satisfiedRequirementIds":[],"resolutionEvidenceIds":[]}],"relationActions":[{"action":"create|update|delete","targetId":"update/delete 必填","relation":"create/update 必填"}]}。不得用数组顺序表达替换；未返回动作的旧条目原样保留。粒度指令不得作为业务事实；数字、权限、状态、默认值、否定、条件、例外及验收条件必须选择 PRD 或 businessFact=true 的用户依据。删除被关系或澄清引用的需求必须显式更新或删除引用。${request.kind==='clarification'?'必须显式处理目标澄清；answered 只有答案被需求承接时才能 resolve，supplemented 通常 keep/update，not-applicable 才能 dismiss。':''}`}
+
+  private acceptActions(value:unknown,catalog:Parameters<typeof materializeEvidenceSelections>[1],sourceUnits:SourceUnit[]):CandidateActions{
+    const payload=object(materializeEvidenceSelections(object(value,'调整模型返回'),catalog),'调整模型返回');
+    const requirementActions=array(payload.requirementActions,'requirementActions').map((raw,index)=>{const item=object(raw,`requirementActions[${index}]`),action=item.action;if(action!=='create'&&action!=='update'&&action!=='delete')throw new Error(`requirementActions[${index}].action 非法`);const targetId=typeof item.targetId==='string'?item.targetId.trim():undefined;if(action!=='create'&&!targetId)throw new Error(`${action} 必须提供 targetId`);const requirement=action==='delete'?undefined:acceptDirectDetails([item.requirement],[],sourceUnits,true).requirements[0];return{action,targetId,requirement} as RequirementAction});
+    const clarificationActions=array(payload.clarificationActions,'clarificationActions').map((raw,index)=>{const item=object(raw,`clarificationActions[${index}]`),action=item.action;if(!['create','update','keep','resolve','dismiss'].includes(String(action)))throw new Error(`clarificationActions[${index}].action 非法`);const targetId=typeof item.targetId==='string'?item.targetId.trim():undefined;if(action!=='create'&&!targetId)throw new Error(`${action} 必须提供 targetId`);const clarification=action==='create'||action==='update'?acceptDirectDetails([], [item.clarification],sourceUnits,true).clarifications[0]:undefined;return{action,targetId,clarification,satisfiedRequirementIds:strings(item.satisfiedRequirementIds??[],`clarificationActions[${index}].satisfiedRequirementIds`),resolutionEvidenceIds:strings(item.resolutionEvidenceIds??[],`clarificationActions[${index}].resolutionEvidenceIds`)} as ClarificationAction});
+    const relationActions=array(payload.relationActions??[],'relationActions').map((raw,index)=>{const item=object(raw,`relationActions[${index}]`),action=item.action;if(action!=='create'&&action!=='update'&&action!=='delete')throw new Error(`relationActions[${index}].action 非法`);const targetId=typeof item.targetId==='string'?item.targetId.trim():undefined;if(action!=='create'&&!targetId)throw new Error(`${action} 必须提供 targetId`);if(action!=='delete'&&!item.relation)throw new Error(`${action} 必须提供 relation`);return{action,targetId,relation:item.relation as RequirementRelation|undefined} as RelationAction});return{requirementActions,clarificationActions,relationActions};
+  }
+
+  private applyActions(project:PrdProject,feature:Feature,relatedQuestions:Clarification[],actions:CandidateActions,version:number,request:RefinementAdjustmentRequest,evidence:UserEvidence){
+    const result=clone(project),target=result.features.find(item=>item.id===feature.id)!,owned=new Set(target.requirementIds),usedIds=new Set(result.requirements.map(item=>item.id)),localMap=new Map<string,string>();
+    this.uniqueTargets(actions.requirementActions,'需求');this.uniqueTargets(actions.clarificationActions,'澄清');this.uniqueTargets(actions.relationActions,'关系');
+    for(const [index,action] of actions.requirementActions.entries()){
+      if(action.action==='create'){const created=clone(action.requirement!),oldId=created.id;let id=`R-ADJ-${version}-${feature.id}-${index+1}`,suffix=1;while(usedIds.has(id))id=`R-ADJ-${version}-${feature.id}-${index+1}-${++suffix}`;usedIds.add(id);localMap.set(oldId,id);created.id=id;result.requirements.push(created);target.requirementIds.push(id);continue}
+      if(!owned.has(action.targetId!))throw new Error(`需求动作不能修改当前功能之外的条目：${action.targetId}`);const at=result.requirements.findIndex(item=>item.id===action.targetId);if(at<0)throw new Error(`需求不存在：${action.targetId}`);if(action.action==='delete'){result.requirements.splice(at,1);target.requirementIds=target.requirementIds.filter(id=>id!==action.targetId)}else result.requirements[at]={...clone(action.requirement!),id:action.targetId!};
+    }
+    const valid=new Set(result.requirements.map(item=>item.id)),remap=(id:string)=>localMap.get(id)??id,relatedIds=new Set(relatedQuestions.map(item=>item.id)),usedQuestions=new Set(result.clarifications.map(item=>item.id));
+    for(const [index,action] of actions.clarificationActions.entries()){
+      if(action.action==='create'){const created=clone(action.clarification!);let id=`Q-ADJ-${version}-${feature.id}-${index+1}`;if(!created.id.startsWith('LOCAL-')&&!usedQuestions.has(created.id))id=created.id;if(usedQuestions.has(id))throw new Error(`澄清编号重复：${id}`);usedQuestions.add(id);created.id=id;created.affectedIds=created.affectedIds.map(remap);result.clarifications.push(created);continue}
+      if(!relatedIds.has(action.targetId!))throw new Error(`澄清动作不能修改当前范围之外的条目：${action.targetId}`);const current=result.clarifications.find(item=>item.id===action.targetId);if(!current)throw new Error(`澄清不存在：${action.targetId}`);if(action.action==='keep')continue;
+      if(action.action==='update'){Object.assign(current,clone(action.clarification!),{id:current.id,affectedIds:action.clarification!.affectedIds.map(remap)});continue}
+      if(action.action==='dismiss'){if(request.clarificationDisposition!=='not-applicable'||request.clarificationId!==current.id)throw new Error('只有用户明确选择不适用的目标澄清才能关闭');current.state='dismissed';current.resolutionSourceUnitIds=[...new Set([...(current.resolutionSourceUnitIds??[]),evidence.id])];continue}
+      if(request.clarificationDisposition!=='answered'||request.clarificationId!==current.id)throw new Error('只有用户明确回答的目标澄清才能解决');const satisfied=action.satisfiedRequirementIds.map(remap);if(!satisfied.length||satisfied.some(id=>!valid.has(id)))throw new Error(`${current.id} resolve 必须指向有效承接需求`);if(!action.resolutionEvidenceIds.includes(evidence.id))throw new Error(`${current.id} resolve 必须引用本次用户答案`);current.state='resolved';current.resolutionSourceUnitIds=[...new Set([...(current.resolutionSourceUnitIds??[]),...action.resolutionEvidenceIds])];
+    }
+    if(request.kind==='clarification'&&!actions.clarificationActions.some(item=>item.targetId===request.clarificationId))throw new Error(`目标澄清 ${request.clarificationId} 缺少显式处理动作`);
+    for(const action of actions.relationActions){const relations=result.relations??=[];if(action.action==='create'){relations.push({...clone(action.relation!),id:`REL-ADJ-${version}-${relations.length+1}`,sourceRequirementId:remap(action.relation!.sourceRequirementId),targetRequirementId:remap(action.relation!.targetRequirementId)});continue}const at=relations.findIndex(item=>item.id===action.targetId);if(at<0)throw new Error(`关系不存在：${action.targetId}`);if(action.action==='delete')relations.splice(at,1);else relations[at]={...clone(action.relation!),id:action.targetId!,sourceRequirementId:remap(action.relation!.sourceRequirementId),targetRequirementId:remap(action.relation!.targetRequirementId)};}
+    for(const question of result.clarifications)question.affectedIds=question.affectedIds.map(remap);
+    const dangling=result.clarifications.filter(item=>item.affectedIds.some(id=>id.startsWith('R')&&!valid.has(id)));if(dangling.length)throw new Error(`删除需求后存在悬空澄清引用：${dangling.map(item=>item.id).join('、')}`);
+    result.relations=acceptRequirementRelations(result.relations??[],result.sourceUnits,result.requirements);this.assertInstructionIsNotEvidence(result.requirements.filter(item=>target.requirementIds.includes(item.id)),evidence);
+    target.state=result.clarifications.some(item=>item.state==='open'&&item.level==='blocking'&&item.affectedIds.some(id=>target.requirementIds.includes(id)||target.sourceUnitIds.includes(id)))?'needs-clarification':'reviewed';return result;
+  }
+
+  private async review(candidate:PrdProject,feature:Feature,sourceUnits:SourceUnit[],beforeClarifications:Clarification[],request:RefinementAdjustmentRequest,evidence:UserEvidence):Promise<SemanticReview>{const raw=await this.adapter.generate({title:'按需调整功能需求·依据核查',instruction:'只核查候选已有主张是否由所附 PRD 或 businessFact=true 的用户依据支持，尤其检查数字、权限、状态、默认值、否定、条件和例外；不得寻找遗漏。逐项确认 resolve 的答案已被需求准确承接且含义不矛盾。输出 {"passed":boolean,"issues":["具体问题"],"clarificationResolutions":[{"clarificationId":"Q","status":"supported|unsupported","reason":"原因"}]}。',input:{sourceUnits,beforeClarifications,request:{kind:request.kind,clarificationId:request.clarificationId,clarificationDisposition:request.clarificationDisposition},userEvidence:evidence,candidate:this.snapshot(candidate,feature)}}),value=object(raw,'依据核查结果');if(typeof value.passed!=='boolean')throw new Error('依据核查结果 passed 必须是布尔值');const issues=strings(value.issues,'依据核查结果.issues'),clarificationResolutions=array(value.clarificationResolutions??[],'依据核查结果.clarificationResolutions').map((raw,index)=>{const item=object(raw,`clarificationResolutions[${index}]`);if(typeof item.clarificationId!=='string'||!item.clarificationId.trim()||(item.status!=='supported'&&item.status!=='unsupported')||typeof item.reason!=='string'||!item.reason.trim())throw new Error(`clarificationResolutions[${index}] 非法`);return{clarificationId:item.clarificationId.trim(),status:item.status,reason:item.reason.trim()} as const});if(value.passed&&issues.length)throw new Error('依据核查结果矛盾');return{passed:value.passed,issues,clarificationResolutions}}
+  private assertResolution(candidate:PrdProject,request:RefinementAdjustmentRequest,review:SemanticReview){if(request.kind!=='clarification'||!request.clarificationId)return;const question=candidate.clarifications.find(item=>item.id===request.clarificationId);if(question?.state!=='resolved')return;const verdicts=review.clarificationResolutions.filter(item=>item.clarificationId===question.id);if(verdicts.length!==1||verdicts[0].status!=='supported')throw new Error(`${question.id} 的答案未被依据核查确认已落实`)}
+  private snapshot(project:PrdProject,feature:Feature){const current=project.features.find(item=>item.id===feature.id)!;return{feature:current,requirements:project.requirements.filter(item=>current.requirementIds.includes(item.id)),clarifications:project.clarifications.filter(item=>item.affectedIds.some(id=>current.requirementIds.includes(id)||current.sourceUnitIds.includes(id))),relations:(project.relations??[]).filter(item=>current.requirementIds.includes(item.sourceRequirementId)||current.requirementIds.includes(item.targetRequirementId))}}
+  private uniqueTargets(items:Array<{targetId?:string}>,label:string){const seen=new Set<string>();for(const item of items)if(item.targetId){if(seen.has(item.targetId))throw new Error(`${label}重复操作 ${item.targetId}`);seen.add(item.targetId)}}
+  private affectedFeatures(project:PrdProject,request:RefinementAdjustmentRequest){if(request.kind==='feature'||(request.kind==='supplement'&&request.scope==='feature')){if(!request.featureId)throw new Error('局部调整必须指定 featureId');if(!project.features.some(item=>item.id===request.featureId))throw new Error(`功能不存在：${request.featureId}`);return[request.featureId]}if(request.kind==='clarification'){if(!request.clarificationId)throw new Error('澄清调整必须指定 clarificationId');const q=project.clarifications.find(item=>item.id===request.clarificationId);if(!q)throw new Error(`澄清不存在：${request.clarificationId}`);const affected=new Set(q.affectedIds),matches=project.features.filter(feature=>feature.requirementIds.some(id=>affected.has(id))||feature.sourceUnitIds.some(id=>affected.has(id))).map(item=>item.id);if(!matches.length)throw new Error('澄清没有可更新的关联功能');return matches}return project.features.map(item=>item.id)}
+  private withEvidence(project:PrdProject,evidence:UserEvidence){const result=clone(project);if(result.sourceUnits.some(item=>item.id===evidence.id))return result;result.sourceUnits.push(sourceFor(evidence));result.sourceHash=createHash('sha256').update(`${result.sourceHash}\0${evidence.id}\0${evidence.content}`).digest('hex');return result}
+  private assertInstructionIsNotEvidence(requirements:RequirementDetail[],evidence:UserEvidence){if(evidence.businessFact)return;for(const requirement of requirements){const refs=[...(requirement.evidenceBindings?.behavior??[]),...(requirement.evidenceBindings?.conditions.flat()??[]),...(requirement.evidenceBindings?.constraints.flat()??[]),...(requirement.evidenceBindings?.explicitAcceptanceConditions.flat()??[])];if(refs.some(ref=>ref.sourceUnitId===evidence.id))throw new Error('粒度调整指令不能作为业务事实依据')}}
+}

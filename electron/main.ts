@@ -3,9 +3,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { extractDocument } from './document-assets.js';
-import type { RuntimeConfig, PrdProject } from '../src/types.js';
+import type { RuntimeConfig, PrdProject, RefinementAdjustmentRequest } from '../src/types.js';
 import { createRuntime, inspectRuntime, testRuntimeRoute } from './runtime.js';
 import { writeResultWorkbook } from './export-excel.js';
+import { writeAgentPackage } from './export-agent-package.js';
 import { AnalysisTaskScheduler, CURRENT_PIPELINE_VERSION } from './scheduler-v2.js';
 import { MaterialBundleStore } from './material-bundle.js';
 import type { MaterialAddition, MaterialFilePatch, MaterialQuery } from '../src/material-types.js';
@@ -144,7 +145,16 @@ if (ownsInstance) app.whenReady().then(async () => {
     const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
     try{return await scheduler.create(await materials.project(bundle.id,snapshot))}catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
   });
+  ipcMain.handle('analysis:adjust', async (_event, request: RefinementAdjustmentRequest) => {
+    return scheduler.enqueueAdjustment({...request,operationId:request.operationId?.trim()||randomUUID()});
+  });
   ipcMain.handle('analysis:open-result', async (_event, taskId: string) => { const directory = path.join(taskRoot(), taskId, 'result'); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
+  ipcMain.handle('analysis:export-package', async (_event, taskId:string, selectedFeatureIds:string[]) => {
+    const task=scheduler.get(taskId);if(!task||task.resultVersion===undefined||!['completed','needs-attention'].includes(task.status))throw new Error('当前任务还没有可导出的结果');
+    const allowed=new Set(task.project.features.filter(feature=>feature.kind!=='constraint').map(feature=>feature.id));
+    if(!Array.isArray(selectedFeatureIds)||!selectedFeatureIds.length||selectedFeatureIds.some(id=>!allowed.has(id)))throw new Error('请选择当前结果中的有效功能');
+    const result=await writeAgentPackage(task.project,task,path.join(taskRoot(),task.id,'result','deliveries'),undefined,{selectedFeatureIds});return result.directory;
+  });
   await createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });
 });
