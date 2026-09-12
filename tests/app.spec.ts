@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { clearFeedbackDraft, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, runtimeTiming } from '../src/App.js';
+import { clearFeedbackDraft, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
 import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
@@ -90,5 +90,31 @@ describe('需求细化数据契约', () => {
     expect(shouldSubmitFeedback({ctrlKey:true,metaKey:false,key:'Enter',nativeEvent:{isComposing:true}})).toBe(false);
     expect(shouldSubmitFeedback({ctrlKey:true,metaKey:false,key:'Enter',nativeEvent:{isComposing:false}})).toBe(true);
     expect(shouldSubmitFeedback({ctrlKey:false,metaKey:true,key:'Enter',nativeEvent:{isComposing:false}})).toBe(true);
+  });
+
+  it('完成任务默认进入功能范围工作台并集中任务动作',()=>{
+    const requirement={id:'R-1',title:'查询订单',behavior:'按条件返回订单。',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:[],ruleIds:[],state:'reviewed',deliveryScope:'current'};
+    const task={id:'T-1',resultVersion:2,status:'completed',progress:100,attempt:1,createdAt:1,completedAt:2,steps:[],project:{id:'P-1',name:'订单中心',sourceName:'订单.prd',sourceHash:'x',revision:1,importedAt:'2026-09-13',rawText:'',stage:'review',sourceUnits:[],features:[{id:'F-1',name:'订单查询',sourceUnitIds:[],ruleIds:[],requirementIds:['R-1'],state:'reviewed'}],requirements:[requirement],clarifications:[]}} as AnalysisTask;
+    const noop=()=>undefined,asyncNoop=async()=>undefined;
+    const html=renderToStaticMarkup(React.createElement(TaskPage,{task,versions:[task],now:3,onBack:noop,onVersion:noop,onAdjust:asyncNoop,onScope:asyncNoop,onArchive:asyncNoop,onRestore:asyncNoop,onDelete:asyncNoop}));
+    expect(html).toContain('功能与需求');
+    expect(html).toContain('全部需求');
+    expect(html).toContain('待处理事项');
+    expect(html).toContain('执行记录');
+    expect(html).toContain('生成交付包');
+    expect(html).toContain('打开产物');
+    expect(html).toContain('全选本页功能');
+    expect(html).toContain('选择当前筛选全部（1）');
+    expect(html).toContain('标记本期不做');
+    expect(html).toContain('恢复本期');
+    expect(html).toContain('取消选择');
+    expect(html).toContain('描述你希望怎么调整');
+    expect(html).not.toContain('概览');
+  });
+
+  it('功能范围状态与批量选择状态分离',()=>{
+    const project={requirements:[{id:'R-1',deliveryScope:'current'},{id:'R-2',deliveryScope:'excluded'}]} as any;
+    expect(featureScope(project,{id:'F-1',requirementIds:['R-1','R-2']} as any).label).toBe('部分纳入（1/2）');
+    expect(featureScope(project,{id:'F-2',requirementIds:['R-2'],deliveryScope:'excluded'} as any).label).toBe('本期不做');
   });
 });

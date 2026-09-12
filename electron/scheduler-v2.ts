@@ -1,6 +1,6 @@
 import { SourceIndex } from './source-index.js';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { AnalysisTask, AuditIssue, Clarification, ClarificationAction, DeliveryAssessment, Feature, ModelNodeId, PrdProject, RepairAttemptRecord, RepairReview, RepairTargetResult, RuntimeConfig, RuntimeConfigSnapshot, SourceDisposition, SourceUnit } from '../src/types.js';
 import { reconcileClarifications } from './clarification-reconciliation.js';
@@ -257,15 +257,19 @@ export class AnalysisTaskScheduler {
   private slotLimit = 3;
   private slotQueue: Array<() => void> = [];
   private familyCommits = new Map<string, Promise<void>>();
+  private deletedFamilies = new Set<string>();
   constructor(private root: string, private getConfig: () => Promise<RuntimeConfig>, private emit: Emit, private runtimeFactory: (config: RuntimeConfig) => AnalysisRuntime = createRuntime) {}
 
   async initialize() {
     await mkdir(this.root, { recursive: true });
-    for (const file of await readdir(this.root)) {
+    const storedFiles=await readdir(this.root);
+    for(const file of storedFiles.filter(item=>item.startsWith('.deleted-')&&item.endsWith('.json')))try{const value=JSON.parse(await readFile(path.join(this.root,file),'utf8')) as {rootTaskId?:string};if(value.rootTaskId)this.deletedFamilies.add(value.rootTaskId)}catch{/* 损坏标记不参与推断 */}
+    for (const file of storedFiles) {
       if (!/^T-[A-Z0-9]+\.json$/.test(file)) continue;
       let task: AnalysisTask;
       try { task = JSON.parse(await readFile(path.join(this.root, file), 'utf8')) as AnalysisTask; } catch { continue; }
       if (!task.id || !task.project || !Array.isArray(task.steps)) continue;
+      if(this.deletedFamilies.has(task.rootTaskId??task.id))continue;
       if(task.status==='completed'&&task.project.delivery?.state!=='ready'){task.status='needs-attention';task.progress=Math.min(task.progress,88);task.error='平台整理未完成：该任务的正式交付准入未通过，请重新审计当前材料。'}
       if (task.checkpoint?.pipelineVersion !== CURRENT_PIPELINE_VERSION && !['completed','needs-attention'].includes(task.status)) {
         task.status = 'failed'; task.error = '旧版检查点仅供查看，请用原始材料创建新任务';
@@ -277,14 +281,17 @@ export class AnalysisTaskScheduler {
       if (task.status === 'queued') this.queue.push(task.id);
       await this.save(task);
     }
+    const families=new Map<string,AnalysisTask[]>();for(const task of this.tasks.values()){const root=task.rootTaskId??task.id;families.set(root,[...(families.get(root)??[]),task])}
+    for(const family of families.values()){const formed=family.filter(task=>['completed','needs-attention'].includes(task.status)&&task.project.features.length).sort((a,b)=>a.createdAt-b.createdAt);if(formed.some(task=>task.resultVersion===undefined))formed.forEach((task,index)=>{task.resultVersion=index+1});for(const task of formed){if(!task.artifacts?.length)task.artifacts=await this.discoverArtifacts(task);await this.save(task)}}
     void this.pump();
   }
-  list() { return [...this.tasks.values()].sort((a, b) => b.createdAt - a.createdAt).map(t => structuredClone(t)); }
+  list() { return [...this.tasks.values()].filter(task=>!task.archivedAt&&!this.deletedFamilies.has(task.rootTaskId??task.id)).sort((a, b) => b.createdAt - a.createdAt).map(t => structuredClone(t)); }
+  listArchived() { return [...this.tasks.values()].filter(task=>task.archivedAt&&!this.deletedFamilies.has(task.rootTaskId??task.id)).sort((a,b)=>(b.archivedAt??0)-(a.archivedAt??0)).map(task=>structuredClone(task)); }
   get(id: string) { const task = this.tasks.get(id); return task ? structuredClone(task) : undefined; }
   async create(input: PrdProject,lineage?:Pick<AnalysisTask,'rootTaskId'|'parentTaskId'|'resultVersion'|'adjustment'>) {
     const config = await this.getConfig(), now = Date.now(), id=`T-${randomUUID().slice(0, 8).toUpperCase()}`;
     const task: AnalysisTask = {
-      id, rootTaskId:lineage?.rootTaskId??id, parentTaskId:lineage?.parentTaskId, resultVersion:lineage?.resultVersion??1, adjustment:lineage?.adjustment, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
+      id, rootTaskId:lineage?.rootTaskId??id, parentTaskId:lineage?.parentTaskId, resultVersion:lineage?.resultVersion, adjustment:lineage?.adjustment, project: { ...structuredClone(input), sourceDispositions: [], rules: [], features: [], requirements: [], clarifications: [], audit: undefined },
       runtimeConfig: snapshot(config), attempt: 1, checkpoint: { pipelineVersion: CURRENT_PIPELINE_VERSION, resultVersion:0,promptMetrics:[], detailedFeatureIds: [], auditIssues: [], featureCandidateBatches: [], sourceDispositionBatches: [], featureCoverageBatches: [], candidateRepairRounds: [], candidateCheckIssues: [], detailResults: {}, auditIssueBatches: [], repairAttemptsV2:[], confirmedIssueIds:[],confirmedIssues:{}, sourceCoverageDecisions:{}, relationRepairAttempts:{}, relationBatches: [], validationFailures: [] },
       status: 'queued', progress: 0, createdAt: now, steps: stages.map(([id, name, note]) => ({ id, name, note, status: 'pending' })),
     };
@@ -295,7 +302,7 @@ export class AnalysisTaskScheduler {
     const repeated=[...this.tasks.values()].find(task=>task.operationId===operationId);
     if(repeated)return structuredClone(repeated);
     const base=this.tasks.get(request.baseTaskId);
-    if(!base||!['completed','needs-attention'].includes(base.status)||!base.project.features.length)throw new Error('基础结果不存在或尚不可调整');
+    if(!base||base.archivedAt||!['completed','needs-attention'].includes(base.status)||!base.project.features.length)throw new Error('基础结果不存在、已归档或尚不可调整');
     const rootTaskId=base.rootTaskId??base.id,latest=this.latestResult(rootTaskId);
     const baseVersion=base.resultVersion??1;
     if(!latest||latest.id!==base.id||request.baseVersion!==baseVersion)throw new Error(`结果已更新到第 ${latest?.resultVersion??baseVersion} 版，请在最新版上重新提交`);
@@ -320,6 +327,15 @@ export class AnalysisTaskScheduler {
     const current=new Promise<void>(resolve=>{release=resolve}),tail=previous.then(()=>current);this.familyCommits.set(rootTaskId,tail);
     await previous;try{return await work()}finally{release();if(this.familyCommits.get(rootTaskId)===tail)this.familyCommits.delete(rootTaskId)}
   }
+  private family(id:string){const task=this.tasks.get(id);if(!task)throw new Error('任务不存在');const root=task.rootTaskId??task.id;return{root,tasks:[...this.tasks.values()].filter(item=>(item.rootTaskId??item.id)===root)}}
+  private async stopFamily(id:string){const family=this.family(id);for(const task of family.tasks){if(!['queued','running'].includes(task.status))continue;task.attempt++;task.status='failed';task.error='任务已停止';task.completedAt=Date.now();this.queue=this.queue.filter(item=>item!==task.id);for(const step of task.steps)if(step.status==='running'){step.status='failed';step.completedAt=Date.now()}await Promise.allSettled((this.running.get(task.id)??[]).map(runtime=>runtime.stop()));await this.publish(task)}await Promise.all(family.tasks.map(task=>this.writes.get(task.id)??Promise.resolve()));return family}
+  async archiveFamily(id:string){const initial=this.family(id);await this.withFamilyCommit(initial.root,async()=>{const family=await this.stopFamily(id),archivedAt=Date.now();for(const task of family.tasks){task.archivedAt=archivedAt;await this.publish(task)}})}
+  async restoreFamily(id:string){const family=this.family(id);await this.withFamilyCommit(family.root,async()=>{for(const task of family.tasks){delete task.archivedAt;await this.publish(task)}})}
+  async deleteFamily(id:string){const initial=this.family(id);await this.withFamilyCommit(initial.root,async()=>{const family=await this.stopFamily(id);this.deletedFamilies.add(family.root);await this.writeAtomic(path.join(this.root,`.deleted-${family.root}.json`),{rootTaskId:family.root,deletedAt:Date.now()});for(const task of family.tasks){this.queue=this.queue.filter(item=>item!==task.id);await rm(path.join(this.root,`${task.id}.json`),{force:true});await rm(path.join(this.root,task.id),{recursive:true,force:true})}const snapshots=[...new Set(family.tasks.map(task=>task.project.inputSnapshotPath).filter((value):value is string=>Boolean(value)))];for(const snapshot of snapshots){const referenced=[...this.tasks.values()].some(task=>!family.tasks.some(deleted=>deleted.id===task.id)&&task.project.inputSnapshotPath===snapshot),relative=path.relative(path.join(this.root,'input-snapshots'),snapshot);if(!referenced&&relative&&!relative.startsWith('..')&&!path.isAbsolute(relative))await rm(snapshot,{recursive:true,force:true})}for(const task of family.tasks)this.tasks.delete(task.id)})}
+  async updateDeliveryScope(request:import('../src/types.js').DeliveryScopeUpdateRequest){const operationId=request.operationId?.trim()||randomUUID(),repeat=[...this.tasks.values()].find(task=>task.operationId===operationId);if(repeat)return structuredClone(repeat);if(!request.targets.length)throw new Error('请选择要更新的功能或需求');const base=this.tasks.get(request.baseTaskId);if(!base||base.archivedAt||base.resultVersion===undefined||!['completed','needs-attention'].includes(base.status))throw new Error('基础结果不存在、已归档或尚未形成结果');const root=base.rootTaskId??base.id;return this.withFamilyCommit(root,async()=>{const latest=this.latestResult(root);if(!latest||latest.id!==base.id||request.baseVersion!==base.resultVersion)throw new Error(`结果已更新到第 ${latest?.resultVersion??base.resultVersion} 版，请在最新版上操作`);const project=structuredClone(base.project),changed=new Set<string>();for(const target of request.targets){if(target.kind==='feature'){const feature=project.features.find(item=>item.id===target.id);if(!feature)throw new Error(`功能不存在：${target.id}`);feature.deliveryScope=request.scope;for(const requirement of project.requirements.filter(item=>feature.requirementIds.includes(item.id))){requirement.deliveryScope=request.scope;changed.add(requirement.id)}}else{const requirement=project.requirements.find(item=>item.id===target.id);if(!requirement)throw new Error(`需求不存在：${target.id}`);requirement.deliveryScope=request.scope;changed.add(requirement.id)}}const now=Date.now(),id=`T-${randomUUID().slice(0,8).toUpperCase()}`,task:AnalysisTask={...structuredClone(base),id,operationId,rootTaskId:root,parentTaskId:base.id,baseResultVersion:base.resultVersion,resultVersion:base.resultVersion+1,project,scopeChange:{operationId,scope:request.scope,targets:structuredClone(request.targets),changedRequirementIds:[...changed],changedAt:now},artifacts:[],createdAt:now,startedAt:now,completedAt:now};delete task.archivedAt;this.tasks.set(id,task);await this.publish(task);return structuredClone(task)})}
+  async recordArtifact(taskId:string,artifact:Omit<import('../src/types.js').TaskArtifact,'id'|'createdAt'>){const task=this.tasks.get(taskId);if(!task)throw new Error('任务不存在');const value={...artifact,id:`A-${randomUUID().slice(0,8).toUpperCase()}`,createdAt:Date.now()};task.artifacts=[...(task.artifacts??[]),value];await this.publish(task);return structuredClone(value)}
+  async queryArtifacts(taskId:string){const task=this.tasks.get(taskId);if(!task)throw new Error('任务不存在');return Promise.all((task.artifacts??[]).slice().sort((a,b)=>b.createdAt-a.createdAt).map(async artifact=>{let exists=false;try{exists=(await stat(artifact.path)).isDirectory()}catch{}return{...structuredClone(artifact),exists}}))}
+  private async discoverArtifacts(task:AnalysisTask){const artifacts:NonNullable<AnalysisTask['artifacts']>=[];for(const bucket of ['deliveries','drafts'] as const){const directory=path.join(this.root,task.id,'result',bucket);let entries:string[];try{entries=await readdir(directory)}catch{continue}for(const name of entries){const candidate=path.join(directory,name);let metadata;try{metadata=await stat(candidate);if(!metadata.isDirectory())continue}catch{continue}artifacts.push({id:`A-LEGACY-${createHash('sha256').update(candidate).digest('hex').slice(0,12)}`,kind:bucket==='deliveries'?'agent-package':'draft',path:candidate,resultVersion:task.resultVersion!,createdAt:metadata.mtimeMs})}}return artifacts.sort((a,b)=>b.createdAt-a.createdAt)}
   async cancel(id: string) {
     const task = this.tasks.get(id); if (!task || task.status === 'completed') return;
     task.attempt++; task.status = 'failed'; task.error = '用户已取消任务'; task.completedAt = Date.now();
@@ -475,6 +491,7 @@ export class AnalysisTaskScheduler {
         const engine=new RefinementAdjustmentEngine({generate:async input=>call('details','adjustment',input.title,input.instruction,input.input,value=>value,[],true)});
         const run=await engine.run({taskId:base.id,version:base.resultVersion??1,project:base.project,userEvidence:task.project.userEvidence},request);
         task.project=structuredClone(run.project);task.adjustment.plan=run.plan;task.adjustment.results=run.results;
+        for(const feature of task.project.features)if(feature.deliveryScope==='excluded')for(const requirement of task.project.requirements.filter(item=>feature.requirementIds.includes(item.id)&&item.deliveryScope===undefined))requirement.deliveryScope='excluded';
         adjustmentStep.completedAt=Date.now();adjustmentStep.startedAt=undefined;
         if(run.status==='failed'){adjustmentStep.status='failed';throw new Error(run.error??'调整生成失败')}
         adjustmentStep.status='completed';task.progress=62.5;await checkpoint();
@@ -491,8 +508,8 @@ export class AnalysisTaskScheduler {
             this.assert(task,attempt);const latest=this.latestResult(task.rootTaskId??base.id),baseVersion=task.baseResultVersion??1;
             if(!latest||latest.id!==base.id||latest.resultVersion!==baseVersion)throw new Error(`基础结果已更新：当前为第 ${latest?.resultVersion??baseVersion} 版；本次输入和候选已保留，请在最新版上重新提交`);
             const result=path.join(workspace,'result'),packageRoot=path.join(result,task.project.delivery?.state==='ready'?'deliveries':'drafts');await mkdir(result,{recursive:true});
-            await writeAgentPackage(task.project,task,packageRoot);await this.writeAtomic(path.join(this.root,`${task.project.id}.project.json`),task.project);
-            task.resultVersion=baseVersion+1;deliveryStep.status='completed';deliveryStep.completedAt=Date.now();deliveryStep.startedAt=undefined;
+            const intendedVersion=baseVersion+1,written=await writeAgentPackage(task.project,{...task,resultVersion:intendedVersion},packageRoot);await this.writeAtomic(path.join(this.root,`${task.project.id}.project.json`),task.project);
+            task.resultVersion=intendedVersion;task.artifacts=[...(task.artifacts??[]),{id:`A-${randomUUID().slice(0,8).toUpperCase()}`,kind:task.project.delivery?.state==='ready'?'agent-package':'draft',path:written.directory,resultVersion:intendedVersion,createdAt:Date.now()}];deliveryStep.status='completed';deliveryStep.completedAt=Date.now();deliveryStep.startedAt=undefined;
             const ready=task.project.delivery?.state==='ready',feedbackPending=task.adjustment?.results?.some(item=>item.status==='needs-confirmation'||item.status==='failed')??false;task.status=ready&&!feedbackPending?'completed':'needs-attention';task.progress=ready&&!feedbackPending?100:88;task.error=feedbackPending?'已应用可独立处理的意见，仍有反馈需要确认或未能应用':ready?undefined:'调整结果已生成，但仍有待处理事项';task.completedAt=Date.now();await this.publish(task);
           });
         return;
@@ -916,7 +933,7 @@ export class AnalysisTaskScheduler {
         ledger.source.status='passed';ledger.feature.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='feature-grouping')?'failed':'passed';ledger.detail.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='requirement-detail'||i.owner==='runtime-output')?'failed':'passed';ledger.relation.status='passed';ledger.clarification.status=!proofValid?'unknown':openIssues.some(i=>i.owner==='source-decision')?'failed':'passed';for(const item of Object.values(ledger))item.issueIds=openIssues.filter(issue=>item.id==='feature'?issue.owner==='feature-grouping':item.id==='detail'?issue.owner==='requirement-detail'||issue.owner==='runtime-output':item.id==='relation'?issue.owner==='requirement-relation':item.id==='clarification'?issue.owner==='source-decision':false).map(issue=>issue.id);cp.checks=ledger;
         const assessment=assessDelivery(task.project,cp.checks,version);task.project.delivery=assessment;const result = path.join(workspace, 'result'); await mkdir(result, { recursive: true });
         const packageRoot=path.join(result,assessment.state==='ready'?'deliveries':'drafts');
-        this.assert(task, attempt); await writeAgentPackage(task.project,task,packageRoot);
+        this.assert(task, attempt); const intendedVersion=task.resultVersion??1,written=await writeAgentPackage(task.project,{...task,resultVersion:intendedVersion},packageRoot);task.resultVersion=intendedVersion;task.artifacts=[...(task.artifacts??[]),{id:`A-${randomUUID().slice(0,8).toUpperCase()}`,kind:assessment.state==='ready'?'agent-package':'draft',path:written.directory,resultVersion:intendedVersion,createdAt:Date.now()}];
         this.assert(task, attempt); await this.writeAtomic(path.join(this.root, `${task.project.id}.project.json`), task.project);
       });
       this.assert(task, attempt); const ready=task.project.delivery?.state==='ready',platformIncomplete=Boolean(task.project.audit?.issues.some(issue=>issue.disposition==='open'))||Boolean(task.project.delivery?.unverifiedScopeIds.length);task.status = ready?'completed':'needs-attention'; task.progress = ready?100:88;task.error=ready?undefined:platformIncomplete?'平台整理未完成：仍有平台问题或未通过检查，已保留当前草稿和逐项诊断。':'需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。'; task.completedAt = Date.now();
@@ -949,6 +966,7 @@ export class AnalysisTaskScheduler {
     }
   }
   private async publish(task: AnalysisTask) {
+    if(this.deletedFamilies.has(task.rootTaskId??task.id)||!this.tasks.has(task.id))return;
     const merged = new Map((task.runtimeMetrics ?? []).map(m => [m.sessionId, m]));
     for (const m of (this.running.get(task.id) ?? []).flatMap(r => r.metrics?.() ?? [])) merged.set(m.sessionId, m);
     task.runtimeMetrics = [...merged.values()]; const value = structuredClone(task); await this.save(value); this.emit(value);

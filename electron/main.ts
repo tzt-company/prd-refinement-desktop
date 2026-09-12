@@ -123,6 +123,7 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('projects:prepare-result', async (_event, project: PrdProject) => { const directory = resultRoot(project.id); await mkdir(directory, { recursive: true }); return writeResultWorkbook(project, path.join(directory, `${project.name}-需求细化.xlsx`)); });
   ipcMain.handle('projects:open-result', async (_event, projectId: string) => { const directory = resultRoot(projectId); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
   ipcMain.handle('analysis:list', () => scheduler.list());
+  ipcMain.handle('analysis:list-archived', () => scheduler.listArchived());
   ipcMain.handle('analysis:start', async (_event, project: PrdProject) => {
     if(project.materialBundle){
       const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
@@ -132,6 +133,10 @@ if (ownsInstance) app.whenReady().then(async () => {
     return scheduler.create(project);
   });
   ipcMain.handle('analysis:cancel', (_event, taskId: string) => scheduler.cancel(taskId));
+  ipcMain.handle('analysis:archive', (_event, taskId:string) => scheduler.archiveFamily(taskId));
+  ipcMain.handle('analysis:restore', (_event, taskId:string) => scheduler.restoreFamily(taskId));
+  ipcMain.handle('analysis:delete', (_event, taskId:string) => scheduler.deleteFamily(taskId));
+  ipcMain.handle('analysis:update-delivery-scope', (_event, request:import('../src/types.js').DeliveryScopeUpdateRequest) => scheduler.updateDeliveryScope({...request,operationId:request.operationId?.trim()||randomUUID()}));
   ipcMain.handle('analysis:retry', async (_event, taskId: string) => {
     const task=scheduler.get(taskId);
     if(!task||!['failed','needs-attention'].includes(task.status))return;
@@ -148,17 +153,16 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('analysis:adjust', async (_event, request: RefinementAdjustmentRequest) => {
     return scheduler.enqueueAdjustment({...request,operationId:request.operationId?.trim()||randomUUID()});
   });
-  ipcMain.handle('analysis:open-result', async (_event, taskId: string) => { const directory = path.join(taskRoot(), taskId, 'result'); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
-  ipcMain.handle('analysis:export-package', async (_event, taskId:string, selectedFeatureIds:string[]) => {
+  ipcMain.handle('analysis:artifacts', (_event, taskId:string) => scheduler.queryArtifacts(taskId));
+  ipcMain.handle('analysis:open-result', async (_event, taskId: string) => { const task=scheduler.get(taskId);if(!task)return{exists:false,error:'任务不存在'};const artifacts=await scheduler.queryArtifacts(taskId),artifact=artifacts.find(item=>item.resultVersion===task.resultVersion&&item.exists);if(!artifact)return{exists:false,error:artifacts.length?'产物目录已被移动或删除，请重新生成':'当前版本尚未生成产物'};const error=await shell.openPath(artifact.path);return error?{exists:true,path:artifact.path,artifactId:artifact.id,error:`目录打开失败：${error}`}:{exists:true,path:artifact.path,artifactId:artifact.id}; });
+  ipcMain.handle('analysis:export-package', async (_event, taskId:string) => {
     const task=scheduler.get(taskId);if(!task||task.resultVersion===undefined||!['completed','needs-attention'].includes(task.status))throw new Error('当前任务还没有可导出的结果');
-    const allowed=new Set(task.project.features.filter(feature=>feature.kind!=='constraint').map(feature=>feature.id));
-    if(!Array.isArray(selectedFeatureIds)||!selectedFeatureIds.length||selectedFeatureIds.some(id=>!allowed.has(id)))throw new Error('请选择当前结果中的有效功能');
-    const result=await writeAgentPackage(task.project,task,path.join(taskRoot(),task.id,'result','deliveries'),undefined,{selectedFeatureIds});return result.directory;
+    const selectedFeatureIds=task.project.features.filter(feature=>feature.kind!=='constraint'&&feature.requirementIds.some(id=>task.project.requirements.find(requirement=>requirement.id===id)?.deliveryScope!=='excluded')).map(feature=>feature.id);if(!selectedFeatureIds.length)throw new Error('当前没有本期需求，无法生成交付包');
+    const result=await writeAgentPackage(task.project,task,path.join(taskRoot(),task.id,'result','deliveries'),undefined,{selectedFeatureIds});return scheduler.recordArtifact(task.id,{kind:'agent-package',path:result.directory,resultVersion:task.resultVersion});
   });
   await createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) void createWindow(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-
 

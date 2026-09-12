@@ -25,12 +25,24 @@ export interface AgentPackageManifest {
   selectedFeatureIds: string[];
   executableFeatureIds: string[];
   blockedFeatureIds: string[];
+  pendingItemCount: number;
+  unmetDependencyCount: number;
+  qualityBoundary: 'evidence-checked-current-scope-with-open-items';
   files: Array<{path:string;sha256:string;size:number}>;
 }
 
 export interface AgentPackageResult { directory:string; manifest:AgentPackageManifest }
 export interface AgentPackageScope { selectedFeatureIds?: string[] }
-interface PendingItem { id:string; kind:'not-selected'|'blocked-feature'|'clarification'|'platform-issue'; featureIds:string[]; reason:string }
+interface PendingItem {
+  id:string;
+  kind:'excluded-feature'|'excluded-requirement'|'clarification'|'platform-issue'|'unmet-dependency';
+  featureIds:string[];
+  requirementIds?:string[];
+  reason:string;
+  level?:'blocking'|'suggestion'|'ignorable';
+  evidence?:SourceRef[];
+  impact?:string;
+}
 interface DeliveryScope { selectedFeatureIds:string[]; executableFeatureIds:string[]; blockedFeatureIds:string[]; project:PrdProject; pendingItems:PendingItem[] }
 
 const json = (value:unknown) => JSON.stringify(value,null,2)+'\n';
@@ -61,53 +73,47 @@ const featureScopeIds=(project:PrdProject,featureId:string)=>{
 function deliveryScope(project:PrdProject,requested?:AgentPackageScope):DeliveryScope {
   const business=project.features.filter(item=>item.kind!=='constraint');
   const known=new Set(business.map(item=>item.id));
-  const selected=requested?.selectedFeatureIds??business.map(item=>item.id);
-  if(new Set(selected).size!==selected.length)throw new Error('交付范围包含重复功能');
-  const unknown=selected.filter(id=>!known.has(id));
+  const requestedIds=requested?.selectedFeatureIds;
+  if(requestedIds&&new Set(requestedIds).size!==requestedIds.length)throw new Error('交付范围包含重复功能');
+  const unknown=(requestedIds??[]).filter(id=>!known.has(id));
   if(unknown.length)throw new Error(`交付范围包含不存在或不可单独交付的功能：${unknown.join('、')}`);
-  const selectedSet=new Set(selected),blocked=new Set<string>();
-  const activeIssues=activePlatformIssues(project),unverified=new Set(project.delivery?.unverifiedScopeIds??[]);
-  for(const feature of business.filter(item=>selectedSet.has(item.id))){
-    const ids=featureScopeIds(project,feature.id);
-    const requirements=project.requirements.filter(item=>feature.requirementIds.includes(item.id));
-    const hasBlockingClarification=project.clarifications.some(item=>item.state==='open'&&(item.level??'blocking')==='blocking'&&intersects(item.affectedIds,ids));
-    const hasPlatformIssue=activeIssues.some(item=>intersects(item.affectedIds,ids)||intersects(item.sourceUnitIds,ids));
-    if(feature.state!=='reviewed'||requirements.some(item=>item.state!=='reviewed')||intersects(unverified,ids)||hasBlockingClarification||hasPlatformIssue)blocked.add(feature.id);
-  }
+  // 本期范围是结果的一部分，导出时不再根据待处理事项或临时勾选推断范围。
+  // selectedFeatureIds 仅保留旧调用的参数校验；旧结果没有 deliveryScope 时全部视为本期。
+  const requirementById=new Map(project.requirements.map(item=>[item.id,item]));
+  const includedRequirementIds=new Set<string>();
+  const includedBusiness=business.filter(feature=>{
+    if(feature.deliveryScope==='excluded')return false;
+    for(const id of feature.requirementIds){const requirement=requirementById.get(id);if(requirement&&requirement.deliveryScope!=='excluded')includedRequirementIds.add(id)}
+    return feature.requirementIds.some(id=>includedRequirementIds.has(id));
+  });
+  const selected=includedBusiness.map(item=>item.id),selectedSet=new Set(selected);
   const ownerByRequirement=new Map<string,string>();
   for(const feature of business)for(const requirementId of feature.requirementIds)ownerByRequirement.set(requirementId,feature.id);
-  let changed=true;
-  while(changed){
-    changed=false;
-    for(const relation of project.relations??[]){
-      const source=ownerByRequirement.get(relation.sourceRequirementId),target=ownerByRequirement.get(relation.targetRequirementId);
-      if(source&&target&&selectedSet.has(source)&&blocked.has(target)&&!blocked.has(source)){blocked.add(source);changed=true}
-      if(source&&target&&selectedSet.has(target)&&blocked.has(source)&&!blocked.has(target)){blocked.add(target);changed=true}
-    }
-    for(const constraint of project.features.filter(item=>item.kind==='constraint')){
-      const ids=featureScopeIds(project,constraint.id);
-      const requirements=project.requirements.filter(item=>constraint.requirementIds.includes(item.id));
-      const constraintBlocked=constraint.state!=='reviewed'||requirements.some(item=>item.state!=='reviewed')||intersects(unverified,ids)||activeIssues.some(item=>intersects(item.affectedIds,ids)||intersects(item.sourceUnitIds,ids))||project.clarifications.some(item=>item.state==='open'&&(item.level??'blocking')==='blocking'&&intersects(item.affectedIds,ids));
-      if(constraintBlocked)for(const target of constraint.appliesToFeatureIds??[])if(selectedSet.has(target)&&!blocked.has(target)){blocked.add(target);changed=true}
-    }
-  }
-  const executable=selected.filter(id=>!blocked.has(id));
-  const executableSet=new Set(executable);
-  const includedConstraints=project.features.filter(item=>item.kind==='constraint'&&(item.appliesToFeatureIds??[]).some(id=>executableSet.has(id)));
-  const includedFeatures=[...project.features.filter(item=>executableSet.has(item.id)),...includedConstraints];
+  const includedConstraints=project.features.filter(item=>item.kind==='constraint'&&item.deliveryScope!=='excluded'&&(item.appliesToFeatureIds??[]).some(id=>selectedSet.has(id))).map(feature=>{
+    for(const id of feature.requirementIds){const requirement=requirementById.get(id);if(requirement&&requirement.deliveryScope!=='excluded')includedRequirementIds.add(id)}
+    return feature;
+  }).filter(feature=>feature.requirementIds.some(id=>includedRequirementIds.has(id)));
+  if(!includedRequirementIds.size)throw new Error('本期范围没有可交付需求，请先调整需求范围');
+  const includedFeatures=[...includedBusiness,...includedConstraints].map(feature=>({...structuredClone(feature),requirementIds:feature.requirementIds.filter(id=>includedRequirementIds.has(id)),appliesToFeatureIds:feature.appliesToFeatureIds?.filter(id=>selectedSet.has(id))}));
   const includedFeatureIds=new Set(includedFeatures.map(item=>item.id));
-  const includedRequirementIds=new Set(includedFeatures.flatMap(item=>item.requirementIds));
   const includedRequirements=project.requirements.filter(item=>includedRequirementIds.has(item.id));
+  const currentScopeIds=new Set([...includedFeatureIds,...includedRequirementIds,...includedFeatures.flatMap(item=>item.sourceUnitIds),...includedRequirements.flatMap(item=>item.sourceUnitIds)]);
   const includedRelations=(project.relations??[]).filter(item=>includedRequirementIds.has(item.sourceRequirementId)&&includedRequirementIds.has(item.targetRequirementId));
+  const activeIssues=activePlatformIssues(project);
+  const relatesToCurrent=(affectedIds:string[],sourceUnitIds:string[]=[])=>affectedIds.some(id=>currentScopeIds.has(id))||sourceUnitIds.some(id=>currentScopeIds.has(id));
+  const scopedClarifications=project.clarifications.filter(item=>item.state==='open'&&relatesToCurrent(item.affectedIds));
+  const scopedIssues=activeIssues.filter(item=>relatesToCurrent(item.affectedIds,item.sourceUnitIds));
+  const unmetDependencies=(project.relations??[]).filter(item=>item.kind==='depends-on'&&includedRequirementIds.has(item.sourceRequirementId)&&!includedRequirementIds.has(item.targetRequirementId));
   const pendingItems:PendingItem[]=[
-    ...business.filter(item=>!selectedSet.has(item.id)).map(item=>({id:item.id,kind:'not-selected' as const,featureIds:[item.id],reason:'本次未选择交付'})),
-    ...business.filter(item=>blocked.has(item.id)).map(item=>({id:item.id,kind:'blocked-feature' as const,featureIds:[item.id],reason:'依据核查、阻塞澄清或显式依赖尚未满足'})),
-    ...project.clarifications.filter(item=>item.state==='open').map(item=>({id:item.id,kind:'clarification' as const,featureIds:business.filter(feature=>intersects(item.affectedIds,featureScopeIds(project,feature.id))).map(feature=>feature.id),reason:item.question})),
-    ...activeIssues.map(item=>({id:item.id,kind:'platform-issue' as const,featureIds:business.filter(feature=>intersects(item.affectedIds,featureScopeIds(project,feature.id))||intersects(item.sourceUnitIds,featureScopeIds(project,feature.id))).map(feature=>feature.id),reason:item.detail}))
+    ...business.filter(item=>item.deliveryScope==='excluded'||!selectedSet.has(item.id)).map(item=>({id:item.id,kind:'excluded-feature' as const,featureIds:[item.id],requirementIds:item.requirementIds,reason:'该功能已排除在本期范围外'})),
+    ...business.filter(item=>item.deliveryScope!=='excluded').flatMap(feature=>feature.requirementIds.map(id=>requirementById.get(id)).filter((item):item is RequirementDetail=>!!item&&item.deliveryScope==='excluded').map(item=>({id:item.id,kind:'excluded-requirement' as const,featureIds:[feature.id],requirementIds:[item.id],reason:'该需求已排除在本期范围外'}))),
+    ...scopedClarifications.map(item=>({id:item.id,kind:'clarification' as const,featureIds:business.filter(feature=>intersects(item.affectedIds,featureScopeIds(project,feature.id))).map(feature=>feature.id),requirementIds:item.affectedIds.filter(id=>requirementById.has(id)),reason:item.question,level:item.level??'blocking',evidence:item.sourceRefs??[],impact:item.impact??item.reason})),
+    ...scopedIssues.map(item=>({id:item.id,kind:'platform-issue' as const,featureIds:business.filter(feature=>intersects(item.affectedIds,featureScopeIds(project,feature.id))||intersects(item.sourceUnitIds,featureScopeIds(project,feature.id))).map(feature=>feature.id),requirementIds:item.affectedIds.filter(id=>requirementById.has(id)),reason:item.detail,level:'blocking' as const,evidence:item.sourceUnitIds.map(sourceUnitId=>({sourceUnitId})),impact:item.detail})),
+    ...unmetDependencies.map(item=>({id:item.id,kind:'unmet-dependency' as const,featureIds:[ownerByRequirement.get(item.sourceRequirementId)].filter((id):id is string=>!!id),requirementIds:[item.sourceRequirementId,item.targetRequirementId],reason:`本期需求 ${item.sourceRequirementId} 依赖已排除需求 ${item.targetRequirementId}`,level:'blocking' as const,evidence:item.sourceRefs,impact:'开发 Agent 需要自行确认或补齐该依赖后再实施相关需求'}))
   ];
-  const scopedClarifications=project.clarifications.filter(item=>item.state==='open'&&item.affectedIds.some(id=>includedRequirementIds.has(id)||includedFeatureIds.has(id)));
-  const scoped:PrdProject={...structuredClone(project),features:includedFeatures,requirements:includedRequirements,relations:includedRelations,clarifications:scopedClarifications,audit:{passed:true,issues:[]},delivery:{state:executable.length?'ready':'blocked',inputHash:project.delivery?.inputHash??project.sourceHash,resultHash:'',issueIds:[],unverifiedScopeIds:[],policyVersion:project.delivery?.policyVersion??2}};
-  return {selectedFeatureIds:selected,executableFeatureIds:executable,blockedFeatureIds:selected.filter(id=>blocked.has(id)),project:scoped,pendingItems};
+  const issueIds=[...scopedClarifications.map(item=>item.id),...scopedIssues.map(item=>item.id),...unmetDependencies.map(item=>item.id)];
+  const scoped:PrdProject={...structuredClone(project),features:includedFeatures,requirements:includedRequirements,relations:includedRelations,clarifications:scopedClarifications,audit:{passed:scopedIssues.length===0,issues:scopedIssues},delivery:{state:'ready',inputHash:project.delivery?.inputHash??project.sourceHash,resultHash:'',issueIds,unverifiedScopeIds:project.delivery?.unverifiedScopeIds.filter(id=>includedRequirementIds.has(id)||includedFeatureIds.has(id))??[],policyVersion:project.delivery?.policyVersion??2}};
+  return {selectedFeatureIds:selected,executableFeatureIds:selected,blockedFeatureIds:[],project:scoped,pendingItems};
 }
 
 function snapshot(project:PrdProject,task:ExtendedTask,assessment:DeliveryAssessment,scope?:Pick<DeliveryScope,'selectedFeatureIds'|'executableFeatureIds'|'blockedFeatureIds'>) {
@@ -196,10 +202,12 @@ export async function writeAgentPackage(project:PrdProject,task:AnalysisTask,out
       `结果版本：${(task as AnalysisTask&{resultVersion?:number}).resultVersion??'未编号'}`,'',
       `本次选择功能：${scope.selectedFeatureIds.join('、')||'无'}`,'',
       `可执行功能：${scope.executableFeatureIds.join('、')||'无'}`,'',
-      `受阻功能：${scope.blockedFeatureIds.join('、')||'无'}`,'',
-      '本目录以 requirements.json 为唯一可执行业务快照。requirements.xlsx 使用同一范围；未选择或受阻内容见 pending.json。','',
+      `范围外功能：${scope.pendingItems.filter(item=>item.kind==='excluded-feature').length}`,'',
+      `本期相关待处理事项：${scope.pendingItems.filter(item=>item.kind==='clarification'||item.kind==='platform-issue').length}`,'',
+      `未满足依赖：${scope.pendingItems.filter(item=>item.kind==='unmet-dependency').length}`,'',
+      '本目录以 requirements.json 为本期可实施业务快照。requirements.xlsx 使用同一范围；范围外内容、相关待处理事项和未满足依赖见 pending.json。待处理事项不会自动删除已经列入本期的需求。','',
       '## 功能入口','',featureLinks||'- 无','',
-      '## 完整性边界','',assessment.state==='ready'?'需求检查已通过平台交付条件；这不表示已在真实业务仓库验证实施结果。':'当前包存在阻断或未完成检查，仅供整理审阅。',''
+      '## 质量边界','','本包只承诺本期需求保留可追溯依据，并完整暴露相关待处理事项和跨范围依赖。ready 表示存在可实施的本期需求，不表示待处理事项为零，也不表示已在真实业务仓库验证实施结果。',''
     ].join('\n'),'utf8');
     for(const feature of extendedProject.features){safeSegment(feature.id,'功能编号');await writeFile(path.join(temporaryDirectory,'features',`${feature.id}.md`),featureMarkdown(extendedProject,feature.id,assessment.state),'utf8')}
     const sourceRoot=path.join(temporaryDirectory,'sources');await mkdir(sourceRoot,{recursive:true});
@@ -211,7 +219,7 @@ export async function writeAgentPackage(project:PrdProject,task:AnalysisTask,out
     const outputFiles=await relativeFiles(temporaryDirectory);
     const files=[] as AgentPackageManifest['files'];
     for(const relative of outputFiles){if(relative==='manifest.json')continue;const data=await readFile(path.join(temporaryDirectory,...relative.split('/')));files.push({path:relative,sha256:sha256(data),size:data.length})}
-    const manifest:AgentPackageManifest={schemaVersion:1,deliveryId,taskId:task.id,runId:extendedTask.runId,attempt:task.attempt,materialBundle:project.materialBundle,inputHash:assessment.inputHash,resultHash,qualityState:assessment.state,runtimeConfig:task.runtimeConfig,policyVersion:assessment.policyVersion,resultVersion:(task as AnalysisTask&{resultVersion?:number}).resultVersion,...scopeRecord,files};
+    const manifest:AgentPackageManifest={schemaVersion:1,deliveryId,taskId:task.id,runId:extendedTask.runId,attempt:task.attempt,materialBundle:project.materialBundle,inputHash:assessment.inputHash,resultHash,qualityState:assessment.state,runtimeConfig:task.runtimeConfig,policyVersion:assessment.policyVersion,resultVersion:(task as AnalysisTask&{resultVersion?:number}).resultVersion,...scopeRecord,pendingItemCount:scope.pendingItems.length,unmetDependencyCount:scope.pendingItems.filter(item=>item.kind==='unmet-dependency').length,qualityBoundary:'evidence-checked-current-scope-with-open-items',files};
     await writeFile(path.join(temporaryDirectory,'manifest.json'),json(manifest),'utf8');
     await verifyPackage(temporaryDirectory,manifest,requirements);
     const manifestReadback=JSON.parse(await readFile(path.join(temporaryDirectory,'manifest.json'),'utf8')) as AgentPackageManifest;

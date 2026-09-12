@@ -93,6 +93,8 @@ export interface RequirementDetail {
   };
   ruleIds: string[];
   state: ReviewState;
+  /** 用户保存的本期范围；旧数据缺省为 current。 */
+  deliveryScope?: 'current' | 'excluded';
 }
 
 export interface Feature {
@@ -108,6 +110,8 @@ export interface Feature {
   ruleIds: string[];
   requirementIds: string[];
   state: ReviewState;
+  /** 整个功能的范围决定，也约束该功能后续新增需求。 */
+  deliveryScope?: 'current' | 'excluded';
 }
 
 export interface Clarification {
@@ -252,6 +256,18 @@ export interface RefinementAdjustment {
   instruction?: string;
 }
 
+export interface DeliveryScopeUpdateRequest {
+  operationId?: string;
+  baseTaskId: string;
+  baseVersion: number;
+  scope: 'current' | 'excluded';
+  targets: Array<{kind:'feature'|'requirement';id:string}>;
+}
+export interface DeliveryScopeChange { operationId:string;scope:'current'|'excluded';targets:DeliveryScopeUpdateRequest['targets'];changedRequirementIds:string[];changedAt:number }
+export interface TaskArtifact { id:string;kind:'agent-package'|'draft';path:string;resultVersion:number;createdAt:number }
+export interface ArtifactQueryResult extends TaskArtifact { exists:boolean }
+export interface ArtifactOpenResult { exists:boolean;path?:string;artifactId?:string;error?:string }
+
 export interface RuntimeStatus {
   available: boolean;
   adapter?: 'codex-oauth' | 'dsh';
@@ -333,6 +349,9 @@ export interface AnalysisTask {
   baseResultVersion?: number;
   resultVersion?: number;
   adjustment?: RefinementAdjustment;
+  scopeChange?: DeliveryScopeChange;
+  artifacts?: TaskArtifact[];
+  archivedAt?: number;
   project: PrdProject;
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
@@ -405,12 +424,18 @@ declare global {
       saveProject(project: PrdProject): Promise<void>;
       inspectRuntime(config?: RuntimeConfig): Promise<RuntimeStatus>;
       prepareResult(project: PrdProject): Promise<string>;
-      openResultDirectory(projectId: string): Promise<string>;
-      exportAgentPackage(taskId: string, selectedFeatureIds: string[]): Promise<string>;
+      openResultDirectory(projectId: string): Promise<ArtifactOpenResult>;
+      exportAgentPackage(taskId: string): Promise<TaskArtifact>;
       loadRuntimeConfig(): Promise<RuntimeConfig>;
       saveRuntimeConfig(config: RuntimeConfig): Promise<void>;
       testRuntime(config: RuntimeConfig): Promise<RuntimeStatus>;
       loadAnalysisTasks(): Promise<AnalysisTask[]>;
+      loadArchivedAnalysisTasks(): Promise<AnalysisTask[]>;
+      archiveAnalysisTask(taskId:string): Promise<void>;
+      restoreAnalysisTask(taskId:string): Promise<void>;
+      deleteAnalysisTask(taskId:string): Promise<void>;
+      updateDeliveryScope(request:DeliveryScopeUpdateRequest): Promise<AnalysisTask>;
+      queryAnalysisArtifacts(taskId:string): Promise<ArtifactQueryResult[]>;
       startAnalysis(project: PrdProject): Promise<AnalysisTask>;
       cancelAnalysis(taskId: string): Promise<void>;
       retryAnalysis(taskId: string): Promise<void>;
