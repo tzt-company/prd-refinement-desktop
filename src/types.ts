@@ -193,6 +193,15 @@ export interface PrdProject {
   audit?: RequirementAudit;
   delivery?: DeliveryAssessment;
   userEvidence?: UserEvidence[];
+  analysisInput?: AnalysisInputSnapshot;
+}
+
+export interface AnalysisInputSnapshot {
+  text: string;
+  revision: number;
+  submittedAt: string;
+  operationId: string;
+  fingerprint: string;
 }
 
 export interface UserEvidence {
@@ -215,8 +224,16 @@ export interface RefinementAdjustmentRequest {
   feedback: string;
   /** 用户在当前版本明确采纳的阻塞事项建议。 */
   acceptedProposalIds?: string[];
+  /** 用户实际提交的建议文本；允许基于当前建议修改后采纳。 */
+  acceptedProposals?: AcceptedResolutionProposal[];
   /** 可选的界面引用，只辅助定位，不限制自然语言可影响的范围。 */
   references?: Array<{ kind: 'feature' | 'requirement' | 'clarification'; id: string }>;
+}
+
+export interface AcceptedResolutionProposal {
+  clarificationId: string;
+  baseRecommendation: string;
+  finalText: string;
 }
 
 export type FeedbackOperationKind = 'organization' | 'business-fact' | 'replace-fact' | 'defer' | 'question';
@@ -251,6 +268,7 @@ export interface FeedbackOperationResult {
 export interface RefinementAdjustment {
   feedback: string;
   references?: RefinementAdjustmentRequest['references'];
+  acceptedProposals?: AcceptedResolutionProposal[];
   plan?: FeedbackAdjustmentPlan;
   results?: FeedbackOperationResult[];
   /** 旧任务只读字段。 */
@@ -448,6 +466,7 @@ declare global {
       updateDeliveryScope(request:DeliveryScopeUpdateRequest): Promise<AnalysisTask>;
       queryAnalysisArtifacts(taskId:string): Promise<ArtifactQueryResult[]>;
       startAnalysis(project: PrdProject): Promise<AnalysisTask>;
+      startMaterialAnalysis(bundleId:string, text:string, draftRevision:number, operationId:string): Promise<AnalysisTask>;
       cancelAnalysis(taskId: string): Promise<void>;
       retryAnalysis(taskId: string): Promise<void>;
       adjustAnalysis(request: RefinementAdjustmentRequest): Promise<AnalysisTask>;

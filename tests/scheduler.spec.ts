@@ -2,7 +2,7 @@ import {afterAll,describe,expect,it} from 'vitest';
 import {readFile,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
-import {AnalysisTaskScheduler,compactPromptInput,schedulerConcurrency} from '../electron/scheduler-v2';
+import {AnalysisTaskScheduler,attachInitialUserInput,compactPromptInput,schedulerConcurrency} from '../electron/scheduler-v2';
 import type {AnalysisRuntime} from '../electron/runtime';
 import type {PrdProject,RuntimeConfig,SourceUnit} from '../src/types';
 
@@ -24,6 +24,7 @@ function runtime(prompts:string[]):AnalysisRuntime{return{start:async()=>{},stop
 describe('Pipeline 17 调度不变量',()=>{
   it('默认并发为五任务、每任务十节点',()=>{expect(schedulerConcurrency({maxParallel:5,maxNodeParallel:10})).toEqual({taskLimit:5,nodeLimit:10,slotLimit:50})});
   it('提示输入裁剪保留业务字段并移除显示元数据',()=>{expect(compactPromptInput({id:'S1',excerpt:'要求',location:'第1段',label:'标题'})).toMatchObject({id:'S1',excerpt:'要求'})});
+  it('首次分析说明按原话拆成用户来源且重复恢复不会重复添加',()=>{const value=project();value.analysisInput={text:'本期只做查询；\n同名按完全一致处理。\n是否需要自动合并？',revision:1,submittedAt:'2026-09-13T10:00:00.000Z',operationId:'OP-1',fingerprint:'abcdef1234567890'};attachInitialUserInput(value);attachInitialUserInput(value);const added=value.sourceUnits.filter(unit=>unit.synthetic);expect(added.map(unit=>unit.excerpt)).toEqual(['本期只做查询；','同名按完全一致处理。','是否需要自动合并？']);expect(added.every(unit=>unit.location.startsWith('用户补充 · 本次分析'))).toBe(true)});
   it('首轮只核查已有产物，不调用全文补漏节点，且运行配置不落密钥',async()=>{const prompts:string[]=[],directory=path.join(root,'initial'),secret={...config,apiKey:'DO-NOT-PERSIST'};const scheduler=new AnalysisTaskScheduler(directory,async()=>secret,()=>{},()=>runtime(prompts));await scheduler.initialize();const created=await scheduler.create(project()),done=await terminal(scheduler);expect(done.status,done.error).toBe('completed');expect(prompts.some(item=>item.includes('原文正向完整性检查')||item.includes('定点补漏')||item.includes('功能候选完整性检查'))).toBe(false);expect(prompts.some(item=>item.includes('“产物依据核查”'))).toBe(true);expect(await readFile(path.join(directory,`${created.id}.json`),'utf8')).not.toContain('DO-NOT-PERSIST')});
   it('取消排队任务后不能发布正式结果',async()=>{const directory=path.join(root,'cancel'),scheduler=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>{throw new Error('不应启动')});await scheduler.initialize();const created=await scheduler.create(project());await scheduler.cancel(created.id);const cancelled=scheduler.get(created.id);expect(cancelled?.status).toBe('failed');expect(cancelled?.error).toBe('用户已取消任务')});
 });

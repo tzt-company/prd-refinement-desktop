@@ -134,7 +134,7 @@ export class RefinementAdjustmentEngine {
     const plan = await this.parse(
       feedback,
       request.references ?? [],
-      request.acceptedProposalIds ?? [],
+      request.acceptedProposals ?? (request.acceptedProposalIds??[]).map(clarificationId=>({clarificationId,baseRecommendation:'',finalText:''})),
       base.project,
       ),
       version = base.version + 1,
@@ -272,17 +272,17 @@ export class RefinementAdjustmentEngine {
   private async parse(
     feedback: string,
     references: NonNullable<RefinementAdjustmentRequest["references"]>,
-    acceptedProposalIds: string[],
+    acceptedProposals: NonNullable<RefinementAdjustmentRequest['acceptedProposals']>,
     project: PrdProject,
   ): Promise<FeedbackAdjustmentPlan> {
     const raw = await this.adapter.generate({
         title: "解析任务调整说明",
         instruction:
-          '拆分用户意见。quote 必须逐字来自原文。organization 只是整理/粒度指令；business-fact 是明确业务口径；replace-fact 是明确替换旧口径；defer 是暂不处理；question 是询问。按功能、需求正文和澄清定位明确目标。acceptedProposalIds 对应的“采纳建议方案”句子是用户已采纳的业务事实；如果同一段反馈中另有用户补充口径与建议冲突，以用户补充口径为准，不得同时生成冲突操作。存在多个合理候选、冲突或缺少决定时不得猜，写入 pending。输出 {"operations":[{"id":"O1","quote":"原文片段","kind":"organization|business-fact|replace-fact|defer|question","instruction":"执行意图","featureIds":[],"clarificationIds":[],"atomicGroupId":"可选"}],"pending":[{"id":"P1","quote":"原文片段","question":"具体待确认问题","candidateFeatureIds":[],"candidateClarificationIds":[]}]}。',
+          '拆分用户意见。quote 必须逐字来自 feedback。organization 只是整理/粒度指令；business-fact 是明确业务口径；replace-fact 是明确替换旧口径；defer 是暂不处理；question 是询问。按功能、需求正文和澄清定位明确目标。acceptedProposals 中的 finalText 是用户实际采纳的业务决定，baseRecommendation 只用于版本校验；如果 feedback 另有明确例外或替换口径，以用户补充口径为准，不得同时生成冲突操作。存在多个合理候选、冲突或缺少决定时不得猜，写入 pending。输出 {"operations":[{"id":"O1","quote":"原文片段","kind":"organization|business-fact|replace-fact|defer|question","instruction":"执行意图","featureIds":[],"clarificationIds":[],"atomicGroupId":"可选"}],"pending":[{"id":"P1","quote":"原文片段","question":"具体待确认问题","candidateFeatureIds":[],"candidateClarificationIds":[]}]}。',
         input: {
           feedback,
           references,
-          acceptedProposalIds,
+          acceptedProposals,
           features: project.features.map((f) => ({
             id: f.id,
             name: f.name,

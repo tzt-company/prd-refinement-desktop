@@ -13,6 +13,8 @@ import type { MaterialAddition, MaterialFilePatch, MaterialQuery } from '../src/
 
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+const requestedUserDataDirectory=app.commandLine.getSwitchValue('user-data-dir');
+if(requestedUserDataDirectory)app.setPath('userData',path.resolve(requestedUserDataDirectory));
 const ownsInstance = app.requestSingleInstanceLock();
 if (!ownsInstance) app.quit();
 else app.on('second-instance', () => {
@@ -80,6 +82,7 @@ if (ownsInstance) app.whenReady().then(async () => {
   });
   materialHandler('materials:update-file',(id:string,fileId:string,patch:MaterialFilePatch)=>materials.updateFile(id,fileId,patch));
   materialHandler('materials:remove-file',(id:string,fileId:string)=>materials.removeFile(id,fileId));
+  materialHandler('materials:save-analysis-draft',(id:string,text:string,expectedRevision?:number)=>materials.saveAnalysisDraft(id,text,expectedRevision));
   materialHandler('materials:index',(id:string)=>materials.index(id));
   materialHandler('materials:cancel',(id:string)=>materials.cancel(id));
   materialHandler('materials:query',(id:string,query:MaterialQuery)=>materials.query(id,query));
@@ -131,6 +134,24 @@ if (ownsInstance) app.whenReady().then(async () => {
       catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
     }
     return scheduler.create(project);
+  });
+  ipcMain.handle('analysis:start-material', async (_event,bundleId:string,text:string,draftRevision:number,operationId:string) => {
+    if(typeof bundleId!=='string'||typeof text!=='string'||typeof operationId!=='string'||!operationId.trim())throw new Error('本次分析输入无效');
+    const normalizedOperationId=operationId.trim(),repeated=scheduler.getByOperationId(normalizedOperationId);
+    if(repeated)return repeated;
+    const saved=await materials.saveAnalysisDraft(bundleId,text,draftRevision);
+    if(saved.indexedRevision!==saved.revision||saved.state!=='ready'){
+      await materials.index(bundleId);await materials.wait(bundleId);
+    }
+    const ready=await materials.get(bundleId);if(ready.state!=='ready'||ready.indexedRevision!==ready.revision)throw new Error(ready.error??'资料未能完成读取，请处理具体文件问题后重试');
+    const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
+    try{
+      const canonical=await materials.project(bundleId,snapshot),draft=ready.analysisDraft??saved.analysisDraft!;
+      canonical.analysisInput={text:draft.text,revision:draft.revision,submittedAt:new Date().toISOString(),operationId:normalizedOperationId,fingerprint:createHash('sha256').update(JSON.stringify({bundleId,materialRevision:ready.revision,text:draft.text,draftRevision:draft.revision})).digest('hex')};
+      const task=await scheduler.create(canonical,undefined,normalizedOperationId);
+      if(task.project.inputSnapshotPath!==snapshot)await rm(snapshot,{recursive:true,force:true});
+      return task;
+    }catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
   });
   ipcMain.handle('analysis:cancel', (_event, taskId: string) => scheduler.cancel(taskId));
   ipcMain.handle('analysis:archive', (_event, taskId:string) => scheduler.archiveFamily(taskId));

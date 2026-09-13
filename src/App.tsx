@@ -490,8 +490,7 @@ export function App() {
         />
       ) : page === "upload" ? (
         <MaterialWorkspace
-          onStart={async (p) => {
-            const task = await window.prdApp.startAnalysis(p);
+          onStarted={(task) => {
             setTasks((c) => [task, ...c.filter((x) => x.id !== task.id)]);
             setActiveId(task.id);
             setPage("task");
@@ -874,6 +873,7 @@ function TaskPage({
     [managing, setManaging] = useState(false);
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
   const [proposalOverrides,setProposalOverrides]=useState<Record<string,string>>({});
+  const proposalLoadedKey=useRef('');
   const [generatingProposals,setGeneratingProposals]=useState(false);
   const rootKey = taskRootId(task);
   const proposalStorageKey=`prd-proposal-overrides:${task.id}:${taskVersion(task)}`;
@@ -899,8 +899,8 @@ function TaskPage({
     setSelectedProposalIds([]);
     setProposalOverrides({});
   }, [rootKey]);
-  useEffect(()=>{try{const value=window.localStorage.getItem(proposalStorageKey);setProposalOverrides(value?JSON.parse(value):{})}catch{setProposalOverrides({})}},[proposalStorageKey]);
-  useEffect(()=>{try{window.localStorage.setItem(proposalStorageKey,JSON.stringify(proposalOverrides))}catch{/* 本地存储不可用不阻断调整 */}},[proposalStorageKey,proposalOverrides]);
+  useEffect(()=>{setSelectedProposalIds([]);try{const value=window.localStorage.getItem(proposalStorageKey);proposalLoadedKey.current=proposalStorageKey;setProposalOverrides(value?JSON.parse(value):{})}catch{proposalLoadedKey.current=proposalStorageKey;setProposalOverrides({})}},[proposalStorageKey]);
+  useEffect(()=>{if(proposalLoadedKey.current!==proposalStorageKey)return;try{window.localStorage.setItem(proposalStorageKey,JSON.stringify(proposalOverrides))}catch{/* 本地存储不可用不阻断调整 */}},[proposalStorageKey,proposalOverrides]);
   useEffect(() => {
     void window.prdApp
       .queryAnalysisArtifacts(task.id)
@@ -1102,6 +1102,7 @@ function TaskPage({
         generatingProposals={generatingProposals}
         now={now}
       />
+      {task.project.analysisInput?.text&&<details className="task-input-summary"><summary>本次分析输入 <span>用户补充 · {task.project.analysisInput.text.length.toLocaleString('zh-CN')} 字</span></summary><div><small>提交于 {new Date(task.project.analysisInput.submittedAt).toLocaleString('zh-CN')} · 已随第 {task.project.analysisInput.revision} 版输入固定</small><pre>{task.project.analysisInput.text}</pre></div></details>}
       {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} selectedProposalIds={selectedProposalIds} proposalOverrides={proposalOverrides} onProposalSelection={ids=>{setSelectedProposalIds(ids);setProposalOverrides(current=>Object.fromEntries(Object.entries(current).filter(([id])=>ids.includes(id))))}} />}{" "}
       {detail && (
         <Drawer
@@ -1348,6 +1349,11 @@ export function TaskFeedback({
         baseVersion: taskVersion(task),
         feedback,
         acceptedProposalIds: selected.map((item) => item.id),
+        acceptedProposals: selected.map((item) => ({
+          clarificationId: item.id,
+          baseRecommendation: item.resolutionProposal!.recommendation,
+          finalText: proposalOverrides[item.id] ?? item.resolutionProposal!.recommendation,
+        })),
         references: selected.map((item) => ({
           kind: "clarification" as const,
           id: item.id,
@@ -1407,7 +1413,7 @@ export function TaskFeedback({
       {selectedProposalIds.length > 0 && (
           <div className="selected-proposals">
             <div>
-              <strong>本次将采纳 {selectedProposalIds.length} 项建议方案{Object.keys(proposalOverrides).length?`，其中 ${Object.keys(proposalOverrides).length} 项已修改`:''}</strong>
+              <strong>本次将采纳 {selectedProposalIds.length} 项建议方案{selectedProposalIds.filter(id=>proposalOverrides[id]).length?`，其中 ${selectedProposalIds.filter(id=>proposalOverrides[id]).length} 项已修改`:''}</strong>
               <span>可在下方补充例外或修改口径；你输入的说明优先。</span>
             </div>
             <button type="button" className="text-action" onClick={() => onProposalSelection?.([])}>

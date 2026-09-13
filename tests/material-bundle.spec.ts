@@ -60,6 +60,13 @@ describe('资料包快照、索引和恢复',()=>{
  it('资料包可重命名并整体删除，名称变更不使索引失效',async()=>{
   const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.txt','规则'));const ready=await index(store,bundle.id);const renamed=await store.renameBundle(bundle.id,'  订单需求资料  ');expect(renamed.name).toBe('订单需求资料');expect(renamed.revision).toBe(ready.revision);expect(renamed.indexedRevision).toBe(ready.indexedRevision);expect((await store.project(bundle.id)).name).toBe('订单需求资料');await expect(store.renameBundle(bundle.id,'   ')).rejects.toThrow('不能为空');await expect(store.renameBundle(bundle.id,'文'.repeat(101))).rejects.toThrow('100');await store.deleteBundle(bundle.id);expect(await store.list()).toEqual([]);await expect(store.get(bundle.id)).rejects.toThrow();await expect(readFile(path.join(root,'store',bundle.id,'bundle.json'),'utf8')).rejects.toThrow();
  });
+ it('分析说明独立持久化且不使文件索引失效',async()=>{
+  const {root,store,bundle}=await setup();await addPrimary(store,bundle.id,await file(root,'main.txt','订单规则'));const ready=await index(store,bundle.id);
+  const saved=await store.saveAnalysisDraft(bundle.id,'本期只做查询；同名按完全一致处理。',0);
+  expect(saved.analysisDraft).toMatchObject({text:'本期只做查询；同名按完全一致处理。',revision:1});expect(saved.revision).toBe(ready.revision);expect(saved.indexedRevision).toBe(ready.indexedRevision);
+  expect((await store.saveAnalysisDraft(bundle.id,saved.analysisDraft!.text,0)).analysisDraft?.revision).toBe(1);
+  await expect(store.saveAnalysisDraft(bundle.id,'另一份说明',0)).rejects.toThrow('其他窗口');
+ });
  it('资料包正在索引时拒绝删除',async()=>{
   const {root,bundle}=await setup();let entered=false;const store=new MaterialBundleStore(path.join(root,'store'),{readImage:async(_unit,signal)=>{entered=true;return new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('abort')),{once:true}))}});await store.initialize();const image=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>').toString('base64');await addPrimary(store,bundle.id,await file(root,'main.html',`<p>规则</p><img src="data:image/svg+xml;base64,${image}">`));await store.index(bundle.id);for(let n=0;n<100&&!entered;n++)await new Promise(resolve=>setTimeout(resolve,10));expect(entered).toBe(true);await expect(store.deleteBundle(bundle.id)).rejects.toThrow('先取消再修改');expect((await store.cancel(bundle.id)).state).toBe('cancelled');
  });
