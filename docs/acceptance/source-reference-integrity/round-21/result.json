@@ -1,0 +1,24 @@
+{
+  "deliveredRequirementIds": [
+    "R-1",
+    "R-2"
+  ],
+  "pendingIds": [
+    "Q-1"
+  ],
+  "blockingItemPreserved": true,
+  "tombstoneExists": true,
+  "remainingTaskFiles": [],
+  "featureRows": [
+    {
+      "text": "订单提交F-1第 1 节 · 第 1 节1本期",
+      "top": 479.66668701171875,
+      "height": 64
+    },
+    {
+      "text": "订单查询F-2第 2 节 · 第 2 节1本期",
+      "top": 543.6666870117188,
+      "height": 64
+    }
+  ]
+}
