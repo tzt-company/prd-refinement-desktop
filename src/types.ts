@@ -194,6 +194,7 @@ export interface PrdProject {
   delivery?: DeliveryAssessment;
   userEvidence?: UserEvidence[];
   analysisInput?: AnalysisInputSnapshot;
+  analysisInputApplications?: AnalysisInputApplication[];
 }
 
 export interface AnalysisInputSnapshot {
@@ -202,6 +203,16 @@ export interface AnalysisInputSnapshot {
   submittedAt: string;
   operationId: string;
   fingerprint: string;
+}
+
+export interface AnalysisInputApplication {
+  sourceUnitId: string;
+  kind: 'business-fact' | 'scope-decision' | 'organization' | 'question' | 'replacement';
+  summary: string;
+  deliveryScope?: 'current' | 'excluded';
+  status: 'applied' | 'pending';
+  affectedFeatureIds: string[];
+  affectedRequirementIds: string[];
 }
 
 export interface UserEvidence {
@@ -320,7 +331,7 @@ export interface RuntimeConfig {
   maxNodeParallel?: number;
 }
 
-export type ModelNodeId = 'imageReading' | 'featureCandidates' | 'featureCandidateRepair' | 'featureGlobal' | 'featureCoverage' | 'detailsFast' | 'details' | 'audit' | 'repair';
+export type ModelNodeId = 'imageReading' | 'inputInterpretation' | 'featureCandidates' | 'featureCandidateRepair' | 'featureGlobal' | 'detailsFast' | 'details' | 'audit' | 'repair';
 export interface ModelProfile { model:string; reasoningEffort:RuntimeConfig['reasoningEffort'] }
 
 export type RuntimeConfigSnapshot = Omit<RuntimeConfig, 'apiKey'> & {
@@ -380,12 +391,13 @@ export interface AnalysisTask {
   adjustment?: RefinementAdjustment;
   scopeChange?: DeliveryScopeChange;
   artifacts?: TaskArtifact[];
+  proposalGeneration?: {status:'running'|'completed'|'failed';startedAt:number;completedAt?:number;calls:number;error?:string};
   archivedAt?: number;
   project: PrdProject;
   runtimeConfig?: RuntimeConfigSnapshot;
   attempt: number;
   checkpoint?: {
-    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+    pipelineVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
     clarificationResults?: { dependencyHash: string; results: Record<string, { status: 'candidate' | 'verified' | 'rejected'; value?: unknown; attempts: number; feedback?: string }> };
     resultVersion?:number;
     checks?:Partial<Record<RequiredCheckId,AnalysisCheckRecord>>;
@@ -414,14 +426,12 @@ export interface AnalysisTask {
     boundaryUnified?: Feature[];
     rulesBatchCount?: number;
     featureCandidateBatchCount?: number;
-    featureCoverageBatchCount?: number;
     auditBatchCount?: number;
     detailedFeatureIds: string[];
     auditedFeatureIds?: string[];
     auditIssues: AuditIssue[];
     featureCandidateBatches?: Feature[][];
     sourceDispositionBatches?: SourceDisposition[][];
-    featureCoverageBatches?: Feature[][];
     detailResults?: Record<string,{requirements:RequirementDetail[];clarifications:Clarification[]}>;
     auditIssueBatches?: AuditIssue[][];
     relationBatches?: RequirementRelation[][];
@@ -436,6 +446,8 @@ export interface AnalysisTask {
   status: 'queued' | 'running' | 'completed' | 'needs-attention' | 'failed';
   progress: number;
   createdAt: number;
+  /** 用户点击开始分析的时间；包含任务建立前的资料读取与索引。 */
+  requestedAt?: number;
   startedAt?: number;
   completedAt?: number;
   steps: AnalysisStep[];

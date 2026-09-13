@@ -193,6 +193,8 @@ describe("任务生命周期、本期范围与产物记录", () => {
     expect(
       changed.project.requirements.every((x) => x.deliveryScope === "excluded"),
     ).toBe(true);
+    expect(changed.project.delivery?.inputHash).not.toBe("H");
+    expect(changed.checkpoint?.checks).toBeDefined();
     expect(
       (
         await scheduler.updateDeliveryScope({
@@ -234,5 +236,12 @@ describe("任务生命周期、本期范围与产物记录", () => {
     expect(await scheduler.queryArtifacts("T-F")).toMatchObject([
       { path: missing, exists: false, resultVersion: 1 },
     ]);
+  });
+  it("阻塞事项建议按统一预算记录提示词、运行状态和 Runtime 指标",async()=>{
+    const base=task("T-P",1);base.status="needs-attention";base.project.clarifications=[{id:"Q1",question:"超时时间是多少？",reason:"原文未明确",level:"blocking",knownFacts:"存在超时",unresolvedPoint:"时长",impact:"影响状态流转",levelReason:"Agent 不能猜测",sourceRefs:[{sourceUnitId:"S1"}],affectedIds:["R1"],state:"open"}];
+    const directory=await mkdtemp(path.join(tmpdir(),"prd-proposal-"));await writeFile(path.join(directory,"T-P.json"),JSON.stringify(base),"utf8");
+    const scheduler=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>({start:async()=>{},stop:async()=>{},diagnostics:()=>"",metrics:()=>[{sessionId:"prd-T-P-proposal-1-try1",adapter:"codex-oauth",model:"test",reasoningEffort:"low",startedAt:1,completedAt:2,durationMs:1,inputTokens:20,outputTokens:5}],promptAndWait:async()=>JSON.stringify({proposals:[{clarificationId:"Q1",recommendation:"超时时长统一设为三十分钟。",rationale:"当前材料明确存在超时控制。",impact:"到期后进入超时状态。",confirmation:"确认采用三十分钟。",alternatives:[],evidenceIds:["S1"]}]})}));
+    await scheduler.initialize();const result=await scheduler.generateResolutionProposals("T-P");
+    expect(result.proposalGeneration).toMatchObject({status:"completed",calls:1});expect(result.checkpoint?.promptMetrics).toHaveLength(1);expect(result.runtimeMetrics).toHaveLength(1);expect(result.project.clarifications[0].resolutionProposal?.recommendation).toContain("三十分钟");
   });
 });

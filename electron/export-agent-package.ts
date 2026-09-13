@@ -5,6 +5,7 @@ import ExcelJS from 'exceljs';
 import type { AnalysisTask, DeliveryAssessment, PrdProject, RequirementDetail, SourceRef, SourceUnit } from '../src/types.js';
 import { writeResultWorkbook } from './export-excel.js';
 import { activePlatformIssues, affectedLabels, clarificationLevel, clarificationLevelLabel, featureTitle, sourceExcerpt, sourceHeading, sourcePosition } from '../src/result-presentation.js';
+import { projectInputHash } from './task-execution-state.js';
 
 type DeliveryState = DeliveryAssessment['state'];
 type ExtendedTask = AnalysisTask & { runId?:string };
@@ -61,7 +62,7 @@ function quality(_task:ExtendedTask,project:PrdProject):DeliveryAssessment {
   const active=activePlatformIssues(project);
   const open=project.clarifications.filter(item=>item.state==='open'&&(item.level??'blocking')==='blocking');
   const state:DeliveryState=active.length||open.length?'blocked':project.audit?.passed?'ready':'unchecked';
-  return {state,inputHash:project.sourceHash,resultHash:'',issueIds:[...active.map(item=>item.id),...open.map(item=>item.id)],unverifiedScopeIds:[],policyVersion:2};
+  return {state,inputHash:projectInputHash(project),resultHash:'',issueIds:[...active.map(item=>item.id),...open.map(item=>item.id)],unverifiedScopeIds:[],policyVersion:2};
 }
 
 const intersects=(left:Iterable<string>,right:Set<string>)=>Array.from(left).some(value=>right.has(value));
@@ -112,14 +113,14 @@ function deliveryScope(project:PrdProject,requested?:AgentPackageScope):Delivery
     ...unmetDependencies.map(item=>({id:item.id,kind:'unmet-dependency' as const,featureIds:[ownerByRequirement.get(item.sourceRequirementId)].filter((id):id is string=>!!id),requirementIds:[item.sourceRequirementId,item.targetRequirementId],reason:`本期需求 ${item.sourceRequirementId} 依赖已排除需求 ${item.targetRequirementId}`,level:'blocking' as const,evidence:item.sourceRefs,impact:'开发 Agent 需要自行确认或补齐该依赖后再实施相关需求'}))
   ];
   const issueIds=[...scopedClarifications.map(item=>item.id),...scopedIssues.map(item=>item.id),...unmetDependencies.map(item=>item.id)];
-  const scoped:PrdProject={...structuredClone(project),features:includedFeatures,requirements:includedRequirements,relations:includedRelations,clarifications:scopedClarifications,audit:{passed:scopedIssues.length===0,issues:scopedIssues},delivery:{state:'ready',inputHash:project.delivery?.inputHash??project.sourceHash,resultHash:'',issueIds,unverifiedScopeIds:project.delivery?.unverifiedScopeIds.filter(id=>includedRequirementIds.has(id)||includedFeatureIds.has(id))??[],policyVersion:project.delivery?.policyVersion??2}};
+  const scoped:PrdProject={...structuredClone(project),features:includedFeatures,requirements:includedRequirements,relations:includedRelations,clarifications:scopedClarifications,audit:{passed:scopedIssues.length===0,issues:scopedIssues},delivery:{state:'ready',inputHash:project.delivery?.inputHash??projectInputHash(project),resultHash:'',issueIds,unverifiedScopeIds:project.delivery?.unverifiedScopeIds.filter(id=>includedRequirementIds.has(id)||includedFeatureIds.has(id))??[],policyVersion:project.delivery?.policyVersion??2}};
   return {selectedFeatureIds:selected,executableFeatureIds:selected,blockedFeatureIds:[],project:scoped,pendingItems};
 }
 
 function snapshot(project:PrdProject,task:ExtendedTask,assessment:DeliveryAssessment,scope?:Pick<DeliveryScope,'selectedFeatureIds'|'executableFeatureIds'|'blockedFeatureIds'>) {
   return {
     schemaVersion:1,
-    project:{id:project.id,name:project.name,revision:project.revision,sourceName:project.sourceName,sourceHash:project.sourceHash,materialBundle:project.materialBundle,sourceDocuments:project.sourceDocuments},
+    project:{id:project.id,name:project.name,revision:project.revision,sourceName:project.sourceName,sourceHash:project.sourceHash,materialBundle:project.materialBundle,sourceDocuments:project.sourceDocuments,analysisInput:project.analysisInput,analysisInputApplications:project.analysisInputApplications},
     task:{id:task.id,runId:task.runId,attempt:task.attempt,resultVersion:(task as AnalysisTask&{resultVersion?:number}).resultVersion},
     delivery:{state:assessment.state,inputHash:assessment.inputHash,issueIds:assessment.issueIds,unverifiedScopeIds:assessment.unverifiedScopeIds,policyVersion:assessment.policyVersion,...scope},
     features:project.features,

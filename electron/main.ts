@@ -33,7 +33,7 @@ function projectPath(id: string) {
 function resultRoot(id: string) { return path.join(dataRoot(), id, 'result'); }
 function taskRoot() { return path.join(app.getPath('userData'), 'analysis-tasks'); }
 
-const defaultRuntimeConfig: RuntimeConfig = { adapter: 'codex-oauth', provider: 'openai-codex', fastModel: 'gpt-5.6-luna', fastReasoningEffort: 'low', model: 'gpt-5.6-terra', reasoningEffort: 'low', nodeProfiles:{imageReading:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidates:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidateRepair:{model:'gpt-5.6-terra',reasoningEffort:'low'},featureGlobal:{model:'gpt-5.6-terra',reasoningEffort:'low'},featureCoverage:{model:'gpt-5.6-sol',reasoningEffort:'low'},detailsFast:{model:'gpt-5.6-luna',reasoningEffort:'low'},details:{model:'gpt-5.6-terra',reasoningEffort:'low'},audit:{model:'gpt-5.6-sol',reasoningEffort:'low'},repair:{model:'gpt-5.6-terra',reasoningEffort:'low'}}, maxParallel: 5, maxNodeParallel:10 };
+const defaultRuntimeConfig: RuntimeConfig = { adapter: 'codex-oauth', provider: 'openai-codex', fastModel: 'gpt-5.6-luna', fastReasoningEffort: 'low', model: 'gpt-5.6-terra', reasoningEffort: 'low', nodeProfiles:{imageReading:{model:'gpt-5.6-luna',reasoningEffort:'low'},inputInterpretation:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidates:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidateRepair:{model:'gpt-5.6-terra',reasoningEffort:'low'},featureGlobal:{model:'gpt-5.6-terra',reasoningEffort:'low'},detailsFast:{model:'gpt-5.6-luna',reasoningEffort:'low'},details:{model:'gpt-5.6-terra',reasoningEffort:'low'},audit:{model:'gpt-5.6-sol',reasoningEffort:'low'},repair:{model:'gpt-5.6-terra',reasoningEffort:'low'}}, maxParallel: 5, maxNodeParallel:10 };
 function runtimeConfigPath() { return path.join(app.getPath('userData'), 'runtime-config.json'); }
 type StoredRuntimeConfig = Omit<RuntimeConfig, 'apiKey'> & { encryptedApiKey?: string };
 
@@ -128,14 +128,16 @@ if (ownsInstance) app.whenReady().then(async () => {
   ipcMain.handle('analysis:list', () => scheduler.list());
   ipcMain.handle('analysis:list-archived', () => scheduler.listArchived());
   ipcMain.handle('analysis:start', async (_event, project: PrdProject) => {
+    const requestedAt=Date.now();
     if(project.materialBundle){
       const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
-      try{const canonical=await materials.project(project.materialBundle.id,snapshot);if(canonical.materialBundle!.revision!==project.materialBundle.revision)throw new Error('资料已变更，请重新确认版本');return await scheduler.create(canonical)}
+      try{const canonical=await materials.project(project.materialBundle.id,snapshot);if(canonical.materialBundle!.revision!==project.materialBundle.revision)throw new Error('资料已变更，请重新确认版本');return await scheduler.create(canonical,undefined,undefined,requestedAt)}
       catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
     }
-    return scheduler.create(project);
+    return scheduler.create(project,undefined,undefined,requestedAt);
   });
   ipcMain.handle('analysis:start-material', async (_event,bundleId:string,text:string,draftRevision:number,operationId:string) => {
+    const requestedAt=Date.now();
     if(typeof bundleId!=='string'||typeof text!=='string'||typeof operationId!=='string'||!operationId.trim())throw new Error('本次分析输入无效');
     const normalizedOperationId=operationId.trim(),repeated=scheduler.getByOperationId(normalizedOperationId);
     if(repeated)return repeated;
@@ -148,7 +150,7 @@ if (ownsInstance) app.whenReady().then(async () => {
     try{
       const canonical=await materials.project(bundleId,snapshot),draft=ready.analysisDraft??saved.analysisDraft!;
       canonical.analysisInput={text:draft.text,revision:draft.revision,submittedAt:new Date().toISOString(),operationId:normalizedOperationId,fingerprint:createHash('sha256').update(JSON.stringify({bundleId,materialRevision:ready.revision,text:draft.text,draftRevision:draft.revision})).digest('hex')};
-      const task=await scheduler.create(canonical,undefined,normalizedOperationId);
+      const task=await scheduler.create(canonical,undefined,normalizedOperationId,requestedAt);
       if(task.project.inputSnapshotPath!==snapshot)await rm(snapshot,{recursive:true,force:true});
       return task;
     }catch(error){await rm(snapshot,{recursive:true,force:true});throw error}

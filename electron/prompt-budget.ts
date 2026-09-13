@@ -23,7 +23,7 @@ export class PromptBudgetExceededError extends Error {
 }
 
 export function budgetClassFor(node:ModelNodeId,purpose:string):PromptBudgetClass{
-  if(node==='featureCandidates'||node==='featureCandidateRepair'||node==='featureCoverage'||node==='detailsFast')return'candidate';
+  if(node==='inputInterpretation'||node==='featureCandidates'||node==='featureCandidateRepair'||node==='detailsFast')return'candidate';
   if(node==='repair'||purpose.startsWith('repair-')||purpose.includes('clarification'))return'repair';
   return'audit';
 }

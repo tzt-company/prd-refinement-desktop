@@ -51,7 +51,6 @@ import {
 const stepDefs = [
   ["inventory", "原文建账", "登记原文、结构、位置与缺失材料"],
   ["candidates", "功能候选识别", "按连贯原文包并行识别功能候选"],
-  ["coverage", "功能内容汇集", "汇集已整理的功能内容"],
   ["unify", "功能清单整理", "去重并统一功能边界与来源"],
   ["details", "逐功能细化", "逐项整理需求、条件与待澄清内容"],
   ["audit", "产物依据核查", "核查已有主张是否受来源支持"],
@@ -60,10 +59,10 @@ const stepDefs = [
 ];
 const modelNodes: [ModelNodeId, string, string][] = [
   ["imageReading", "图片内容读取", "按需转录图片、图表和页面内容"],
+  ["inputInterpretation", "补充说明理解", "区分业务补充、范围决定、整理要求和待回答问题"],
   ["featureCandidates", "功能候选识别", "按连贯候选内容快速识别候选"],
   ["featureCandidateRepair", "候选定点返工", "根据边界问题修订受影响候选内容"],
   ["featureGlobal", "功能清单整理", "处理语义重叠和边界争议"],
-  ["featureCoverage", "功能内容核对", "核对当前功能的来源归属"],
   ["detailsFast", "简单功能细化", "整理短小、无复杂联动的功能"],
   ["details", "复杂功能细化", "处理状态、权限、依赖和复杂条件"],
   ["audit", "产物依据核查", "核查已有主张是否受来源支持"],
@@ -77,10 +76,10 @@ const defaultNodeProfiles = (
     standard = adapter === "codex-oauth" ? "gpt-5.6-terra" : "deepseek-v4";
   return {
     imageReading: { model: fast, reasoningEffort: "low" },
+    inputInterpretation: { model: fast, reasoningEffort: "low" },
     featureCandidates: { model: fast, reasoningEffort: "low" },
     featureCandidateRepair: { model: standard, reasoningEffort: "low" },
     featureGlobal: { model: standard, reasoningEffort: "low" },
-    featureCoverage: { model: critical, reasoningEffort: "low" },
     detailsFast: { model: fast, reasoningEffort: "low" },
     details: { model: standard, reasoningEffort: "low" },
     audit: { model: critical, reasoningEffort: "low" },
@@ -97,6 +96,11 @@ const stepModelNodes: Record<
       label: "图片转录",
       purpose: "仅在候选内容含图片时调用",
     },
+    {
+      node: "inputInterpretation",
+      label: "补充说明理解",
+      purpose: "仅在本次分析填写补充说明时调用",
+    },
   ],
   candidates: [
     {
@@ -110,7 +114,6 @@ const stepModelNodes: Record<
       purpose: "只修订边界或分类问题",
     },
   ],
-  coverage: [],
   unify: [
     {
       node: "featureGlobal",
@@ -775,7 +778,7 @@ function TaskCenterRow({
         <b>{task.progress}%</b>
       </span>
       <span className="task-time">
-        {elapsed(task.startedAt, task.completedAt, now)}
+        {elapsed(task.requestedAt??task.startedAt, task.completedAt, now)}
       </span>
       <span className="task-time">
         {new Date(task.createdAt).toLocaleTimeString("zh-CN", {
@@ -1102,7 +1105,7 @@ function TaskPage({
         generatingProposals={generatingProposals}
         now={now}
       />
-      {task.project.analysisInput?.text&&<details className="task-input-summary"><summary>本次分析输入 <span>用户补充 · {task.project.analysisInput.text.length.toLocaleString('zh-CN')} 字</span></summary><div><small>提交于 {new Date(task.project.analysisInput.submittedAt).toLocaleString('zh-CN')} · 已随第 {task.project.analysisInput.revision} 版输入固定</small><pre>{task.project.analysisInput.text}</pre></div></details>}
+      {task.project.analysisInput?.text&&<details className="task-input-summary"><summary>本次分析输入 <span>用户补充 · {task.project.analysisInput.text.length.toLocaleString('zh-CN')} 字</span></summary><div><small>提交于 {new Date(task.project.analysisInput.submittedAt).toLocaleString('zh-CN')} · 已随第 {task.project.analysisInput.revision} 版输入固定</small><pre>{task.project.analysisInput.text}</pre>{task.project.analysisInputApplications?.length?<section className="input-application-list"><h4>平台如何使用这些内容</h4>{task.project.analysisInputApplications.map(item=><article key={item.sourceUnitId}><strong>{item.kind==='business-fact'?'业务补充':item.kind==='scope-decision'?'本期范围':item.kind==='organization'?'整理要求':item.kind==='question'?'待回答问题':'替换口径'}</strong><span>{item.summary}</span><em>{item.status==='pending'?'仍待确认':item.affectedFeatureIds.length?`已应用到 ${item.affectedFeatureIds.length} 个功能`:'已记录'}</em></article>)}</section>:null}</div></details>}
       {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} selectedProposalIds={selectedProposalIds} proposalOverrides={proposalOverrides} onProposalSelection={ids=>{setSelectedProposalIds(ids);setProposalOverrides(current=>Object.fromEntries(Object.entries(current).filter(([id])=>ids.includes(id))))}} />}{" "}
       {detail && (
         <Drawer
@@ -1491,6 +1494,9 @@ export function TaskFeedback({
 }
 function metricNode(id: string) {
   if (id.includes("-asset-")) return "图片读取";
+  if (id.includes("input-interpretation")) return "补充说明理解";
+  if (id.includes("-proposal-")) return "阻塞事项建议";
+  if (id.includes("-adjustment")) return "统一调整";
   if (id.includes("-candidate-")) return "功能候选识别";
   if (id.includes("-unify")) return "功能清单统一";
   if (id.includes("-coverage-")) return "功能完整性检查";
@@ -1501,7 +1507,8 @@ function metricNode(id: string) {
 }
 export function RuntimeCost({ task }: { task: AnalysisTask }) {
   const calls = task.runtimeMetrics ?? [];
-  if (!calls.length) return null;
+  const prompts = task.checkpoint?.promptMetrics ?? [];
+  if (!calls.length && !prompts.length) return null;
   const input = calls.reduce((sum, item) => sum + (item.inputTokens ?? 0), 0),
     cached = calls.reduce(
       (sum, item) => sum + (item.cachedInputTokens ?? 0),
@@ -1512,11 +1519,14 @@ export function RuntimeCost({ task }: { task: AnalysisTask }) {
       (item) =>
         item.inputTokens !== undefined || item.outputTokens !== undefined,
     ),
+    promptTokens=prompts.reduce((sum,item)=>sum+item.estimatedTokens,0),
+    promptQueue=prompts.reduce((sum,item)=>sum+item.queueMs,0),
+    validationRetries=prompts.filter(item=>item.attempt>1).length,
     timing = runtimeTiming(task),
     wall =
-      task.startedAt === undefined
+      (task.requestedAt??task.startedAt) === undefined
         ? 0
-        : (task.completedAt ?? Date.now()) - task.startedAt,
+        : (task.completedAt ?? Date.now()) - (task.requestedAt??task.startedAt)!,
     groups = Object.values(
       calls.reduce<
         Record<
@@ -1562,6 +1572,10 @@ export function RuntimeCost({ task }: { task: AnalysisTask }) {
           <strong>{calls.length}</strong>
         </div>
         <div>
+          <span>提示词估算</span>
+          <strong>{promptTokens.toLocaleString()} Token</strong>
+        </div>
+        <div>
           <span>输入 Token</span>
           <strong>
             {measured ? input.toLocaleString() : "Runtime 未返回"}
@@ -1580,8 +1594,16 @@ export function RuntimeCost({ task }: { task: AnalysisTask }) {
           <strong>{elapsed(0, timing.active)}</strong>
         </div>
         <div>
-          <span>墙钟耗时</span>
+          <span>点击到结果</span>
           <strong>{elapsed(0, wall)}</strong>
+        </div>
+        <div>
+          <span>模型排队</span>
+          <strong>{elapsed(0,promptQueue)}</strong>
+        </div>
+        <div>
+          <span>格式重试</span>
+          <strong>{validationRetries}</strong>
         </div>
         {timing.retryWait > 0 && (
           <div>
@@ -1693,7 +1715,7 @@ export function Progress({ task, now }: { task: AnalysisTask; now: number }) {
       </div>
       <footer>
         <Clock3 />
-        任务墙钟时长 {elapsed(task.startedAt, task.completedAt, now)}
+        点击到当前结果 {elapsed(task.requestedAt??task.startedAt, task.completedAt, now)}
       </footer>
     </section>
   );

@@ -42,7 +42,7 @@ describe('需求细化数据契约', () => {
     const progress=renderToStaticMarkup(React.createElement(Progress,{task,now:3000}));
     expect(progress).toContain('已识别 17/17 个候选内容');expect(progress).toContain('累计业务调用 19 次');expect(progress).not.toContain('来源包');expect(progress).not.toContain('运行 19 轮');
   });
-  it('区分模型活跃耗时、等待重试与墙钟耗时',()=>{
+  it('区分模型活跃耗时、等待重试与点击到结果耗时',()=>{
     const task={status:'failed',startedAt:1000,completedAt:13000,steps:[],runtimeMetrics:[
       {sessionId:'prd-T-a1-candidate-1-try1',startedAt:1000,completedAt:4000,durationMs:3000,adapter:'codex-oauth',model:'fast',reasoningEffort:'low'},
       {sessionId:'prd-T-a1-coverage-2-try1',startedAt:2000,completedAt:5000,durationMs:3000,adapter:'codex-oauth',model:'sol',reasoningEffort:'low'},
@@ -50,7 +50,7 @@ describe('需求细化数据契约', () => {
     ],project:{}} as AnalysisTask;
     expect(runtimeTiming(task)).toEqual({active:7000,retryWait:5000});
     const cost=renderToStaticMarkup(React.createElement(RuntimeCost,{task}));
-    expect(cost).toContain('模型活跃耗时');expect(cost).toContain('墙钟耗时');expect(cost).toContain('等待重试');expect(cost).toContain('7 秒');expect(cost).toContain('12 秒');expect(cost).toContain('5 秒');
+    expect(cost).toContain('模型活跃耗时');expect(cost).toContain('点击到结果');expect(cost).toContain('等待重试');expect(cost).toContain('7 秒');expect(cost).toContain('12 秒');expect(cost).toContain('5 秒');
   });
 
   it('结果页使用一个任务级自然语言调整入口',()=>{
