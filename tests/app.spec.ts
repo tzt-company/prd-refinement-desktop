@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { clearFeedbackDraft, displayProgress, ExecutionRecord, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
+import { artifactRefreshKey, clearFeedbackDraft, displayProgress, ExecutionRecord, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
 import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
   it('七阶段进度显示为整数百分比',()=>{
     expect(displayProgress(42.85714285714286)).toBe(43);
+  });
+  it('同一任务完成并登记产物后会触发产物状态刷新',()=>{
+    const running={id:'T-1',status:'running',steps:[],project:{}} as AnalysisTask;
+    const completed={...running,status:'completed',resultVersion:1,artifacts:[{id:'A-1',kind:'agent-package',path:'/tmp/result',resultVersion:1,createdAt:1}]} as AnalysisTask;
+    expect(artifactRefreshKey(completed)).not.toBe(artifactRefreshKey(running));
   });
   it('明确区分来源、规则、功能和需求明细', () => {
     const chain = ['SourceUnit', 'RequirementRule', 'Feature', 'RequirementDetail'];

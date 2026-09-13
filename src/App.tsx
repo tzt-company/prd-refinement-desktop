@@ -314,6 +314,9 @@ function taskVersion(task: AnalysisTask) {
 export function displayProgress(value: number) {
   return Math.round(Math.max(0, Math.min(100, value)));
 }
+export function artifactRefreshKey(task: AnalysisTask) {
+  return `${task.id}:${task.resultVersion ?? 0}:${task.artifacts?.length ?? 0}`;
+}
 const taskStatusLabel = (task: AnalysisTask) =>
   task.status === "needs-attention"
     ? "已完成"
@@ -927,14 +930,17 @@ function TaskPage({
   useEffect(()=>{setSelectedProposalIds([]);try{const value=window.localStorage.getItem(proposalStorageKey);proposalLoadedKey.current=proposalStorageKey;setProposalOverrides(value?JSON.parse(value):{})}catch{proposalLoadedKey.current=proposalStorageKey;setProposalOverrides({})}},[proposalStorageKey]);
   useEffect(()=>{if(proposalLoadedKey.current!==proposalStorageKey)return;try{window.localStorage.setItem(proposalStorageKey,JSON.stringify(proposalOverrides))}catch{/* 本地存储不可用不阻断调整 */}},[proposalStorageKey,proposalOverrides]);
   useEffect(() => {
+    let current = true;
     void window.prdApp
       .queryAnalysisArtifacts(task.id)
-      .then((items) =>
+      .then((items) => {
+        if (!current) return;
         setArtifact(
           items.find((item) => item.resultVersion === taskVersion(task) && item.exists),
-        ),
-      )
+        );
+      })
       .catch((value) => {
+        if (!current) return;
         setArtifact(undefined);
         setActionMessage({
           kind: "error",
@@ -944,7 +950,8 @@ function TaskPage({
               : "读取交付产物记录失败，请重试。",
         });
       });
-  }, [task.id]);
+    return () => { current = false; };
+  }, [artifactRefreshKey(task)]);
   async function generate() {
     if (artifactAction) return;
     setArtifactAction("generate");
