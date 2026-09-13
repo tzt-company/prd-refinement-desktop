@@ -9,8 +9,9 @@ const app=await electron.launch({executablePath,args:[`--user-data-dir=${path.jo
 try{
   const window=await app.firstWindow({timeout:30_000});
   await window.waitForLoadState('domcontentloaded');
-  const result=await window.evaluate(()=>({title:document.title,heading:document.querySelector('h1')?.textContent??'',body:document.body.innerText.slice(0,1000)}));
+  const result=await window.evaluate(()=>({title:document.title,heading:document.querySelector('h1')?.textContent??'',body:document.body.innerText.slice(0,1000),logoLeft:document.querySelector('.logo')?.getBoundingClientRect().left}));
   if(!result.body.includes('需求分析任务')||!result.body.includes('Runtime 配置'))throw new Error(`打包应用首页内容异常：${JSON.stringify(result)}`);
+  if(result.logoLeft!==26)throw new Error(`统一顶部布局左边界异常：${JSON.stringify(result)}`);
   await window.screenshot({path:path.join(evidenceRoot,'packaged-home.png'),fullPage:true});
   console.log(JSON.stringify({passed:true,...result}));
 }finally{await app.close()}

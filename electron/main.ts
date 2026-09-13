@@ -41,7 +41,6 @@ async function createWindow() {
   const window = new BrowserWindow({
     width: 1480, height: 900, minWidth: 1080, minHeight: 680,
     backgroundColor: '#e9edf0',
-    titleBarStyle: 'hiddenInset',
     webPreferences: { preload: path.join(import.meta.dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false },
   });
   if (isDev) await window.loadURL(process.env.VITE_DEV_SERVER_URL!);

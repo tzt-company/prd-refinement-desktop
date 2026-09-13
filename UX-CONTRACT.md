@@ -18,6 +18,7 @@
 - Project `DESIGN.md`：项目根目录 `DESIGN.md`。
 - Token ownership：DESIGN.md 定义意图和值，`src/styles.css` 映射运行时 CSS 变量。
 - Supported themes：一期只支持浅色。
+- Electron window chrome：窗口控件由操作系统原生标题栏承载，不覆盖 Web 内容；应用顶部栏在各平台使用同一套布局。
 
 ## Canonical UI Map
 
