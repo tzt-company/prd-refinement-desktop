@@ -154,7 +154,7 @@ function featureMarkdown(project:PrdProject,featureId:string,qualityState:Delive
   if(relations.length)sections.push('','## 直接关系','',relations.map(item=>`- ${item.sourceRequirementId} ${item.kind} ${item.targetRequirementId}（来源：${item.sourceRefs.map(ref=>ref.sourceUnitId).join('、')}）`).join('\n'));
   if(related.length)sections.push('','## 直接关联需求','',related.map(item=>requirementMarkdown(project,item)).join('\n\n'));
   if(clarifications.length||issues.length)sections.push('','## 相关问题','',[
-    ...clarifications.map(item=>`- ${item.id}【${clarificationLevelLabel[clarificationLevel(item)]}】${item.question}\n  - 已知事实：${item.knownFacts??'旧任务未记录'}\n  - 未决点：${item.unresolvedPoint??item.reason}\n  - 影响：${item.impact??item.reason}${item.defaultResolution?`\n  - 暂不处理时：${item.defaultResolution}`:''}`),
+    ...clarifications.map(item=>`- ${item.id}【${clarificationLevelLabel[clarificationLevel(item)]}】${item.question}\n  - 已知事实：${item.knownFacts??'旧任务未记录'}\n  - 未决点：${item.unresolvedPoint??item.reason}\n  - 影响：${item.impact??item.reason}${item.defaultResolution?`\n  - 暂不处理时：${item.defaultResolution}`:''}${item.resolutionProposal?`\n  - 建议方案（仅供参考，尚未确认）：${item.resolutionProposal.recommendation}\n  - 建议依据：${item.resolutionProposal.rationale}\n  - 采纳影响：${item.resolutionProposal.impact}\n  - 需要确认：${item.resolutionProposal.confirmation}`:''}`),
     ...issues.map(item=>`- ${item.id}【平台处理】${item.detail}\n  - 影响：${affectedLabels(project,item.affectedIds).join('、')}`)
   ].join('\n'));
   return sections.join('\n')+'\n';

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronRight, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, Lightbulb, X } from "lucide-react";
 import type { AuditIssue, Clarification, PrdProject, SourceRef } from "./types";
 import {
   activeClarifications,
@@ -69,7 +69,7 @@ function evidenceSources(project: PrdProject, item: Item) {
     .filter((item) => !!item.source);
 }
 
-export function ResultIssues({ project }: { project: PrdProject }) {
+export function ResultIssues({ project, selectedProposalIds = [], onProposalSelection, onGenerateProposals, generating=false }: { project: PrdProject; selectedProposalIds?: string[]; onProposalSelection?: (ids:string[])=>void; onGenerateProposals?:()=>void; generating?:boolean }) {
   const counts = clarificationCounts(project),
     [filter, setFilter] = useState<Filter>("all"),
     [scopeFilter, setScopeFilter] = useState<IssueScopeFilter>("all"),
@@ -112,6 +112,8 @@ export function ResultIssues({ project }: { project: PrdProject }) {
   const selected = items.find(
     (item) => `${item.kind}-${item.value.id}` === selectedKey,
   );
+  const selectable=visible.filter((item):item is Extract<Item,{kind:'clarification'}>=>item.kind==='clarification'&&clarificationLevel(item.value)==='blocking'&&!!item.value.resolutionProposal).map(item=>item.value.id),selectedSet=new Set(selectedProposalIds);
+  const missing=items.filter(item=>item.kind==='clarification'&&clarificationLevel(item.value)==='blocking'&&!item.value.resolutionProposal).length;
   const filters: Array<[Filter, string, number]> = [
     ["all", "全部", items.length],
     ["blocking", "阻塞", counts.blocking],
@@ -160,6 +162,7 @@ export function ResultIssues({ project }: { project: PrdProject }) {
           </div>
         </div>
       </header>
+      {missing>0&&onGenerateProposals&&<div className="proposal-missing"><div><strong>{missing} 项阻塞事项还没有建议方案</strong><span>旧结果可只补充建议方案，无需重跑完整细化。</span></div><button className="secondary" disabled={generating} aria-busy={generating} onClick={onGenerateProposals}>{generating?'正在生成':'生成建议方案'}</button></div>}
       {visible.length === 0 ? (
         <div className="issue-empty">
           <CheckCircle2 />
@@ -167,6 +170,11 @@ export function ResultIssues({ project }: { project: PrdProject }) {
           <span>可以查看其他级别或返回概览。</span>
         </div>
       ) : (
+        <>
+        {selectable.length>0&&onProposalSelection&&<div className="proposal-toolbar">
+          <label><input type="checkbox" checked={selectable.every(id=>selectedSet.has(id))} onChange={event=>onProposalSelection(event.target.checked?[...new Set([...selectedProposalIds,...selectable])]:selectedProposalIds.filter(id=>!selectable.includes(id)))} />选择当前列表的建议方案</label>
+          <strong>已加入本次调整 {selectedProposalIds.length} 项</strong>
+        </div>}
         <div className="issue-list">
           {visible.map((item) => {
             const clarification =
@@ -200,17 +208,19 @@ export function ResultIssues({ project }: { project: PrdProject }) {
                 className="issue-row"
                 key={`${item.kind}-${item.value.id}`}
               >
-                <span className={`issue-level ${level}`}>
+                {clarification?.resolutionProposal&&onProposalSelection?<label className="proposal-select" aria-label={`选择建议方案：${title}`}><input type="checkbox" checked={selectedSet.has(clarification.id)} onChange={event=>onProposalSelection(event.target.checked?[...selectedProposalIds,clarification.id]:selectedProposalIds.filter(id=>id!==clarification.id))}/></label>:<span className={`issue-level ${level}`}>
                   {item.kind === "platform"
                     ? "阻塞"
                     : clarificationLevelLabel[level]}
-                </span>
+                </span>}
                 <div>
+                  {clarification?.resolutionProposal&&<span className={`issue-level ${level}`}>{clarificationLevelLabel[level]}</span>}
                   <strong>{title}</strong>
                   <p>
                     <b>已知：</b>
                     {facts}
                   </p>
+                  {clarification?.resolutionProposal&&<section className="resolution-proposal"><b><Lightbulb/>建议方案</b><p>{clarification.resolutionProposal.recommendation}</p><small>待你采纳后才会写入需求，不会自动关闭事项。</small></section>}
                   <p>
                     <b>影响：</b>
                     {impact}
@@ -247,6 +257,7 @@ export function ResultIssues({ project }: { project: PrdProject }) {
             );
           })}
         </div>
+        </>
       )}
       <details className="check-history">
         <summary>
@@ -362,6 +373,7 @@ function IssueDrawer({
                 <p>{clarification!.defaultResolution}</p>
               </>
             )}
+            {clarification!.resolutionProposal&&<section className="drawer-proposal"><h3>建议方案</h3><p>{clarification!.resolutionProposal.recommendation}</p><h3>推荐依据</h3><p>{clarification!.resolutionProposal.rationale}</p><h3>采纳后的影响</h3><p>{clarification!.resolutionProposal.impact}</p><h3>需要确认</h3><p>{clarification!.resolutionProposal.confirmation}</p>{clarification!.resolutionProposal.alternatives.length>0&&<><h3>其他可选方案</h3>{clarification!.resolutionProposal.alternatives.map(value=><p className="rule" key={value}>{value}</p>)}</>}</section>}
           </>
         )}
         <h3>影响内容</h3>

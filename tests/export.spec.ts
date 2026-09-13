@@ -35,7 +35,7 @@ it('导出明确的约束适用关系，并保留直接引用原文的待确认�
   expect(features.getCell('B1').value).toBe('类型');expect(features.getCell('G1').value).toBe('适用功能');
   expect(features.getCell('B2').value).toBe('业务功能');expect(features.getCell('B4').value).toBe('跨功能约束');
   expect(features.getCell('G4').value).toBe('发布');expect(features.getCell('G4').value).not.toContain('查询');
-  expect(questions.getCell('L2').value).toContain('第 20 行');expect(questions.getCell('L2').value).toContain('是否支持多域名？');expect(questions.getCell('L2').value).toContain('发布设置');
+  expect(questions.getCell('P2').value).toContain('第 20 行');expect(questions.getCell('P2').value).toContain('是否支持多域名？');expect(questions.getCell('P2').value).toContain('发布设置');
   expect(workbook.worksheets.filter(sheet=>sheet.state==='visible')).toHaveLength(6);
   expect(workbook.worksheets.filter(sheet=>sheet.state==='hidden').map(sheet=>sheet.name)).toEqual(['来源处置','审查历史']);
 });

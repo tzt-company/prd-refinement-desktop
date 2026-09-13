@@ -50,7 +50,17 @@ const clarificationFrom = (item:Record<string,unknown>,index:number,units:Source
   const selected=sourceRefs(item,units,path);if(!selected.length)throw new Error(`${path}.sourceRefs 不得为空`);
   const defaultResolution=item.defaultResolution===undefined?undefined:text(item.defaultResolution,`${path}.defaultResolution`);
   if(level==='suggestion'&&!defaultResolution)throw new Error(`${path}.defaultResolution 必须说明暂不处理时沿用的明确口径`);
-  return{id:text(item.id,`${path}.id`),question,reason,level:level as Clarification['level'],knownFacts,unresolvedPoint,impact,levelReason,...(defaultResolution?{defaultResolution}:{}),sourceRefs:selected,affectedIds,state:'open'};
+  let resolutionProposal:Clarification['resolutionProposal'];
+  if(level==='blocking'){
+    if(!item.resolutionProposal||typeof item.resolutionProposal!=='object'||Array.isArray(item.resolutionProposal))throw new Error(`${path}.resolutionProposal 必须为阻塞事项给出可执行建议`);
+    const proposal=item.resolutionProposal as Record<string,unknown>,proposalIds=Array.isArray(proposal.evidenceIds)?strings(proposal.evidenceIds,`${path}.resolutionProposal.evidenceIds`,false):Array.isArray(proposal.sourceRefs)?(proposal.sourceRefs as Array<Record<string,unknown>>).map((ref,index)=>text(ref.sourceUnitId,`${path}.resolutionProposal.sourceRefs[${index}].sourceUnitId`)):[],knownSources=new Set(selected.map(ref=>ref.sourceUnitId));
+    if(!proposalIds.length)throw new Error(`${path}.resolutionProposal.evidenceIds 不得为空`);
+    refs(proposalIds,knownSources,`${path}.resolutionProposal.evidenceIds`);
+    const recommendation=text(proposal.recommendation,`${path}.resolutionProposal.recommendation`),confirmation=text(proposal.confirmation,`${path}.resolutionProposal.confirmation`);
+    if(recommendation.length<12||/请.{0,6}(确认|决定|补充)[。.]?$/.test(recommendation))throw new Error(`${path}.resolutionProposal.recommendation 必须给出具体口径，不能只要求用户确认`);
+    resolutionProposal={recommendation,rationale:text(proposal.rationale,`${path}.resolutionProposal.rationale`),impact:text(proposal.impact,`${path}.resolutionProposal.impact`),confirmation,alternatives:strings(proposal.alternatives??[],`${path}.resolutionProposal.alternatives`).slice(0,2),sourceRefs:proposalIds.map(sourceUnitId=>({sourceUnitId}))};
+  }
+  return{id:text(item.id,`${path}.id`),question,reason,level:level as Clarification['level'],knownFacts,unresolvedPoint,impact,levelReason,...(defaultResolution?{defaultResolution}:{}),...(resolutionProposal?{resolutionProposal}:{}),sourceRefs:selected,affectedIds,state:'open'};
 };
 export function acceptDirectClarifications(value:unknown,sourceUnits:SourceUnit[],knownAffectedIds:string[]){
   if(!Array.isArray(value))throw new Error('clarifications 必须是数组');

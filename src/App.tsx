@@ -872,6 +872,8 @@ function TaskPage({
   }>();
   const [deleting, setDeleting] = useState(false),
     [managing, setManaging] = useState(false);
+  const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
+  const [generatingProposals,setGeneratingProposals]=useState(false);
   const rootKey = taskRootId(task);
   const inScope = task.project.requirements.filter(
       (item) => item.deliveryScope !== "excluded",
@@ -892,6 +894,7 @@ function TaskPage({
     );
     setFeatureFilter(undefined);
     setDetail(undefined);
+    setSelectedProposalIds([]);
   }, [rootKey]);
   useEffect(() => {
     void window.prdApp
@@ -970,6 +973,7 @@ function TaskPage({
       setManaging(false);
     }
   }
+  async function generateProposals(){setGeneratingProposals(true);setActionMessage(undefined);try{await window.prdApp.generateResolutionProposals(task.id);setActionMessage({kind:'success',text:'阻塞事项的建议方案已生成。'})}catch(value){setActionMessage({kind:'error',text:value instanceof Error?value.message:'建议方案生成失败，请重试。'})}finally{setGeneratingProposals(false)}}
   return (
     <div className="page task-workspace">
       <button className="back" onClick={onBack}>
@@ -1085,9 +1089,13 @@ function TaskPage({
         setFeatureFilter={setFeatureFilter}
         onDetail={setDetail}
         onScope={onScope}
+        selectedProposalIds={selectedProposalIds}
+        onProposalSelection={setSelectedProposalIds}
+        onGenerateProposals={()=>void generateProposals()}
+        generatingProposals={generatingProposals}
         now={now}
       />
-      {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} />}{" "}
+      {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} selectedProposalIds={selectedProposalIds} onProposalSelection={setSelectedProposalIds} />}{" "}
       {detail && (
         <Drawer
           project={task.project}
@@ -1279,9 +1287,13 @@ function feedbackStorage() {
 export function TaskFeedback({
   task,
   onAdjust,
+  selectedProposalIds = [],
+  onProposalSelection,
 }: {
   task: AnalysisTask;
   onAdjust: (request: AdjustmentRequest) => Promise<void>;
+  selectedProposalIds?: string[];
+  onProposalSelection?: (ids: string[]) => void;
 }) {
   const storageKey = `prd-feedback-draft:${taskRootId(task)}`;
   const [draft, setDraft] = useState(() =>
@@ -1305,7 +1317,16 @@ export function TaskFeedback({
   }, [storageKey, draft]);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const feedback = draft.trim();
+    const selected = task.project.clarifications.filter(
+        (item) => selectedProposalIds.includes(item.id) && item.resolutionProposal,
+      ),
+      proposalText = selected
+        .map(
+          (item) =>
+            `关于“${item.question}”，采纳建议方案：${item.resolutionProposal!.recommendation}`,
+        )
+        .join("\n"),
+      feedback = [draft.trim(), proposalText].filter(Boolean).join("\n");
     if (!feedback) {
       setMessage({ kind: "error", text: "请描述希望调整、补充或澄清的内容。" });
       return;
@@ -1317,8 +1338,14 @@ export function TaskFeedback({
         baseTaskId: task.id,
         baseVersion: taskVersion(task),
         feedback,
+        acceptedProposalIds: selected.map((item) => item.id),
+        references: selected.map((item) => ({
+          kind: "clarification" as const,
+          id: item.id,
+        })),
       });
       setDraft("");
+      onProposalSelection?.([]);
       clearFeedbackDraft(feedbackStorage(), storageKey);
       setMessage({
         kind: "success",
@@ -1368,6 +1395,17 @@ export function TaskFeedback({
           </ul>
         </div>
       )}
+      {selectedProposalIds.length > 0 && (
+          <div className="selected-proposals">
+            <div>
+              <strong>本次将采纳 {selectedProposalIds.length} 项建议方案</strong>
+              <span>可在下方补充例外或修改口径；你输入的说明优先。</span>
+            </div>
+            <button type="button" className="text-action" onClick={() => onProposalSelection?.([])}>
+              清空选择
+            </button>
+          </div>
+      )}
       <form noValidate onSubmit={submit}>
         <div className="task-feedback-heading">
           <div>
@@ -1413,10 +1451,14 @@ export function TaskFeedback({
           <button
             className="primary"
             type="submit"
-            disabled={busy || !draft.trim()}
+            disabled={busy || (!draft.trim() && !selectedProposalIds.length)}
             aria-busy={busy}
           >
-            {busy ? "正在提交" : "按说明调整"}
+            {busy
+              ? "正在提交"
+              : selectedProposalIds.length
+                ? `按所选方案调整（${selectedProposalIds.length}）`
+                : "按说明调整"}
           </button>
         </footer>
         {message && (
@@ -1651,6 +1693,10 @@ function Results({
   setFeatureFilter,
   onDetail,
   onScope,
+  selectedProposalIds,
+  onProposalSelection,
+  onGenerateProposals,
+  generatingProposals,
   now,
 }: {
   task: AnalysisTask;
@@ -1661,6 +1707,10 @@ function Results({
   setFeatureFilter: (id?: string) => void;
   onDetail: (r: RequirementDetail) => void;
   onScope: (request: DeliveryScopeUpdateRequest) => Promise<void>;
+  selectedProposalIds: string[];
+  onProposalSelection: (ids: string[]) => void;
+  onGenerateProposals: () => void;
+  generatingProposals: boolean;
   now: number;
 }) {
   const counts = clarificationCounts(project),
@@ -1716,7 +1766,13 @@ function Results({
             onScope={onScope}
           />
         ) : tab === "issues" ? (
-          <ResultIssues project={project} />
+          <ResultIssues
+            project={project}
+            selectedProposalIds={selectedProposalIds}
+            onProposalSelection={onProposalSelection}
+            onGenerateProposals={onGenerateProposals}
+            generating={generatingProposals}
+          />
         ) : (
           <ExecutionRecord task={task} now={now} />
         )}

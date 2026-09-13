@@ -126,6 +126,15 @@ export interface Clarification {
   levelReason?: string;
   /** suggestion 必须说明用户暂不处理时采用的既有明确口径。 */
   defaultResolution?: string;
+  /** 阻塞事项的可执行建议；只是决策草案，用户采纳前不改变需求。 */
+  resolutionProposal?: {
+    recommendation: string;
+    rationale: string;
+    impact: string;
+    confirmation: string;
+    alternatives: string[];
+    sourceRefs: SourceRef[];
+  };
   sourceRefs?: SourceRef[];
   affectedIds: string[];
   state: 'open' | 'resolved' | 'dismissed';
@@ -204,6 +213,8 @@ export interface RefinementAdjustmentRequest {
   baseVersion: number;
   /** 用户一次提交的完整调整说明。 */
   feedback: string;
+  /** 用户在当前版本明确采纳的阻塞事项建议。 */
+  acceptedProposalIds?: string[];
   /** 可选的界面引用，只辅助定位，不限制自然语言可影响的范围。 */
   references?: Array<{ kind: 'feature' | 'requirement' | 'clarification'; id: string }>;
 }
@@ -440,6 +451,7 @@ declare global {
       cancelAnalysis(taskId: string): Promise<void>;
       retryAnalysis(taskId: string): Promise<void>;
       adjustAnalysis(request: RefinementAdjustmentRequest): Promise<AnalysisTask>;
+      generateResolutionProposals(taskId: string): Promise<AnalysisTask>;
       onAnalysisTaskUpdate(callback: (task: AnalysisTask) => void): () => void;
     };
   }
