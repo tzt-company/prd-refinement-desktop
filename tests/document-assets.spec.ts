@@ -2,6 +2,7 @@ import { afterEach, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 import JSZip from 'jszip';
 import { extractDocument } from '../electron/document-assets';
 import { sourceCoverage } from '../electron/source-units';
@@ -9,6 +10,15 @@ import { sourceCoverage } from '../electron/source-units';
 const directories:string[]=[];
 afterEach(async()=>{for(const directory of directories.splice(0))await rm(directory,{recursive:true,force:true})});
 async function fixture(name:string,buffer:Buffer){const directory=await mkdtemp(path.join(os.tmpdir(),'prd-assets-'));directories.push(directory);const file=path.join(directory,name);await writeFile(file,buffer);return {file,directory}}
+
+it('macOS 使用系统 textutil 导入旧版 DOC',async()=>{
+  if(process.platform!=='darwin')return;
+  const {file,directory}=await fixture('legacy.rtf',Buffer.from('{\\rtf1\\ansi Mac legacy DOC requirement}'));
+  const doc=path.join(directory,'legacy.doc');
+  execFileSync('/usr/bin/textutil',['-convert','doc','-output',doc,file]);
+  const result=await extractDocument(doc,path.join(directory,'assets'));
+  expect(result.rawText).toContain('Mac legacy DOC requirement');
+});
 
 it('DOCX原文和全部包内媒体分别建账，不支持图片与嵌入附件保持blocked',async()=>{
   const zip=new JSZip();

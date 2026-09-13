@@ -1,0 +1,7 @@
+case,round-1
+proxy-environment-injection,PASS
+proxy-validation,PASS
+runtime-settings-ui,PASS
+typecheck-and-build,PASS
+packaged-proxy-connection,PASS
+single-runtime-probe,PASS

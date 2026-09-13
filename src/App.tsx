@@ -311,6 +311,12 @@ function taskRootId(task: AnalysisTask) {
 function taskVersion(task: AnalysisTask) {
   return task.resultVersion ?? 1;
 }
+export function displayProgress(value: number) {
+  return Math.round(Math.max(0, Math.min(100, value)));
+}
+export function artifactRefreshKey(task: AnalysisTask) {
+  return `${task.id}:${task.resultVersion ?? 0}:${task.artifacts?.length ?? 0}`;
+}
 const taskStatusLabel = (task: AnalysisTask) =>
   task.status === "needs-attention"
     ? "已完成"
@@ -428,6 +434,14 @@ export function App() {
     ]);
     setActiveId(updated.id);
   }
+  async function retry(task: AnalysisTask) {
+    await window.prdApp.retryAnalysis(task.id);
+  }
+  async function restart(task: AnalysisTask) {
+    const created = await window.prdApp.restartAnalysis(task.id);
+    setTasks((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+    setActiveId(created.id);
+  }
   async function archive(task: AnalysisTask) {
     await window.prdApp.archiveAnalysisTask(taskRootId(task));
     const family = tasks.filter(
@@ -511,6 +525,8 @@ export function App() {
           onVersion={setActiveId}
           onAdjust={adjust}
           onScope={updateScope}
+          onRetry={retry}
+          onRestart={restart}
           onArchive={archive}
           onRestore={restore}
           onDelete={remove}
@@ -772,10 +788,10 @@ function TaskCenterRow({
         aria-label={`${task.project.name}进度`}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={task.progress}
+        aria-valuenow={displayProgress(task.progress)}
       >
         <i style={{ width: `${task.progress}%` }} />
-        <b>{task.progress}%</b>
+        <b>{displayProgress(task.progress)}%</b>
       </span>
       <span className="task-time">
         {elapsed(task.requestedAt??task.startedAt, task.completedAt, now)}
@@ -844,6 +860,8 @@ function TaskPage({
   onVersion,
   onAdjust,
   onScope,
+  onRetry,
+  onRestart,
   onArchive,
   onRestore,
   onDelete,
@@ -855,12 +873,14 @@ function TaskPage({
   onVersion: (id: string) => void;
   onAdjust: (request: AdjustmentRequest) => Promise<void>;
   onScope: (request: DeliveryScopeUpdateRequest) => Promise<void>;
+  onRetry: (task: AnalysisTask) => Promise<void>;
+  onRestart: (task: AnalysisTask) => Promise<void>;
   onArchive: (task: AnalysisTask) => Promise<void>;
   onRestore: (task: AnalysisTask) => Promise<void>;
   onDelete: (task: AnalysisTask) => Promise<void>;
 }) {
   const [tab, setTab] = useState<ResultTab>(() =>
-    task.status === "running" || task.status === "queued"
+    task.status === "running" || task.status === "queued" || task.status === "failed"
       ? "execution"
       : "features",
   );
@@ -874,6 +894,7 @@ function TaskPage({
   }>();
   const [deleting, setDeleting] = useState(false),
     [managing, setManaging] = useState(false);
+  const [failureAction, setFailureAction] = useState<"retry" | "restart">();
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
   const [proposalOverrides,setProposalOverrides]=useState<Record<string,string>>({});
   const proposalLoadedKey=useRef('');
@@ -893,7 +914,7 @@ function TaskPage({
     busy = task.status === "running" || task.status === "queued";
   useEffect(() => {
     setTab(
-      task.status === "running" || task.status === "queued"
+      task.status === "running" || task.status === "queued" || task.status === "failed"
         ? "execution"
         : "features",
     );
@@ -901,18 +922,25 @@ function TaskPage({
     setDetail(undefined);
     setSelectedProposalIds([]);
     setProposalOverrides({});
+    setFailureAction(undefined);
   }, [rootKey]);
+  useEffect(() => {
+    if (task.status !== "failed") setFailureAction(undefined);
+  }, [task.status]);
   useEffect(()=>{setSelectedProposalIds([]);try{const value=window.localStorage.getItem(proposalStorageKey);proposalLoadedKey.current=proposalStorageKey;setProposalOverrides(value?JSON.parse(value):{})}catch{proposalLoadedKey.current=proposalStorageKey;setProposalOverrides({})}},[proposalStorageKey]);
   useEffect(()=>{if(proposalLoadedKey.current!==proposalStorageKey)return;try{window.localStorage.setItem(proposalStorageKey,JSON.stringify(proposalOverrides))}catch{/* 本地存储不可用不阻断调整 */}},[proposalStorageKey,proposalOverrides]);
   useEffect(() => {
+    let current = true;
     void window.prdApp
       .queryAnalysisArtifacts(task.id)
-      .then((items) =>
+      .then((items) => {
+        if (!current) return;
         setArtifact(
           items.find((item) => item.resultVersion === taskVersion(task) && item.exists),
-        ),
-      )
+        );
+      })
       .catch((value) => {
+        if (!current) return;
         setArtifact(undefined);
         setActionMessage({
           kind: "error",
@@ -922,7 +950,8 @@ function TaskPage({
               : "读取交付产物记录失败，请重试。",
         });
       });
-  }, [task.id]);
+    return () => { current = false; };
+  }, [artifactRefreshKey(task)]);
   async function generate() {
     if (artifactAction) return;
     setArtifactAction("generate");
@@ -979,6 +1008,17 @@ function TaskPage({
             : `${action === "archive" ? "归档" : "恢复"}任务失败，请重试。`,
       });
       setManaging(false);
+    }
+  }
+  async function recover(action: "retry" | "restart") {
+    if (failureAction) return;
+    setFailureAction(action);
+    setActionMessage(undefined);
+    try {
+      await (action === "retry" ? onRetry(task) : onRestart(task));
+    } catch (value) {
+      setActionMessage({kind: "error", text: value instanceof Error ? value.message : `${action === "retry" ? "继续执行" : "重新开始"}失败，请重试。`});
+      setFailureAction(undefined);
     }
   }
   async function generateProposals(){setGeneratingProposals(true);setActionMessage(undefined);try{await window.prdApp.generateResolutionProposals(task.id);setActionMessage({kind:'success',text:'阻塞事项的建议方案已生成。'})}catch(value){setActionMessage({kind:'error',text:value instanceof Error?value.message:'建议方案生成失败，请重试。'})}finally{setGeneratingProposals(false)}}
@@ -1103,6 +1143,8 @@ function TaskPage({
         onProposalOverride={(id,value)=>setProposalOverrides(current=>{const next={...current};if(value)next[id]=value;else delete next[id];return next})}
         onGenerateProposals={()=>void generateProposals()}
         generatingProposals={generatingProposals}
+        failureAction={failureAction}
+        onRecover={(action) => void recover(action)}
         now={now}
       />
       {task.project.analysisInput?.text&&<details className="task-input-summary"><summary>本次分析输入 <span>用户补充 · {task.project.analysisInput.text.length.toLocaleString('zh-CN')} 字</span></summary><div><small>提交于 {new Date(task.project.analysisInput.submittedAt).toLocaleString('zh-CN')} · 已随第 {task.project.analysisInput.revision} 版输入固定</small><pre>{task.project.analysisInput.text}</pre>{task.project.analysisInputApplications?.length?<section className="input-application-list"><h4>平台如何使用这些内容</h4>{task.project.analysisInputApplications.map(item=><article key={item.sourceUnitId}><strong>{item.kind==='business-fact'?'业务补充':item.kind==='scope-decision'?'本期范围':item.kind==='organization'?'整理要求':item.kind==='question'?'待回答问题':'替换口径'}</strong><span>{item.summary}</span><em>{item.status==='pending'?'仍待确认':item.affectedFeatureIds.length?`已应用到 ${item.affectedFeatureIds.length} 个功能`:'已记录'}</em></article>)}</section>:null}</div></details>}
@@ -1659,7 +1701,7 @@ export function Progress({ task, now }: { task: AnalysisTask; now: number }) {
           <span>{active ? "正在执行" : task.status === "failed" ? "执行已停止" : "执行已完成"}</span>
           <h2>{active ? "Runtime 正在分析需求" : task.status === "failed" ? "Runtime 未完成本次任务" : "Runtime 已完成需求分析"}</h2>
         </div>
-        <strong>{task.progress}%</strong>
+        <strong>{displayProgress(task.progress)}%</strong>
       </header>
       <div className="progress-track">
         <i style={{ width: `${task.progress}%` }} />
@@ -1736,6 +1778,8 @@ function Results({
   onProposalOverride,
   onGenerateProposals,
   generatingProposals,
+  failureAction,
+  onRecover,
   now,
 }: {
   task: AnalysisTask;
@@ -1752,6 +1796,8 @@ function Results({
   onProposalOverride: (id:string,value:string|undefined) => void;
   onGenerateProposals: () => void;
   generatingProposals: boolean;
+  failureAction?: "retry" | "restart";
+  onRecover: (action: "retry" | "restart") => void;
   now: number;
 }) {
   const counts = clarificationCounts(project),
@@ -1817,13 +1863,13 @@ function Results({
             generating={generatingProposals}
           />
         ) : (
-          <ExecutionRecord task={task} now={now} />
+          <ExecutionRecord task={task} now={now} failureAction={failureAction} onRecover={onRecover} />
         )}
       </div>
     </section>
   );
 }
-function ExecutionRecord({ task, now }: { task: AnalysisTask; now: number }) {
+export function ExecutionRecord({ task, now, failureAction, onRecover }: { task: AnalysisTask; now: number; failureAction?: "retry" | "restart"; onRecover?: (action: "retry" | "restart") => void }) {
   return (
     <section className="execution-record">
       {task.error && task.status === "failed" && (
@@ -1834,6 +1880,17 @@ function ExecutionRecord({ task, now }: { task: AnalysisTask; now: number }) {
               {task.status === "failed" ? "任务执行失败" : "执行需要处理"}
             </strong>
             <p>{task.error}</p>
+            {onRecover && !task.archivedAt && (
+              <div className="failure-actions">
+                <button className="primary" disabled={!!failureAction} aria-busy={failureAction === "retry"} onClick={() => onRecover("retry")}>
+                  <RotateCw />
+                  {failureAction === "retry" ? "正在继续" : "从失败处继续"}
+                </button>
+                <button className="secondary" disabled={!!failureAction} aria-busy={failureAction === "restart"} onClick={() => onRecover("restart")}>
+                  {failureAction === "restart" ? "正在重新开始" : "重新开始"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2503,8 +2560,14 @@ function RuntimeSettings({
     window.prdApp?.loadRuntimeConfig().then(setConfig);
   }, []);
   async function save() {
-    await window.prdApp?.saveRuntimeConfig(config);
-    setSaved(true);
+    setSaved(false);
+    setCheckError("");
+    try {
+      await window.prdApp?.saveRuntimeConfig(config);
+      setSaved(true);
+    } catch (error) {
+      setCheckError(error instanceof Error ? error.message : "配置保存失败，请重试");
+    }
   }
   async function check(connection = false) {
     if (checking || !window.prdApp) return;
@@ -2624,6 +2687,18 @@ function RuntimeSettings({
               <small>Harness 中注册的提供方标识</small>
             </label>
           )}
+          <label>
+            <span>网络代理</span>
+            <input
+              type="url"
+              value={config.proxyUrl ?? ""}
+              onChange={(e) =>
+                setConfig({ ...config, proxyUrl: e.target.value })
+              }
+              placeholder="例如 http://127.0.0.1:7890"
+            />
+            <small>可选；连接检测和新任务都会通过此代理访问模型</small>
+          </label>
           <div className="node-profiles">
             <div className="node-profile-head">
               <strong>节点模型策略</strong>
@@ -2756,7 +2831,7 @@ function RuntimeSettings({
             <RotateCw
               className={checking === "connection" ? "runtime-spinner" : ""}
             />
-            {checking === "connection" ? "连接检测中" : "检测模型连接"}
+            {checking === "connection" ? "连接检测中" : "检测 Runtime 连接"}
           </button>
           <button className="primary" onClick={save}>
             保存配置
@@ -2776,7 +2851,7 @@ function RuntimeSettings({
               {checking
                 ? checking === "status"
                   ? "正在读取运行时状态"
-                  : "正在验证模型连接"
+                  : "正在验证 Runtime 连接"
                 : checkError
                   ? "检查未完成"
                   : checkedAt
@@ -2787,11 +2862,11 @@ function RuntimeSettings({
               {checking
                 ? checking === "status"
                   ? "读取安装版本与认证状态，通常几秒内完成。"
-                  : "依次验证当前配置的节点模型，请稍候。"
+                  : "通过当前代理发送一次最小请求，请稍候。"
                 : checkError ||
                   (checkedAt
                     ? `更新于 ${checkedAt}`
-                    : "刷新状态不调用模型；模型连接需单独检测。")}
+                    : "刷新状态不调用模型；Runtime 连接需单独检测。")}
             </span>
           </div>
           {checking && (

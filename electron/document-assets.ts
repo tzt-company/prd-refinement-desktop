@@ -16,6 +16,17 @@ export type ImportedDocument = { rawText: string; sourceUnits: SourceUnit[] };
 const mimeTypes: Record<string,string> = { '.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.gif':'image/gif','.webp':'image/webp' };
 
 async function convertLegacyDoc(input:string,output:string,signal?:AbortSignal):Promise<void>{
+  if(process.platform==='darwin'){
+    await new Promise<void>((resolve,reject)=>{
+      const child=execFile('/usr/bin/textutil',['-convert','docx','-output',output,input],{timeout:60_000},error=>{
+        signal?.removeEventListener('abort',abort);
+        error?reject(signal?.aborted?signal.reason:new Error('DOC 转换失败或超时。请确认文档未损坏、未加密；也可另存为 DOCX 后导入。')):resolve();
+      });
+      const abort=()=>child.kill();signal?.addEventListener('abort',abort,{once:true});
+    });
+    return;
+  }
+  if(process.platform!=='win32')throw new Error('当前系统不支持直接转换 DOC，请另存为 DOCX 后导入。');
   const script=`$ErrorActionPreference='Stop'
 $request=[Console]::In.ReadToEnd() | ConvertFrom-Json
 $word=$null;$document=$null;$probe=$null

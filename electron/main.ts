@@ -4,7 +4,7 @@ import { mkdir, readFile, readdir, rm, writeFile, stat } from 'node:fs/promises'
 import path from 'node:path';
 import { extractDocument } from './document-assets.js';
 import type { RuntimeConfig, PrdProject, RefinementAdjustmentRequest } from '../src/types.js';
-import { createRuntime, inspectRuntime, testRuntimeRoute } from './runtime.js';
+import { createRuntime, inspectRuntime, runtimeEnvironment, testRuntimeRoute } from './runtime.js';
 import { writeResultWorkbook } from './export-excel.js';
 import { writeAgentPackage } from './export-agent-package.js';
 import { AnalysisTaskScheduler, CURRENT_PIPELINE_VERSION } from './scheduler-v2.js';
@@ -41,7 +41,6 @@ async function createWindow() {
   const window = new BrowserWindow({
     width: 1480, height: 900, minWidth: 1080, minHeight: 680,
     backgroundColor: '#e9edf0',
-    titleBarStyle: 'hiddenInset',
     webPreferences: { preload: path.join(import.meta.dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false },
   });
   if (isDev) await window.loadURL(process.env.VITE_DEV_SERVER_URL!);
@@ -121,8 +120,8 @@ if (ownsInstance) app.whenReady().then(async () => {
   });
   ipcMain.handle('runtime:inspect', async (_event, config?: RuntimeConfig) => inspectRuntime(config ?? await loadConfig()));
   ipcMain.handle('runtime:config:get', async () => { const {apiKey:_,...publicConfig}=await loadConfig();return publicConfig; });
-  ipcMain.handle('runtime:config:save', async (_event, config: RuntimeConfig) => { const {apiKey,...plain}=config;let encryptedApiKey:string|undefined;try{encryptedApiKey=(JSON.parse(await readFile(runtimeConfigPath(),'utf8')) as StoredRuntimeConfig).encryptedApiKey}catch{/* 首次保存 */}if(apiKey){if(!safeStorage.isEncryptionAvailable())throw new Error('当前系统无法安全加密 API Key');encryptedApiKey=safeStorage.encryptString(apiKey).toString('base64')}const stored:StoredRuntimeConfig={...plain,encryptedApiKey};await writeFile(runtimeConfigPath(), JSON.stringify(stored, null, 2), 'utf8'); });
-  ipcMain.handle('runtime:test', async (_event, config: RuntimeConfig) => { const stored=await loadConfig(),effective={...config,apiKey:config.apiKey??(config.adapter===stored.adapter&&config.provider===stored.provider?stored.apiKey:undefined)},profiles=[...new Map(Object.values(effective.nodeProfiles??{}).map(profile=>[`${profile.model}|${profile.reasoningEffort}`,profile])).values()];const workspace=path.join(app.getPath('userData'),'runtime-probe');await mkdir(workspace,{recursive:true});for(let index=0;index<profiles.length;index++){const profile=profiles[index],status=await testRuntimeRoute(path.join(workspace,`profile-${index+1}`),{...effective,...profile});if(!status.routeReady)return{...status,reason:`节点模型连接失败（${profile.model} / ${profile.reasoningEffort}）：${status.reason??'未知错误'}`}}return profiles.length?{...await inspectRuntime(effective),routeReady:true}:testRuntimeRoute(workspace,effective); });
+  ipcMain.handle('runtime:config:save', async (_event, config: RuntimeConfig) => { runtimeEnvironment(config);const {apiKey,...plain}=config;let encryptedApiKey:string|undefined;try{encryptedApiKey=(JSON.parse(await readFile(runtimeConfigPath(),'utf8')) as StoredRuntimeConfig).encryptedApiKey}catch{/* 首次保存 */}if(apiKey){if(!safeStorage.isEncryptionAvailable())throw new Error('当前系统无法安全加密 API Key');encryptedApiKey=safeStorage.encryptString(apiKey).toString('base64')}const stored:StoredRuntimeConfig={...plain,proxyUrl:plain.proxyUrl?.trim()||undefined,encryptedApiKey};await writeFile(runtimeConfigPath(), JSON.stringify(stored, null, 2), 'utf8'); });
+  ipcMain.handle('runtime:test', async (_event, config: RuntimeConfig) => { const stored=await loadConfig(),effective={...config,apiKey:config.apiKey??(config.adapter===stored.adapter&&config.provider===stored.provider?stored.apiKey:undefined)},workspace=path.join(app.getPath('userData'),'runtime-probe');await mkdir(workspace,{recursive:true});return testRuntimeRoute(workspace,effective); });
   ipcMain.handle('projects:prepare-result', async (_event, project: PrdProject) => { const directory = resultRoot(project.id); await mkdir(directory, { recursive: true }); return writeResultWorkbook(project, path.join(directory, `${project.name}-需求细化.xlsx`)); });
   ipcMain.handle('projects:open-result', async (_event, projectId: string) => { const directory = resultRoot(projectId); await mkdir(directory, { recursive: true }); const error = await shell.openPath(directory); if (error) throw new Error(error); return directory; });
   ipcMain.handle('analysis:list', () => scheduler.list());
@@ -173,6 +172,7 @@ if (ownsInstance) app.whenReady().then(async () => {
     const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
     try{return await scheduler.create(await materials.project(bundle.id,snapshot))}catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
   });
+  ipcMain.handle('analysis:restart', (_event, taskId: string) => scheduler.restart(taskId));
   ipcMain.handle('analysis:adjust', async (_event, request: RefinementAdjustmentRequest) => {
     return scheduler.enqueueAdjustment({...request,operationId:request.operationId?.trim()||randomUUID()});
   });

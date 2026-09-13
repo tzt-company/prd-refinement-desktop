@@ -1,0 +1,8 @@
+case,round-1,round-2
+mac-codex-cli-discovery,PASS,NOT-RUN
+mac-legacy-doc-import,PASS,NOT-RUN
+full-test-suite,PASS,FAIL
+typescript-and-production-build,PASS,PASS
+mac-dmg-zip-package,PASS,PASS
+packaged-app-smoke,PASS,PASS
+native-titlebar-unified-layout,NOT-RUN,PASS

@@ -1,11 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { clearFeedbackDraft, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
+import { artifactRefreshKey, clearFeedbackDraft, displayProgress, ExecutionRecord, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
 import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
+  it('七阶段进度显示为整数百分比',()=>{
+    expect(displayProgress(42.85714285714286)).toBe(43);
+  });
+  it('同一任务完成并登记产物后会触发产物状态刷新',()=>{
+    const running={id:'T-1',status:'running',steps:[],project:{}} as AnalysisTask;
+    const completed={...running,status:'completed',resultVersion:1,artifacts:[{id:'A-1',kind:'agent-package',path:'/tmp/result',resultVersion:1,createdAt:1}]} as AnalysisTask;
+    expect(artifactRefreshKey(completed)).not.toBe(artifactRefreshKey(running));
+  });
   it('明确区分来源、规则、功能和需求明细', () => {
     const chain = ['SourceUnit', 'RequirementRule', 'Feature', 'RequirementDetail'];
     expect(new Set(chain).size).toBe(4);
@@ -112,7 +120,7 @@ describe('需求细化数据契约', () => {
     const requirement={id:'R-1',title:'查询订单',behavior:'按条件返回订单。',conditions:[],constraints:[],explicitAcceptanceConditions:[],sourceUnitIds:[],ruleIds:[],state:'reviewed',deliveryScope:'current'};
     const task={id:'T-1',resultVersion:2,status:'completed',progress:100,attempt:1,createdAt:1,completedAt:2,steps:[],project:{id:'P-1',name:'订单中心',sourceName:'订单.prd',sourceHash:'x',revision:1,importedAt:'2026-09-13',rawText:'',stage:'review',sourceUnits:[],features:[{id:'F-1',name:'订单查询',sourceUnitIds:[],ruleIds:[],requirementIds:['R-1'],state:'reviewed'}],requirements:[requirement],clarifications:[]}} as AnalysisTask;
     const noop=()=>undefined,asyncNoop=async()=>undefined;
-    const html=renderToStaticMarkup(React.createElement(TaskPage,{task,versions:[task],now:3,onBack:noop,onVersion:noop,onAdjust:asyncNoop,onScope:asyncNoop,onArchive:asyncNoop,onRestore:asyncNoop,onDelete:asyncNoop}));
+    const html=renderToStaticMarkup(React.createElement(TaskPage,{task,versions:[task],now:3,onBack:noop,onVersion:noop,onAdjust:asyncNoop,onScope:asyncNoop,onRetry:asyncNoop,onRestart:asyncNoop,onArchive:asyncNoop,onRestore:asyncNoop,onDelete:asyncNoop}));
     expect(html).toContain('功能与需求');
     expect(html).toContain('全部需求');
     expect(html).toContain('待处理事项');
@@ -126,6 +134,14 @@ describe('需求细化数据契约', () => {
     expect(html).toContain('取消选择');
     expect(html).toContain('描述你希望怎么调整');
     expect(html).not.toContain('概览');
+  });
+
+  it('失败任务提供继续与重新开始两个原地恢复动作',()=>{
+    const task={id:'T-FAIL',status:'failed',progress:43,error:'模型连接超时',steps:[],project:{}} as AnalysisTask;
+    const html=renderToStaticMarkup(React.createElement(ExecutionRecord,{task,now:3,onRecover:()=>undefined}));
+    expect(html).toContain('模型连接超时');
+    expect(html).toContain('从失败处继续');
+    expect(html).toContain('重新开始');
   });
 
   it('功能范围状态与批量选择状态分离',()=>{
