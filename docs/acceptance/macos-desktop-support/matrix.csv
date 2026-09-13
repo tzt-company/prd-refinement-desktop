@@ -1,0 +1,7 @@
+case,round-1
+mac-codex-cli-discovery,PASS
+mac-legacy-doc-import,PASS
+full-test-suite,PASS
+typescript-and-production-build,PASS
+mac-dmg-zip-package,PASS
+packaged-app-smoke,PASS

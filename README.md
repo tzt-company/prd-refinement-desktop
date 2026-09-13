@@ -14,18 +14,24 @@
 
 ## 本地运行
 
-```powershell
+```bash
 npm install
 npm start
 ```
 
-生成 Windows 安装版和便携版：
+在 macOS 上生成当前 CPU 架构的 DMG 安装包和 ZIP 包：
+
+```bash
+npm run dist:mac
+```
+
+在 Windows 上生成安装版和便携版：
 
 ```powershell
 npm run dist:win
 ```
 
-产物写入 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <win-unpacked中的exe> <证据目录>`，它会在独立用户数据目录启动应用、检查首页并截图。
+产物写入 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，它会在独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
 
 平台使用统一的 `AnalysisRuntime` 契约，当前提供两种适配器：Codex CLI 直接调用官方 CLI 并复用其管理的认证（持久化标识仍为 `codex-oauth`）；`dsh` 使用官方 SDK profile 和换行分隔 JSON-RPC stdio。每个任务创建时固化不含密钥的适配器、模型和推理深度快照；运行时通过系统配置引用解析凭据。DeepSeek API Key 使用 Electron `safeStorage` 加密保存，仅注入 DSH 子进程环境，不进入任务 JSON 或任务事件。
 
@@ -101,7 +107,7 @@ node scripts/evaluate-gold.mjs tests/fixtures/ilcd-gold.json <原始PRD路径> <
 Electron preload 使用 .cts 编译为 .cjs，以在默认沙箱中提供 IPC 接口；保留 contextIsolation，关闭渲染进程 Node 集成。
 检查反馈固定在运行时信息顶部：区分状态读取与模型连接，按钮显示忙碌状态并防止重复点击；失败保留已有结果并提供重试，成功显示更新时间。
 
-HTML/HTM 按声明编码解析静态正文、标题和表格，不执行脚本；data 图片、内联 SVG 和 iframe `srcdoc` 作为文件自身内容读取，指向其他文件或网络地址的路径不跟随、不用于判断缺件。旧版 DOC 需要本机安装 Microsoft Word 和 PowerShell 7，以禁用宏、只读方式转换为 DOCX 后解析；转换限时 60 秒，原文件不改写。PDF 保留逐页文本与完整页面图像。用户上传文件本身选择或解析失败时在上传页显示原因，可重试。
+HTML/HTM 按声明编码解析静态正文、标题和表格，不执行脚本；data 图片、内联 SVG 和 iframe `srcdoc` 作为文件自身内容读取，指向其他文件或网络地址的路径不跟随、不用于判断缺件。旧版 DOC 在 macOS 上使用系统自带 `textutil` 转换，在 Windows 上需要本机安装 Microsoft Word 和 PowerShell 7，以禁用宏、只读方式转换为 DOCX 后解析；转换限时 60 秒，原文件不改写。PDF 保留逐页文本与完整页面图像。用户上传文件本身选择或解析失败时在上传页显示原因，可重试。
 桌面程序同一用户数据目录只运行一个实例；重复启动会唤起已有窗口，避免多个窗口加载不同版本的导入筛选器。
 新建任务页首先选择定版主 PRD；主文档保存后可添加补充文件、历史参考或资料目录，并在一个选填输入区集中描述背景、业务补充、范围调整、细化要求和澄清结论。支持多文件和目录拖放。目录保留相对路径，默认以目录名挂载，可在目录选项中修改。点击一次“开始分析”后，平台自动读取资料、建立索引并创建任务；文件进度会如实显示，不要求用户单独操作索引。
 
@@ -113,6 +119,6 @@ HTML/HTM 按声明编码解析静态正文、标题和表格，不执行脚本�
 
 “资料明细与读取记录”默认折叠，展开后可按关键词和文件过滤、分页、查看原文。后续分析按全部来源建账，检索命中不能代替完整性检查。任务同时锁定资料包版本和用户说明版本；说明中的明确业务决定进入用户来源，整理要求只调整输出方式，疑问继续作为待确认内容。主 PRD 限定基础范围，普通补充/历史资料不得自动覆盖或扩展；用户明确修改的具体口径优先，未裁决冲突形成待澄清。
 
-资料清单、原始快照、解析缓存和索引保存于用户数据目录的 materials 子目录（Windows 默认 `%APPDATA%/prd-refinement-desktop/materials`）。图像在索引阶段调用配置的图片模型，转录按图像哈希与模型配置缓存；索引就绪不等于语义完整。取消或重启中断均保留文件清单，不把半成品标为就绪。Windows 瞬时文件占用只对原子改名做有界重试，持续失败仍报错，保留旧清单。
+资料清单、原始快照、解析缓存和索引保存于用户数据目录的 materials 子目录（macOS 默认 `~/Library/Application Support/prd-refinement-desktop/materials`，Windows 默认 `%APPDATA%/prd-refinement-desktop/materials`）。图像在索引阶段调用配置的图片模型，转录按图像哈希与模型配置缓存；索引就绪不等于语义完整。取消或重启中断均保留文件清单，不把半成品标为就绪。Windows 瞬时文件占用只对原子改名做有界重试，持续失败仍报错，保留旧清单。
 
 HTML 内嵌 srcdoc/data 文档递归读取（最多 8 层），普通排版不阻断；内联脚本与样式源码作为来源数据保留，不执行。外部文档和缺失资源不跟随、不阻断；用户直接上传但不支持或无法读取的媒体仍明确报错。

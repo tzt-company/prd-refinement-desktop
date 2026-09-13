@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
-const mocks=vi.hoisted(()=>({spawn:vi.fn(),execFile:vi.fn()}));
+import path from 'node:path';
+const mocks=vi.hoisted(()=>({spawn:vi.fn(),execFile:vi.fn(),access:vi.fn(),readdir:vi.fn()}));
 vi.mock('node:child_process',()=>({spawn:mocks.spawn,execFile:mocks.execFile}));
-vi.mock('node:fs/promises',()=>({access:vi.fn(async()=>{}),mkdir:vi.fn(async()=>{}),readFile:vi.fn(),readdir:vi.fn(async()=>['1.0']),writeFile:vi.fn()}));
+vi.mock('node:fs/promises',()=>({access:mocks.access,mkdir:vi.fn(async()=>{}),readFile:vi.fn(),readdir:mocks.readdir,writeFile:vi.fn()}));
 import { CodexCliRuntime, inspectRuntime } from '../electron/runtime';
 import type { RuntimeConfig } from '../src/types';
 const config:RuntimeConfig={adapter:'codex-oauth',provider:'',model:'fake',reasoningEffort:'low',maxParallel:1,apiKey:'CONFIG-SECRET'};
 function child(){return Object.assign(new EventEmitter(),{stdin:new PassThrough(),stdout:new PassThrough(),stderr:new PassThrough(),kill:vi.fn()})}
-beforeEach(()=>mocks.spawn.mockReset());
+beforeEach(()=>{mocks.spawn.mockReset();mocks.access.mockReset().mockResolvedValue(undefined);mocks.readdir.mockReset().mockResolvedValue(['1.0'])});
 async function started(){const runtime=new CodexCliRuntime();await runtime.start('test-runtime',config);return runtime}
 async function flushSpawn(){for(let i=0;i<10;i++)await Promise.resolve()}
 describe('Codex 每调用结构化错误',()=>{
@@ -36,6 +37,15 @@ describe('Codex 每调用结构化错误',()=>{
   });
 });
 describe('Codex CLI 状态检查',()=>{
+  it('macOS 从 PATH 发现无 exe 后缀的 Codex CLI',async()=>{
+    if(process.platform!=='darwin')return;
+    const originalPath=process.env.PATH,bin=path.join('/private/tmp/prd-codex-bin','codex');
+    process.env.PATH=path.dirname(bin);
+    mocks.access.mockImplementation(async candidate=>{if(candidate===bin)return;throw Object.assign(new Error('missing'),{code:'ENOENT'})});
+    mocks.execFile.mockImplementation((_bin,args,_options,callback)=>callback(null,args[0]==='--version'?'codex-cli 0.154.0':'Logged in using ChatGPT',''));
+    try{const result=await inspectRuntime(config);expect(result).toMatchObject({available:true,launcher:bin,version:'0.154.0',authStatus:'authenticated'})}
+    finally{process.env.PATH=originalPath}
+  });
   it.each([
     [null,'Logged in using ChatGPT','authenticated'],
     [new Error('exit 1'),'Not logged in','unauthenticated'],

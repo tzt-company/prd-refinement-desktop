@@ -7,6 +7,7 @@
   "scripts": {
     "start": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "build": "tsc -b && vite build && tsc -p electron/tsconfig.json",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip",
     "dist:win": "npm run build && electron-builder --win nsis portable",
     "typecheck": "tsc -b --pretty false && tsc -p electron/tsconfig.json --pretty false",
     "test": "vitest run",
@@ -39,6 +40,14 @@
     "asarUnpack": [
       "node_modules/@napi-rs/canvas/**/*"
     ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "需求细化平台-${version}-${arch}.${ext}"
+    },
     "win": {
       "target": [
         "nsis",

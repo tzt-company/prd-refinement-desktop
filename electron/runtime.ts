@@ -20,8 +20,20 @@ async function dshLauncher() {
 }
 
 async function codexLauncher() {
-  const root=path.join(process.env.LOCALAPPDATA??path.join(os.homedir(),'AppData','Local'),'OpenAI','Codex','bin');
-  try { for(const version of (await readdir(root)).sort().reverse()){const bin=path.join(root,version,'codex.exe');try{await access(bin);return {bin,version}}catch{/* 继续 */}} } catch {/* 未安装 */}
+  if(process.platform==='win32'){
+    const root=path.join(process.env.LOCALAPPDATA??path.join(os.homedir(),'AppData','Local'),'OpenAI','Codex','bin');
+    try { for(const version of (await readdir(root)).sort().reverse()){const bin=path.join(root,version,'codex.exe');try{await access(bin);return {bin,version}}catch{/* 继续 */}} } catch {/* 未安装 */}
+    return null;
+  }
+  const pathCandidates=(process.env.PATH??'').split(path.delimiter).filter(Boolean).map(directory=>path.resolve(directory,'codex'));
+  const macCandidates=process.platform==='darwin'?[
+    '/Applications/ChatGPT.app/Contents/Resources/codex',
+    '/Applications/Codex.app/Contents/Resources/codex',
+    path.join(os.homedir(),'.local','bin','codex'),
+    '/opt/homebrew/bin/codex',
+    '/usr/local/bin/codex',
+  ]:[];
+  for(const bin of new Set([...pathCandidates,...macCandidates]))try{await access(bin);return {bin}}catch{/* 继续 */}
   return null;
 }
 
@@ -75,4 +87,3 @@ export class DshJsonRpcRuntime implements AnalysisRuntime {
   async promptAndWait(sessionId:string,text:string,timeoutMs=10*60_000,images:RuntimeImage[]=[]){const imageBlocks=await Promise.all(images.map(async image=>{if(!['image/png','image/jpeg','image/webp','image/gif'].includes(image.mimeType))throw new Error('不支持的图片类型');return{type:'image',mimeType:image.mimeType,data:(await readFile(image.path)).toString('base64')}}));const assistant:string[]=[];let running=false,settled=false;return new Promise<string>(async(resolve,reject)=>{const finish=(error?:Error)=>{if(settled)return;settled=true;clearTimeout(timer);unsubscribe();error?reject(error):resolve(assistant.at(-1)??'')};const timer=setTimeout(()=>finish(new Error(`Harness 阶段执行超时（${timeoutMs}ms）`)),timeoutMs);const unsubscribe=this.onNotification((method,raw)=>{const params=raw as {sessionId?:string;status?:string;event?:{type?:string;data?:{message?:{content?:Array<{type?:string;text?:string}>};reason?:{kind?:string;error?:{message?:string}}}}};if(params.sessionId!==sessionId)return;if(method==='session.status'){if(params.status==='running')running=true;else if(params.status==='idle'&&running)finish()}if(method==='session.event'&&params.event?.type==='assistant/message'){const value=params.event.data?.message?.content?.filter(block=>block.type==='text').map(block=>block.text??'').join('');if(value)assistant.push(value)}if(method==='session.event'&&params.event?.type==='turn/end'&&params.event.data?.reason?.kind==='error')finish(new Error(params.event.data.reason.error?.message??'Harness 回合执行失败'))});try{await this.request('session/prompt',{sessionId,contentBlocks:[{type:'text',text},...imageBlocks]})}catch(error){finish(error instanceof Error?error:new Error(String(error)))}})}
   private onNotification(listener:(method:string,params:unknown)=>void){this.listeners.add(listener);return()=>this.listeners.delete(listener)}private request(method:string,params?:Record<string,unknown>,timeoutMs=30_000){const input=this.child?.stdin;if(!input?.writable)return Promise.reject(new Error('Harness 尚未启动'));const id=++this.sequence;input.write(`${JSON.stringify({jsonrpc:'2.0',id,method,params})}\n`);return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(`Harness 请求超时：${method}`))},timeoutMs);this.pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value)},reject:error=>{clearTimeout(timer);reject(error)}})})}diagnostics(){return this.stderr}async stop(){const child=this.child;if(!child)return;try{await this.request('shutdown',undefined,5_000)}catch{/* 关闭超时后终止进程 */}finally{this.child=undefined;child.kill()}}
 }
-
