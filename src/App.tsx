@@ -873,8 +873,10 @@ function TaskPage({
   const [deleting, setDeleting] = useState(false),
     [managing, setManaging] = useState(false);
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
+  const [proposalOverrides,setProposalOverrides]=useState<Record<string,string>>({});
   const [generatingProposals,setGeneratingProposals]=useState(false);
   const rootKey = taskRootId(task);
+  const proposalStorageKey=`prd-proposal-overrides:${task.id}:${taskVersion(task)}`;
   const inScope = task.project.requirements.filter(
       (item) => item.deliveryScope !== "excluded",
     ).length,
@@ -895,7 +897,10 @@ function TaskPage({
     setFeatureFilter(undefined);
     setDetail(undefined);
     setSelectedProposalIds([]);
+    setProposalOverrides({});
   }, [rootKey]);
+  useEffect(()=>{try{const value=window.localStorage.getItem(proposalStorageKey);setProposalOverrides(value?JSON.parse(value):{})}catch{setProposalOverrides({})}},[proposalStorageKey]);
+  useEffect(()=>{try{window.localStorage.setItem(proposalStorageKey,JSON.stringify(proposalOverrides))}catch{/* 本地存储不可用不阻断调整 */}},[proposalStorageKey,proposalOverrides]);
   useEffect(() => {
     void window.prdApp
       .queryAnalysisArtifacts(task.id)
@@ -1091,11 +1096,13 @@ function TaskPage({
         onScope={onScope}
         selectedProposalIds={selectedProposalIds}
         onProposalSelection={setSelectedProposalIds}
+        proposalOverrides={proposalOverrides}
+        onProposalOverride={(id,value)=>setProposalOverrides(current=>{const next={...current};if(value)next[id]=value;else delete next[id];return next})}
         onGenerateProposals={()=>void generateProposals()}
         generatingProposals={generatingProposals}
         now={now}
       />
-      {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} selectedProposalIds={selectedProposalIds} onProposalSelection={setSelectedProposalIds} />}{" "}
+      {canAdjust && <TaskFeedback task={task} onAdjust={onAdjust} selectedProposalIds={selectedProposalIds} proposalOverrides={proposalOverrides} onProposalSelection={ids=>{setSelectedProposalIds(ids);setProposalOverrides(current=>Object.fromEntries(Object.entries(current).filter(([id])=>ids.includes(id))))}} />}{" "}
       {detail && (
         <Drawer
           project={task.project}
@@ -1288,11 +1295,13 @@ export function TaskFeedback({
   task,
   onAdjust,
   selectedProposalIds = [],
+  proposalOverrides = {},
   onProposalSelection,
 }: {
   task: AnalysisTask;
   onAdjust: (request: AdjustmentRequest) => Promise<void>;
   selectedProposalIds?: string[];
+  proposalOverrides?: Record<string,string>;
   onProposalSelection?: (ids: string[]) => void;
 }) {
   const storageKey = `prd-feedback-draft:${taskRootId(task)}`;
@@ -1323,7 +1332,7 @@ export function TaskFeedback({
       proposalText = selected
         .map(
           (item) =>
-            `关于“${item.question}”，采纳建议方案：${item.resolutionProposal!.recommendation}`,
+            `关于“${item.question}”，采纳建议方案：${proposalOverrides[item.id]??item.resolutionProposal!.recommendation}`,
         )
         .join("\n"),
       feedback = [draft.trim(), proposalText].filter(Boolean).join("\n");
@@ -1398,7 +1407,7 @@ export function TaskFeedback({
       {selectedProposalIds.length > 0 && (
           <div className="selected-proposals">
             <div>
-              <strong>本次将采纳 {selectedProposalIds.length} 项建议方案</strong>
+              <strong>本次将采纳 {selectedProposalIds.length} 项建议方案{Object.keys(proposalOverrides).length?`，其中 ${Object.keys(proposalOverrides).length} 项已修改`:''}</strong>
               <span>可在下方补充例外或修改口径；你输入的说明优先。</span>
             </div>
             <button type="button" className="text-action" onClick={() => onProposalSelection?.([])}>
@@ -1695,6 +1704,8 @@ function Results({
   onScope,
   selectedProposalIds,
   onProposalSelection,
+  proposalOverrides,
+  onProposalOverride,
   onGenerateProposals,
   generatingProposals,
   now,
@@ -1709,6 +1720,8 @@ function Results({
   onScope: (request: DeliveryScopeUpdateRequest) => Promise<void>;
   selectedProposalIds: string[];
   onProposalSelection: (ids: string[]) => void;
+  proposalOverrides: Record<string,string>;
+  onProposalOverride: (id:string,value:string|undefined) => void;
   onGenerateProposals: () => void;
   generatingProposals: boolean;
   now: number;
@@ -1770,6 +1783,8 @@ function Results({
             project={project}
             selectedProposalIds={selectedProposalIds}
             onProposalSelection={onProposalSelection}
+            proposalOverrides={proposalOverrides}
+            onProposalOverride={onProposalOverride}
             onGenerateProposals={onGenerateProposals}
             generating={generatingProposals}
           />

@@ -70,7 +70,7 @@ describe('需求细化数据契约', () => {
 
   it('待处理事项首屏直接显示问题、已知事实和影响',()=>{
     const project={features:[],requirements:[],sourceUnits:[],clarifications:[{id:'Q-1',question:'退款金额是否含税？',reason:'原文未明确',level:'blocking',knownFacts:'退款金额来自原订单。',unresolvedPoint:'税额口径未确定。',impact:'会影响退款金额计算。',levelReason:'阻塞金额实现。',resolutionProposal:{recommendation:'退款金额按原订单含税实付金额计算。',rationale:'退款基数来自原订单，沿用实付口径可保持账务一致。',impact:'退款金额包含原订单税额。',confirmation:'确认退款采用含税实付口径。',alternatives:[],sourceRefs:[]},affectedIds:[],state:'open'}]} as any;
-    const html=renderToStaticMarkup(React.createElement(ResultIssues,{project,selectedProposalIds:[],onProposalSelection:()=>undefined}));
+    const html=renderToStaticMarkup(React.createElement(ResultIssues,{project,selectedProposalIds:[],onProposalSelection:()=>undefined,onProposalOverride:()=>undefined}));
     expect(html).toContain('退款金额是否含税？');
     expect(html).toContain('退款金额来自原订单。');
     expect(html).toContain('会影响退款金额计算。');
@@ -78,6 +78,7 @@ describe('需求细化数据契约', () => {
     expect(html).toContain('退款金额按原订单含税实付金额计算。');
     expect(html).toContain('待你采纳后才会写入需求');
     expect(html).toContain('选择当前列表的建议方案');
+    expect(html).toContain('修改');
     expect(html).not.toContain('填写答案');
     expect(html).not.toContain('处理方式');
   });
@@ -90,8 +91,8 @@ describe('需求细化数据契约', () => {
 
   it('任务级入口一次提交已选择的建议方案且允许补充例外',()=>{
     const task={id:'T-1',resultVersion:2,status:'completed',project:{features:[],requirements:[],sourceUnits:[],clarifications:[{id:'Q-1',question:'退款金额是否含税？',state:'open',resolutionProposal:{recommendation:'退款金额按原订单含税实付金额计算。'}}]}} as unknown as AnalysisTask;
-    const html=renderToStaticMarkup(React.createElement(TaskFeedback,{task,onAdjust:async()=>undefined,selectedProposalIds:['Q-1'],onProposalSelection:()=>undefined}));
-    expect(html).toContain('本次将采纳 1 项建议方案');expect(html).toContain('你输入的说明优先');expect(html).toContain('按所选方案调整（1）');
+    const html=renderToStaticMarkup(React.createElement(TaskFeedback,{task,onAdjust:async()=>undefined,selectedProposalIds:['Q-1'],proposalOverrides:{'Q-1':'退款金额按不含税金额计算。'},onProposalSelection:()=>undefined}));
+    expect(html).toContain('本次将采纳 1 项建议方案，其中 1 项已修改');expect(html).toContain('你输入的说明优先');expect(html).toContain('按所选方案调整（1）');
   });
 
   it('草稿存储不可用时不阻断页面',()=>{

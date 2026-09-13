@@ -29,7 +29,10 @@ try {
   await page.getByRole('button', { name: /打开任务 T-PROPOSAL/ }).click();
   await page.getByRole('button', { name: /待处理事项/ }).click();
   await page.screenshot({ path: path.join(outputRoot, 'issues-1440.png'), fullPage: true });
-  await page.getByLabel(/选择建议方案/).first().check();
+  await page.getByRole('button',{name:'修改'}).first().click();
+  await page.screenshot({ path: path.join(outputRoot, 'editing-1440.png'), fullPage: true });
+  const editor=page.getByLabel(/修改建议方案/).first();await editor.fill('空字符串按 NULL 处理；纯空格保留原值参与安全合并判定。');
+  await page.getByRole('button',{name:'保存并加入本次调整'}).click();
   await page.screenshot({ path: path.join(outputRoot, 'selected-1440.png'), fullPage: true });
   await page.getByRole('button', { name: /查看详情/ }).first().click();
   await page.screenshot({ path: path.join(outputRoot, 'drawer-1440.png'), fullPage: true });
