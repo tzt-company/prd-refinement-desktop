@@ -7,7 +7,11 @@ const contextEnd = '</source-structure-context>';
 export function enrichSourceContext(units: SourceUnit[]): SourceUnit[] {
   const headings: Array<{ level: number; text: string; id: string }> = [];
   let introduction: { text: string; id: string } | undefined;
+  let documentScope: string | undefined;
   return units.map(unit => {
+    const scope = unit.location.includes(' / HTML 第 ') ? unit.location.replace(/ \/ HTML 第 \d+ 行第 \d+ 列$/u, '') : undefined;
+    if (scope !== undefined && documentScope !== undefined && scope !== documentScope) { headings.length = 0; introduction = undefined; }
+    if (scope !== undefined) documentScope = scope;
     const text = unit.excerpt.trim();
     const markdownHeading = text.match(/^(#{1,6})\s+(.+)$/);
     const boldHeading = text.match(/^\*\*(.+)\*\*$/);

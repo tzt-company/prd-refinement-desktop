@@ -1,0 +1,27 @@
+case,round,status,evidence
+A01,1,PENDING,待业务实现与语义验收
+A02,1,PENDING,待业务实现与语义验收
+A03,1,PENDING,待业务实现与语义验收
+A04,1,PENDING,待业务实现与语义验收
+A05,1,PASS,合成交付包按功能展开同一编号的通用约束且 JSON 实体唯一；round-1.md
+A06,2,PASS,真实定版 PRD 中一条来源由多条需求组合覆盖且独立审计通过；round-2.md
+A07,1,PENDING,待业务实现与语义验收
+A08,1,PENDING,待业务实现与问题分类验收
+A09,2,PASS,真实运行失败保留诊断且未发布半包，修复后从检查点重试完成；round-2.md
+A10,1,PENDING,待业务实现与问题关联验收
+A11,2,PASS,真实模型只为明确前置和时区影响生成两条有来源关系；round-2.md
+A12,1,PENDING,待业务实现与检查点失效验收
+A13,2,PASS,真实模型正式包的 JSON、Markdown、Excel 与 manifest 独立回读通过；round-2.md
+A14,2,PASS,正式包复制到新路径后独立回读通过且无绝对路径；round-2.md
+A15,1,PENDING,待业务实现与发布失败注入
+A16,1,PENDING,待业务实现与边界夹具验收
+A17,1,PENDING,production Electron 已验证 unchecked/草稿/功能原文分组；ready 与 blocked 双态仍待桌面验收
+A18,1,PENDING,待混合来源夹具验收
+H01,1,PASS,round-1.md（--help 返回 0 且输出用法）
+H02,1,PASS,round-1.md（缺少交付目录返回 2 且输出用法）
+C01,3,PASS,三级澄清严格契约及建议默认口径由 direct-domain 测试验证；round-3.md
+C02,3,PASS,阻塞澄清和平台问题阻断、仅建议项可交付，由 scheduler 与 production Electron 验证；round-3.md
+C03,3,PASS,页面统一展示业务澄清和平台整理问题且责任分开；round-3.md
+C04,3,PASS,可见页面及 Excel 使用文件章节位置和原文，不显示来源内部 ID；round-3.md
+C05,3,PASS,Excel 三级事项与检查记录分表回读通过；round-3.md
+C06,3,PASS,功能生成可读导航名称且功能与需求页面不显示类型列；production Electron；round-3.md

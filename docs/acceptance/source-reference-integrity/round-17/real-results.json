@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-09-12T10:08:05.468Z",
+  "completedAt": "2026-09-12T10:23:11.827Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T10-08-05.447Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-9B34119E",
+      "status": "failed",
+      "error": "Codex 阶段执行超时（120000ms）",
+      "wallMs": 905459,
+      "within20Minutes": true,
+      "pipelineVersion": 16,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 12,
+      "checksPassed": false,
+      "unverifiedScopeIds": [],
+      "features": 12,
+      "requirements": 75,
+      "relations": 30,
+      "promptAttempts": 255,
+      "promptEstimatedTokens": 1393067,
+      "maxPromptEstimatedTokens": 19870,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 255,
+      "inputTokens": 5994882,
+      "cachedInputTokens": 3006080,
+      "outputTokens": 145861,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

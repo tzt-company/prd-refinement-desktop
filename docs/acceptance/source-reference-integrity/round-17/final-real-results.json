@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-09-12T10:12:15.335Z",
+  "completedAt": "2026-09-12T10:27:09.396Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "buildHashes": {
+    "scheduler-v2": "e14b158cc586887a77c96792196174465dc919dc1e8e7fca5f056c0826910c43",
+    "clarification-reconciliation": "cc2ce78666618d048047023218fe1c70825210e3f031f2e75928bd7521cda4a4",
+    "clarification-relations": "8cf4876cd50d76d15637b27b9dd892bb0f46f0033857a52bc0418343060c73bc"
+  },
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T10-12-15.280Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-F2897458",
+      "status": "failed",
+      "error": "平台未能完成“待澄清事项全局有效性与一致性检查”（clarification-reconciliation-f175d7276db6）的输出校验：actions[2].satisfiedRequirementIds 缺失",
+      "wallMs": 892799,
+      "within20Minutes": true,
+      "pipelineVersion": 16,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 9,
+      "checksPassed": false,
+      "unverifiedScopeIds": [],
+      "features": 24,
+      "requirements": 103,
+      "relations": 23,
+      "promptAttempts": 278,
+      "promptEstimatedTokens": 1191472,
+      "maxPromptEstimatedTokens": 13752,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 278,
+      "inputTokens": 6074628,
+      "cachedInputTokens": 3352192,
+      "outputTokens": 123189,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

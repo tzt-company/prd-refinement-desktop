@@ -1,0 +1,149 @@
+{
+  "generatedAt": "2026-09-12T07:37:36.720Z",
+  "taskPath": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T01-54-59.017Z\\T-223E5C71.json",
+  "realTask": {
+    "id": "T-223E5C71",
+    "status": "needs-attention",
+    "checks": {
+      "source": {
+        "id": "source",
+        "status": "failed",
+        "dependencyHash": "c9957da80ad2b45d72b96664db86a0e5f3bbe808d9ec10d10b5049b4a3d476f6",
+        "resultVersion": 6,
+        "checkedAt": 1789178716442,
+        "issueIds": []
+      },
+      "feature": {
+        "id": "feature",
+        "status": "passed",
+        "dependencyHash": "c9957da80ad2b45d72b96664db86a0e5f3bbe808d9ec10d10b5049b4a3d476f6",
+        "resultVersion": 6,
+        "checkedAt": 1789178716442,
+        "issueIds": []
+      },
+      "detail": {
+        "id": "detail",
+        "status": "passed",
+        "dependencyHash": "c9957da80ad2b45d72b96664db86a0e5f3bbe808d9ec10d10b5049b4a3d476f6",
+        "resultVersion": 6,
+        "checkedAt": 1789178716442,
+        "issueIds": []
+      },
+      "relation": {
+        "id": "relation",
+        "status": "passed",
+        "dependencyHash": "c9957da80ad2b45d72b96664db86a0e5f3bbe808d9ec10d10b5049b4a3d476f6",
+        "resultVersion": 6,
+        "checkedAt": 1789178716442,
+        "issueIds": []
+      },
+      "clarification": {
+        "id": "clarification",
+        "status": "passed",
+        "dependencyHash": "c9957da80ad2b45d72b96664db86a0e5f3bbe808d9ec10d10b5049b4a3d476f6",
+        "resultVersion": 6,
+        "checkedAt": 1789178716442,
+        "issueIds": []
+      }
+    },
+    "unresolved": [
+      {
+        "sourceUnitId": "S-9404e47e-99e5-4fa1-8e6c-cd7d9bf81966-v1-bundle-4-closure-0227",
+        "kind": "requirement",
+        "reason": "明确限定关联ID更新范围及不得修改关联名称、不得更新未选数据。",
+        "featureIds": [
+          "F-001"
+        ]
+      }
+    ],
+    "delivery": {
+      "state": "blocked",
+      "inputHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+      "resultHash": "811cbf1abaf37799c642d18fc0234d8749170a72810f73ea8811d5af53e59e61",
+      "issueIds": [
+        "Q-0001",
+        "Q-0002",
+        "Q-0003",
+        "Q-0005",
+        "Q-0007",
+        "Q-0009"
+      ],
+      "unverifiedScopeIds": [
+        "source"
+      ],
+      "policyVersion": 2
+    },
+    "error": "需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。"
+  },
+  "reproductions": {
+    "evidenceBinding": {
+      "before": {
+        "behavior": [
+          {
+            "sourceUnitId": "S1"
+          }
+        ],
+        "conditions": [],
+        "constraints": [
+          [
+            {
+              "sourceUnitId": "S2"
+            }
+          ]
+        ],
+        "explicitAcceptanceConditions": []
+      },
+      "after": {
+        "behavior": [
+          {
+            "sourceUnitId": "S1"
+          },
+          {
+            "sourceUnitId": "S2"
+          }
+        ],
+        "conditions": [],
+        "constraints": [
+          [
+            {
+              "sourceUnitId": "S1"
+            },
+            {
+              "sourceUnitId": "S2"
+            }
+          ]
+        ],
+        "explicitAcceptanceConditions": []
+      }
+    },
+    "staleClarification": {
+      "status": "needs-attention",
+      "issueDisposition": "dismissed",
+      "remainingQuestions": [
+        "字段 X 是否必须填写？"
+      ],
+      "repairCalls": 0
+    },
+    "newRequirementOwner": {
+      "featureRequirementIds": [
+        "R-0001"
+      ],
+      "candidateRequirementIds": [
+        "R-0001",
+        "LOCAL-ADDED"
+      ]
+    },
+    "lateBoundary": {
+      "boundaryRework": 0,
+      "status": "needs-attention",
+      "openOwners": [
+        "feature-grouping"
+      ]
+    },
+    "unplannableIssue": {
+      "processError": "ETIMEDOUT",
+      "stdout": "{\"marker\":\"repair-entered\",\"plans\":0,\"openOwners\":[\"requirement-detail\"]}"
+    }
+  },
+  "note": "断言通过表示缺陷已复现，并非业务验收通过。合成运行全部使用本地假模型。"
+}

@@ -1,0 +1,79 @@
+{
+  "taskId": "T-03864379",
+  "status": "completed",
+  "pipelineVersion": 18,
+  "elapsedMs": 77110,
+  "steps": [
+    {
+      "id": "inventory",
+      "status": "completed"
+    },
+    {
+      "id": "candidates",
+      "status": "completed"
+    },
+    {
+      "id": "unify",
+      "status": "completed"
+    },
+    {
+      "id": "details",
+      "status": "completed"
+    },
+    {
+      "id": "audit",
+      "status": "completed"
+    },
+    {
+      "id": "repair",
+      "status": "completed"
+    },
+    {
+      "id": "delivery",
+      "status": "completed"
+    }
+  ],
+  "promptMetrics": 9,
+  "runtimeMetrics": 9,
+  "inputApplications": [
+    {
+      "sourceUnitId": "USER-8b6b9a25114a-001",
+      "kind": "scope-decision",
+      "summary": "本期平台仅支持活动查询。",
+      "deliveryScope": "current",
+      "status": "applied",
+      "affectedFeatureIds": [
+        "F-001"
+      ],
+      "affectedRequirementIds": [
+        "R-0001",
+        "R-0002"
+      ]
+    },
+    {
+      "sourceUnitId": "USER-8b6b9a25114a-002",
+      "kind": "scope-decision",
+      "summary": "本期平台不支持活动导出。",
+      "deliveryScope": "excluded",
+      "status": "applied",
+      "affectedFeatureIds": [],
+      "affectedRequirementIds": []
+    },
+    {
+      "sourceUnitId": "USER-8b6b9a25114a-003",
+      "kind": "organization",
+      "summary": "平台需将查询功能细化呈现为输入、匹配规则和结果字段。",
+      "status": "applied",
+      "affectedFeatureIds": [],
+      "affectedRequirementIds": []
+    }
+  ],
+  "delivery": {
+    "state": "ready",
+    "inputHash": "b105c043f84d72f00278323d7f971d525e1e88a96e5fddb6bfcd91fa6dd61f37",
+    "resultHash": "03ce82bde3b629c4b0619f4c1921c4626c664d72934edc3d2e57aec9e9d38b12",
+    "issueIds": [],
+    "unverifiedScopeIds": [],
+    "policyVersion": 2
+  }
+}

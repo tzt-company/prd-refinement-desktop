@@ -1,0 +1,52 @@
+{
+  "startedAt": "2026-09-12T10:16:06.832Z",
+  "completedAt": "2026-09-12T10:23:11.749Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "buildHashes": {
+    "scheduler-v2": "e14b158cc586887a77c96792196174465dc919dc1e8e7fca5f056c0826910c43",
+    "clarification-reconciliation": "a9186160a99c920b10f1c508996bf003b07d5f2e771545fc87108a7ec44b0c12",
+    "clarification-relations": "15d6b162af737a3ffc87685bddf2de0e47e4ccf40b450d0928f3163b5847d8df"
+  },
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T10-16-06.805Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-9EFFB1E1",
+      "status": "failed",
+      "error": "Codex 阶段执行超时（120000ms）",
+      "wallMs": 424172,
+      "within20Minutes": true,
+      "pipelineVersion": 16,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 6,
+      "checksPassed": false,
+      "unverifiedScopeIds": [],
+      "features": 5,
+      "requirements": 83,
+      "relations": 13,
+      "promptAttempts": 159,
+      "promptEstimatedTokens": 536983,
+      "maxPromptEstimatedTokens": 7638,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 159,
+      "inputTokens": 3215361,
+      "cachedInputTokens": 1908480,
+      "outputTokens": 74025,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": false
+}

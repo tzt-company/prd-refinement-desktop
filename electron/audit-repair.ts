@@ -1,5 +1,5 @@
 import type { AuditCategory, AuditIssue, Clarification, PrdProject, RequirementDetail, RequirementRule } from '../src/types.js';
-import { acceptDirectDetails, validateDirectGraph } from './domain.js';
+import { acceptDirectClarifications, acceptDirectDetails, validateDirectGraph } from './domain.js';
 
 export const auditCategories = new Set<AuditCategory>(['source-ambiguity','rule-extraction','feature-boundary','detail-mismatch','unclassified']);
 
@@ -12,7 +12,7 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
   return issues.flatMap(issue=>{
     const key=JSON.stringify([issue.direction,issue.type,issue.detail,[...issue.sourceUnitIds].sort(),[...issue.affectedIds].sort()]);
     if(seen.has(key))return[];seen.add(key);
-    let category=issue.category;
+    let category=issue.owner==='feature-grouping'?'feature-boundary':issue.category;
     // Existing-rule errors must identify that rule. A true omission can have no rule ID yet.
     if(category==='rule-extraction'&&!issue.affectedIds.some(id=>rules.has(id))&&!/(遗漏|缺失|未提取)/.test(`${issue.type}${issue.detail}`))category=undefined;
     if(!category){
@@ -22,11 +22,18 @@ export function classifyIssues(issues:AuditIssue[], project:PrdProject):AuditIss
       else if(issue.affectedIds.some(id=>rules.has(id)))category='rule-extraction';
       else category='unclassified';
     }
-    return[{...issue,category,disposition:issue.disposition??(category==='source-ambiguity'?'needs-confirmation':'open')}];
+    const requirementIds=issue.affectedIds.filter(id=>details.has(id));
+    const ownershipIssue=/(?:requirement[-_ ]?ownership|需求归属)/i.test(issue.type)||/主所属功能/.test(issue.detail);
+    let owner=issue.owner??(category==='source-ambiguity'?'source-decision':category==='feature-boundary'?'feature-grouping':category==='detail-mismatch'?'requirement-detail':'runtime-output');
+    if(requirementIds.length){
+      if(ownershipIssue){category='feature-boundary';owner='feature-grouping'}
+      else if(category==='detail-mismatch'&&(owner!=='requirement-relation'||/(?:attribution|归属)/i.test(issue.type)))owner='requirement-detail';
+    }
+    return[{...issue,category,owner,disposition:issue.disposition??(category==='source-ambiguity'?'needs-confirmation':'open')}];
   });
 }
 
-export interface RepairScope { key:string; issues:AuditIssue[]; featureIds:string[]; requirementIds:string[]; clarificationIds:string[]; sourceUnitIds:string[]; readOnlyRequirementIds?:string[] }
+export interface RepairScope { key:string; issues:AuditIssue[]; featureIds:string[]; requirementIds:string[]; clarificationIds:string[]; sourceUnitIds:string[]; requiredSourceUnitIds:string[]; readOnlyRequirementIds?:string[] }
 export interface RequirementPatch {
   requirements:Array<RequirementDetail & { featureId:string }>;
   deleteRequirementIds:string[];
@@ -40,7 +47,7 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
   const scopes:RepairScope[]=[];
   const requirementById=new Map(project.requirements.map(item=>[item.id,item]));
   const questionById=new Map(project.clarifications.map(item=>[item.id,item]));
-  for(const issue of issues.filter(item=>item.category==='detail-mismatch'&&item.disposition==='open')){
+  for(const issue of issues.filter(item=>(item.owner==='requirement-detail'||(item.owner===undefined&&item.category==='detail-mismatch')||item.owner==='source-decision')&&item.disposition==='open'&&(item.owner!=='source-decision'||item.affectedIds.some(id=>questionById.has(id))))){
     let requirements=issue.affectedIds.filter(id=>requirementById.has(id));
     let questions=issue.affectedIds.filter(id=>questionById.has(id));
     requirements=distinct([...requirements,...questions.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref)))]);
@@ -51,19 +58,21 @@ export function planDetailRepairs(issues:AuditIssue[],project:PrdProject):Repair
       if(candidates.length!==1)continue;
       features=candidates;
     }
-    // 明确指向功能整体的问题才扩大写集合；来源定位的遗漏允许只新增条目。
-    if(!requirements.length&&issue.affectedIds.some(id=>features.some(feature=>feature.id===id)))requirements=distinct(features.flatMap(feature=>feature.requirementIds));
+    // 功能 ID 只用于定位归属，不能授权改写整个功能；来源遗漏允许定点新增需求。
     questions=distinct([...questions,...project.clarifications.filter(question=>question.affectedIds.some(id=>requirements.includes(id))).map(question=>question.id)]);
     const sourceIds=new Set(project.sourceUnits.map(unit=>unit.id));
     const evidence=distinct([...issue.sourceUnitIds,...requirements.flatMap(id=>requirementById.get(id)!.sourceUnitIds),...questions.flatMap(id=>questionById.get(id)!.affectedIds.flatMap(ref=>requirementById.get(ref)?.sourceUnitIds??[ref]))]).filter(id=>sourceIds.has(id));
-    const scope:RepairScope={key:issue.id,issues:[issue],featureIds:features.map(feature=>feature.id),requirementIds:requirements,clarificationIds:questions,sourceUnitIds:evidence};
+    const scope:RepairScope={key:issue.id,issues:[issue],featureIds:features.map(feature=>feature.id),requirementIds:requirements,clarificationIds:questions,sourceUnitIds:evidence,requiredSourceUnitIds:distinct(issue.sourceUnitIds)};
     let merged=true;
     while(merged){merged=false;for(let index=scopes.length-1;index>=0;index--){const other=scopes[index];const sharedWrite=other.requirementIds.some(id=>scope.requirementIds.includes(id))||other.clarificationIds.some(id=>scope.clarificationIds.includes(id));const sameSources=other.sourceUnitIds.length===scope.sourceUnitIds.length&&other.sourceUnitIds.every(id=>scope.sourceUnitIds.includes(id));const sameMissingTarget=!other.requirementIds.length&&!scope.requirementIds.length&&!other.clarificationIds.length&&!scope.clarificationIds.length&&sameSources&&other.featureIds.some(id=>scope.featureIds.includes(id));if(!sharedWrite&&!sameMissingTarget)continue;
-      scope.issues.push(...other.issues);for(const field of ['featureIds','requirementIds','clarificationIds','sourceUnitIds'] as const)scope[field]=distinct([...scope[field],...other[field]]);scopes.splice(index,1);merged=true;
+      scope.issues.push(...other.issues);for(const field of ['featureIds','requirementIds','clarificationIds','sourceUnitIds','requiredSourceUnitIds'] as const)scope[field]=distinct([...scope[field],...other[field]]);scopes.splice(index,1);merged=true;
     }}
     scope.key=scope.issues.map(item=>item.id).sort().join('+');scopes.push(scope);
   }
-  return scopes.map(scope=>({...scope,readOnlyRequirementIds:distinct(scope.clarificationIds.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref)&&!scope.requirementIds.includes(ref))))}));
+  return scopes.map(scope=>({...scope,readOnlyRequirementIds:distinct([
+    ...project.features.filter(feature=>scope.featureIds.includes(feature.id)).flatMap(feature=>feature.requirementIds),
+    ...scope.clarificationIds.flatMap(id=>questionById.get(id)!.affectedIds.filter(ref=>requirementById.has(ref))),
+  ].filter(id=>!scope.requirementIds.includes(id)))}));
 }
 
 function stringList(value:unknown,label:string):string[]{if(!Array.isArray(value)||value.some(item=>typeof item!=='string'||!item.trim()))throw new Error(`${label} 必须为字符串数组`);if(new Set(value).size!==value.length)throw new Error(`${label} 含重复项`);return value as string[]}
@@ -76,7 +85,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
   if(!Array.isArray(raw.requirements)||!Array.isArray(raw.clarifications))throw new Error('增量必须包含 requirements 和 clarifications 数组');
   const sourceUnits=project.sourceUnits.filter(unit=>scope.sourceUnitIds.includes(unit.id));
   const rawRequirements=raw.requirements;
-  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits).requirements;
+  const accepted=acceptDirectDetails(rawRequirements,[],sourceUnits,true).requirements;
   const existing=new Set([...project.requirements,...project.clarifications,...project.features,...project.sourceUnits].map(item=>item.id));
   const checkId=(id:string,allowed:string[])=>{if(existing.has(id)){if(!allowed.includes(id))throw new Error(`越界修改 ${id}`)}else if(!/^LOCAL-[A-Za-z0-9_-]+$/.test(id))throw new Error(`新增项 ${id} 必须使用 LOCAL- ID`)};
   const requirements=accepted.map((item,index)=>{
@@ -91,17 +100,16 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
     return {...item,featureId};
   });
   const allowedRefs=new Set([...scope.sourceUnitIds,...scope.requirementIds,...requirements.map(item=>item.id)]);
-  const clarifications=raw.clarifications.map(value=>{
-    const item=record(value),id=requiredText(item.id,'clarification.id');checkId(id,scope.clarificationIds);
-    if(item.state!=='open')throw new Error('模型不得自动解决待确认事项');
+  const parsedClarifications=acceptDirectClarifications(raw.clarifications,sourceUnits,[...allowedRefs,...(scope.readOnlyRequirementIds??[])]);
+  const clarifications=parsedClarifications.map(item=>{
+    const id=item.id;checkId(id,scope.clarificationIds);
     // 仅允许同一个既有问题保留原有只读引用，不扩大需求写集合或新增关联。
     const previous=project.clarifications.find(question=>question.id===id);
     const retainedRefs=new Set(previous?.affectedIds.filter(ref=>scope.readOnlyRequirementIds?.includes(ref))??[]);
-    const affectedIds=stringList(item.affectedIds,'affectedIds');
+    const affectedIds=item.affectedIds;
     if(!affectedIds.length||affectedIds.some(ref=>!allowedRefs.has(ref)&&!retainedRefs.has(ref)))throw new Error(`${id} 引用越出修正范围`);
-    const question=requiredText(item.question,'question'),reason=requiredText(item.reason,'reason');
-    if(!existing.has(id)&&project.clarifications.some(other=>!scope.clarificationIds.includes(other.id)&&other.question===question&&other.reason===reason&&JSON.stringify([...other.affectedIds].sort())===JSON.stringify([...affectedIds].sort())))throw new Error(`${id} 复制了范围外澄清`);
-    return{id,question,reason,affectedIds,state:'open' as const};
+    if(!existing.has(id)&&project.clarifications.some(other=>!scope.clarificationIds.includes(other.id)&&other.question===item.question&&other.reason===item.reason&&JSON.stringify([...other.affectedIds].sort())===JSON.stringify([...affectedIds].sort())))throw new Error(`${id} 复制了范围外澄清`);
+    return{...item,affectedIds};
   });
   const deleteRequirementIds=stringList(raw.deleteRequirementIds,'deleteRequirementIds'),deleteClarificationIds=stringList(raw.deleteClarificationIds,'deleteClarificationIds');
   for(const id of deleteRequirementIds)if(!scope.requirementIds.includes(id))throw new Error(`越界删除 ${id}`);
@@ -112,7 +120,7 @@ export function acceptRequirementPatch(value:unknown,project:PrdProject,scope:Re
 }
 
 /** 在当前最新项目上串行提交，不能用调用开始时的数组长度分配编号。 */
-export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch:RequirementPatch,allocateIds:boolean):PrdProject {
+export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch:RequirementPatch,allocateIds:boolean,resolvedSourceUnitIds:ReadonlySet<string>=new Set()):PrdProject {
   const previouslyUncovered=new Set(validateDirectGraph(project.sourceUnits,project.sourceDispositions??[],project.features,project.requirements,project.clarifications).uncovered.map(item=>item.sourceUnitId));
   const validated=acceptRequirementPatch(patch,project,scope),result=structuredClone(project);
   const allIds=[...project.requirements,...project.clarifications].map(item=>item.id);
@@ -127,8 +135,10 @@ export function applyRequirementPatch(project:PrdProject,scope:RepairScope,patch
   result.clarifications=result.clarifications.filter(item=>!changedQ.has(item.id)&&!validated.deleteClarificationIds.includes(item.id));
   result.clarifications.push(...validated.clarifications.map(item=>({...item,id:mapping.get(item.id)!,affectedIds:item.affectedIds.map(id=>mapping.get(id)??id)})));
   for(const feature of result.features){feature.requirementIds=feature.requirementIds.filter(id=>!changedR.has(id)&&!validated.deleteRequirementIds.includes(id));feature.requirementIds.push(...validated.requirements.filter(item=>item.featureId===feature.id).map(item=>mapping.get(item.id)!));}
+  const requirementIds=new Set(result.requirements.map(item=>item.id));result.relations=result.relations?.filter(relation=>requirementIds.has(relation.sourceRequirementId)&&requirementIds.has(relation.targetRequirementId));
   const graph=validateDirectGraph(result.sourceUnits,result.sourceDispositions??[],result.features,result.requirements,result.clarifications);
-  const invalid=graph.uncovered.filter(item=>!previouslyUncovered.has(item.sourceUnitId)||scope.sourceUnitIds.includes(item.sourceUnitId));
+  const required=new Set(scope.requiredSourceUnitIds);
+  const invalid=graph.uncovered.filter(item=>!resolvedSourceUnitIds.has(item.sourceUnitId)&&(!previouslyUncovered.has(item.sourceUnitId)||required.has(item.sourceUnitId)));
   if(invalid.length)throw new Error(`增量修正仍有未覆盖原文：${invalid.map(item=>item.sourceUnitId).join('、')}`);
   return result;
 }

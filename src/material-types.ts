@@ -17,6 +17,7 @@ export interface MaterialBundle {
   id: string; name: string; revision: number; indexedRevision?: number; state: BundleState;
   files: MaterialFile[]; references: MaterialReference[]; issues: MaterialIssue[];
   progress: {completed: number; total: number; phase: string}; updatedAt: string;
+  analysisDraft?: { text: string; revision: number; updatedAt: string };
   error?: string;
 }
 export interface MaterialAddition {
@@ -34,6 +35,7 @@ export interface MaterialApi {
   add(id: string, options: MaterialAddition, files?: File[]): Promise<MaterialBundle>;
   updateFile(id: string, fileId: string, patch: MaterialFilePatch): Promise<MaterialBundle>;
   removeFile(id: string, fileId: string): Promise<MaterialBundle>;
+  saveAnalysisDraft(id: string, text: string, expectedRevision?: number): Promise<MaterialBundle>;
   index(id: string): Promise<MaterialBundle>;
   cancel(id: string): Promise<MaterialBundle>;
   query(id: string, query: MaterialQuery): Promise<MaterialSearchResult>;

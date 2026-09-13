@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-09-12T08:01:45.284Z",
+  "completedAt": "2026-09-12T08:14:29.181Z",
+  "sourceTaskId": "T-DD1D9FB1",
+  "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1",
+  "config": {
+    "adapter": "codex-oauth",
+    "provider": "openai-codex",
+    "fastModel": "gpt-5.6-luna",
+    "model": "gpt-5.6-terra",
+    "reasoningEffort": "low",
+    "maxParallel": 5,
+    "maxNodeParallel": 10,
+    "taskDeadline": "none"
+  },
+  "runRoot": "C:\\Users\\64554\\AppData\\Roaming\\prd-refinement-desktop\\validation-pipeline12\\2026-09-12T08-01-45.263Z",
+  "results": [
+    {
+      "wave": "sequential",
+      "index": 1,
+      "id": "T-ABD2DFE3",
+      "status": "needs-attention",
+      "error": "需要业务确认：平台整理已经完成，阻塞级业务问题需确认后才能交付给开发 Agent。",
+      "wallMs": 763142,
+      "within20Minutes": true,
+      "pipelineVersion": 13,
+      "deliveryState": "blocked",
+      "platformOpen": 0,
+      "blockingClarifications": 5,
+      "checksPassed": true,
+      "unverifiedScopeIds": [],
+      "features": 17,
+      "requirements": 79,
+      "relations": 25,
+      "promptAttempts": 243,
+      "promptEstimatedTokens": 878746,
+      "maxPromptEstimatedTokens": 10203,
+      "hardBudgetViolations": 0,
+      "runtimeCalls": 243,
+      "inputTokens": 5065230,
+      "cachedInputTokens": 2886400,
+      "outputTokens": 109693,
+      "sourceHash": "e2a900a161b04cc8606471e69d8866835997ea32591639c2d36fc6e303caffb1"
+    }
+  ],
+  "passed": true
+}
