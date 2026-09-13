@@ -746,11 +746,11 @@ function TaskCenterRow({
   return (
     <div className="task-row task-row-managed">
       <button
-        className="task-row-main"
+        className="task-row-open"
         onClick={() => onOpen(task.id)}
         aria-label={`打开任务 ${task.id}：${task.project.name}`}
-      >
-        <span className="task-identity">
+      />
+      <span className="task-identity">
           <span className="task-primary-line">
             <code>{task.id}</code>
             <strong>{task.project.name}</strong>
@@ -759,32 +759,31 @@ function TaskCenterRow({
             <FileText aria-hidden="true" />
             {task.project.sourceName} · 第 {taskVersion(task)} 版
           </small>
-        </span>
-        <em className={`task-status ${task.status}`}>
-          {archived ? "已归档" : taskStatusLabel(task)}
-        </em>
-        <span className="task-stage">{step?.name}</span>
-        <span
-          className="mini-progress"
-          role="progressbar"
-          aria-label={`${task.project.name}进度`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={task.progress}
-        >
-          <i style={{ width: `${task.progress}%` }} />
-          <b>{task.progress}%</b>
-        </span>
-        <span className="task-time">
-          {elapsed(task.startedAt, task.completedAt, now)}
-        </span>
-        <span className="task-time">
-          {new Date(task.createdAt).toLocaleTimeString("zh-CN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
-      </button>
+      </span>
+      <em className={`task-status ${task.status}`}>
+        {archived ? "已归档" : taskStatusLabel(task)}
+      </em>
+      <span className="task-stage">{step?.name}</span>
+      <span
+        className="mini-progress"
+        role="progressbar"
+        aria-label={`${task.project.name}进度`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={task.progress}
+      >
+        <i style={{ width: `${task.progress}%` }} />
+        <b>{task.progress}%</b>
+      </span>
+      <span className="task-time">
+        {elapsed(task.startedAt, task.completedAt, now)}
+      </span>
+      <span className="task-time">
+        {new Date(task.createdAt).toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
       <details className="more-menu">
         <summary aria-label={`${task.project.name}更多操作`}>
           <MoreHorizontal />
