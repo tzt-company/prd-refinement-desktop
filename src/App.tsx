@@ -311,6 +311,9 @@ function taskRootId(task: AnalysisTask) {
 function taskVersion(task: AnalysisTask) {
   return task.resultVersion ?? 1;
 }
+export function displayProgress(value: number) {
+  return Math.round(Math.max(0, Math.min(100, value)));
+}
 const taskStatusLabel = (task: AnalysisTask) =>
   task.status === "needs-attention"
     ? "已完成"
@@ -772,10 +775,10 @@ function TaskCenterRow({
         aria-label={`${task.project.name}进度`}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={task.progress}
+        aria-valuenow={displayProgress(task.progress)}
       >
         <i style={{ width: `${task.progress}%` }} />
-        <b>{task.progress}%</b>
+        <b>{displayProgress(task.progress)}%</b>
       </span>
       <span className="task-time">
         {elapsed(task.requestedAt??task.startedAt, task.completedAt, now)}
@@ -1659,7 +1662,7 @@ export function Progress({ task, now }: { task: AnalysisTask; now: number }) {
           <span>{active ? "正在执行" : task.status === "failed" ? "执行已停止" : "执行已完成"}</span>
           <h2>{active ? "Runtime 正在分析需求" : task.status === "failed" ? "Runtime 未完成本次任务" : "Runtime 已完成需求分析"}</h2>
         </div>
-        <strong>{task.progress}%</strong>
+        <strong>{displayProgress(task.progress)}%</strong>
       </header>
       <div className="progress-track">
         <i style={{ width: `${task.progress}%` }} />

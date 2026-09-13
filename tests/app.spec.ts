@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { clearFeedbackDraft, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
+import { clearFeedbackDraft, displayProgress, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
 import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
+  it('七阶段进度显示为整数百分比',()=>{
+    expect(displayProgress(42.85714285714286)).toBe(43);
+  });
   it('明确区分来源、规则、功能和需求明细', () => {
     const chain = ['SourceUnit', 'RequirementRule', 'Feature', 'RequirementDetail'];
     expect(new Set(chain).size).toBe(4);

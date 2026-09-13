@@ -1,0 +1,6 @@
+case,round-1
+empty-binding-placeholder,PASS
+non-empty-binding-mismatch,PASS
+integer-progress-display,PASS
+full-test-suite,PASS
+typecheck-and-build,PASS
