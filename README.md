@@ -33,7 +33,7 @@ npm run dist:win
 
 产物写入 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，它会在独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
 
-平台使用统一的 `AnalysisRuntime` 契约，当前提供两种适配器：Codex CLI 直接调用官方 CLI 并复用其管理的认证（持久化标识仍为 `codex-oauth`）；`dsh` 使用官方 SDK profile 和换行分隔 JSON-RPC stdio。每个任务创建时固化不含密钥的适配器、模型和推理深度快照；运行时通过系统配置引用解析凭据。DeepSeek API Key 使用 Electron `safeStorage` 加密保存，仅注入 DSH 子进程环境，不进入任务 JSON 或任务事件。
+平台使用统一的 `AnalysisRuntime` 契约，当前提供两种适配器：Codex CLI 直接调用官方 CLI 并复用其管理的认证（持久化标识仍为 `codex-oauth`）；`dsh` 使用官方 SDK profile 和换行分隔 JSON-RPC stdio。Runtime 配置可填写 `http`、`https` 或 `socks5` 代理地址，连接检测与新任务会将其显式注入模型子进程，不依赖桌面应用是否继承终端环境；代理地址暂不支持用户名和密码。每个任务创建时固化不含密钥的适配器、模型、推理深度和代理地址快照；运行时通过系统配置引用解析凭据。DeepSeek API Key 使用 Electron `safeStorage` 加密保存，仅注入 DSH 子进程环境，不进入任务 JSON 或任务事件。
 
 执行进度逐节点按职责说明该任务固化的模型与推理深度；多模型节点分别写明处理对象和用途，确定性脚本节点明确标记不使用模型。节点执行次数显示为“累计业务调用”。节点成本分布按真实调用的节点、模型与推理深度分组，避免不同执行配置的消耗被合并。
 
@@ -103,7 +103,7 @@ node scripts/evaluate-gold.mjs tests/fixtures/ilcd-gold.json <原始PRD路径> <
 
 评测核对原文哈希与来源关联，输出关键事实词面保真情况。评测器版本 2 支持待确认项直接引用原文；旧结果必须用相同评测器重新计算后才能比较。它能作为回归探针，但不能判断所有否定/关系/合理拆分，不能称为全文语义召回率或100%零遗漏。语义判断另行记录PASS/FAIL/UNKNOWN及需求ID证据，真人复核状态单列。
 
-配置页显示 CLI 的真实版本、可执行文件路径与认证状态。刷新状态执行 `--version` 和 `login status`（各限时 10 秒），不调用模型；未知输出或命令失败显示检查失败，不当作未登录。检测模型连接独立验证当前节点模型。首次认证请在终端运行该可执行文件的 `login` 命令，再回到配置页刷新状态。
+配置页显示 CLI 的真实版本、可执行文件路径与认证状态。刷新状态执行 `--version` 和 `login status`（各限时 10 秒），不调用模型；未知输出或命令失败显示检查失败，不当作未登录。Runtime 连接检测使用当前表单中的适配器、主模型和代理发送一次最小请求，不逐节点串行探测。首次认证请在终端运行该可执行文件的 `login` 命令，再回到配置页刷新状态。
 Electron preload 使用 .cts 编译为 .cjs，以在默认沙箱中提供 IPC 接口；保留 contextIsolation，关闭渲染进程 Node 集成。
 检查反馈固定在运行时信息顶部：区分状态读取与模型连接，按钮显示忙碌状态并防止重复点击；失败保留已有结果并提供重试，成功显示更新时间。
 

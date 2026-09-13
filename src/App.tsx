@@ -2503,8 +2503,14 @@ function RuntimeSettings({
     window.prdApp?.loadRuntimeConfig().then(setConfig);
   }, []);
   async function save() {
-    await window.prdApp?.saveRuntimeConfig(config);
-    setSaved(true);
+    setSaved(false);
+    setCheckError("");
+    try {
+      await window.prdApp?.saveRuntimeConfig(config);
+      setSaved(true);
+    } catch (error) {
+      setCheckError(error instanceof Error ? error.message : "配置保存失败，请重试");
+    }
   }
   async function check(connection = false) {
     if (checking || !window.prdApp) return;
@@ -2624,6 +2630,18 @@ function RuntimeSettings({
               <small>Harness 中注册的提供方标识</small>
             </label>
           )}
+          <label>
+            <span>网络代理</span>
+            <input
+              type="url"
+              value={config.proxyUrl ?? ""}
+              onChange={(e) =>
+                setConfig({ ...config, proxyUrl: e.target.value })
+              }
+              placeholder="例如 http://127.0.0.1:7890"
+            />
+            <small>可选；连接检测和新任务都会通过此代理访问模型</small>
+          </label>
           <div className="node-profiles">
             <div className="node-profile-head">
               <strong>节点模型策略</strong>
@@ -2756,7 +2774,7 @@ function RuntimeSettings({
             <RotateCw
               className={checking === "connection" ? "runtime-spinner" : ""}
             />
-            {checking === "connection" ? "连接检测中" : "检测模型连接"}
+            {checking === "connection" ? "连接检测中" : "检测 Runtime 连接"}
           </button>
           <button className="primary" onClick={save}>
             保存配置
@@ -2776,7 +2794,7 @@ function RuntimeSettings({
               {checking
                 ? checking === "status"
                   ? "正在读取运行时状态"
-                  : "正在验证模型连接"
+                  : "正在验证 Runtime 连接"
                 : checkError
                   ? "检查未完成"
                   : checkedAt
@@ -2787,11 +2805,11 @@ function RuntimeSettings({
               {checking
                 ? checking === "status"
                   ? "读取安装版本与认证状态，通常几秒内完成。"
-                  : "依次验证当前配置的节点模型，请稍候。"
+                  : "通过当前代理发送一次最小请求，请稍候。"
                 : checkError ||
                   (checkedAt
                     ? `更新于 ${checkedAt}`
-                    : "刷新状态不调用模型；模型连接需单独检测。")}
+                    : "刷新状态不调用模型；Runtime 连接需单独检测。")}
             </span>
           </div>
           {checking && (

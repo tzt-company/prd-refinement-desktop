@@ -323,6 +323,7 @@ export interface RuntimeConfig {
   provider: string;
   model: string;
   apiKey?: string;
+  proxyUrl?: string;
   reasoningEffort: 'default' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';
   fastModel?: string;
   fastReasoningEffort?: 'default' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra';

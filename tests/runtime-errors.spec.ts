@@ -5,7 +5,7 @@ import path from 'node:path';
 const mocks=vi.hoisted(()=>({spawn:vi.fn(),execFile:vi.fn(),access:vi.fn(),readdir:vi.fn()}));
 vi.mock('node:child_process',()=>({spawn:mocks.spawn,execFile:mocks.execFile}));
 vi.mock('node:fs/promises',()=>({access:mocks.access,mkdir:vi.fn(async()=>{}),readFile:vi.fn(),readdir:mocks.readdir,writeFile:vi.fn()}));
-import { CodexCliRuntime, inspectRuntime } from '../electron/runtime';
+import { CodexCliRuntime, inspectRuntime, runtimeEnvironment } from '../electron/runtime';
 import type { RuntimeConfig } from '../src/types';
 const config:RuntimeConfig={adapter:'codex-oauth',provider:'',model:'fake',reasoningEffort:'low',maxParallel:1,apiKey:'CONFIG-SECRET'};
 function child(){return Object.assign(new EventEmitter(),{stdin:new PassThrough(),stdout:new PassThrough(),stderr:new PassThrough(),kill:vi.fn()})}
@@ -13,6 +13,21 @@ beforeEach(()=>{mocks.spawn.mockReset();mocks.access.mockReset().mockResolvedVal
 async function started(){const runtime=new CodexCliRuntime();await runtime.start('test-runtime',config);return runtime}
 async function flushSpawn(){for(let i=0;i<10;i++)await Promise.resolve()}
 describe('Codex 每调用结构化错误',()=>{
+  it('显式代理同时注入大小写 HTTP 环境变量且不改写进程环境',()=>{
+    const before=process.env.HTTPS_PROXY;
+    const env=runtimeEnvironment({...config,proxyUrl:' http://127.0.0.1:7890 '});
+    expect(env.HTTP_PROXY).toBe('http://127.0.0.1:7890/');expect(env.HTTPS_PROXY).toBe('http://127.0.0.1:7890/');expect(env.ALL_PROXY).toBe('http://127.0.0.1:7890/');expect(env.http_proxy).toBe('http://127.0.0.1:7890/');
+    expect(process.env.HTTPS_PROXY).toBe(before);
+  });
+  it('拒绝不支持的代理协议和明文认证信息',()=>{
+    expect(()=>runtimeEnvironment({...config,proxyUrl:'ftp://127.0.0.1:21'})).toThrow('代理仅支持');
+    expect(()=>runtimeEnvironment({...config,proxyUrl:'http://user:secret@127.0.0.1:7890'})).toThrow('不能包含用户名或密码');
+  });
+  it('Codex 子进程使用配置中的显式代理',async()=>{
+    const process=child();mocks.spawn.mockReturnValue(process);const runtime=new CodexCliRuntime();await runtime.start('test-runtime',{...config,proxyUrl:'socks5://127.0.0.1:7891'});const pending=runtime.promptAndWait('s','prompt');await flushSpawn();
+    expect(mocks.spawn.mock.calls.at(-1)?.[2].env).toMatchObject({HTTP_PROXY:'socks5://127.0.0.1:7891',HTTPS_PROXY:'socks5://127.0.0.1:7891',ALL_PROXY:'socks5://127.0.0.1:7891'});
+    process.stdout.write(JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'OK'}})+'\n');process.emit('close',0);expect(await pending).toBe('OK');
+  });
   it('中间重连error后turn.completed和答案成功不误判失败',async()=>{
     const process=child();mocks.spawn.mockReturnValue(process);const runtime=await started();const pending=runtime.promptAndWait('s','prompt');await flushSpawn();
     for(const event of [{type:'error',message:'temporary reconnect'},{type:'item.completed',item:{type:'agent_message',text:'OK'}},{type:'turn.completed',usage:{input_tokens:10,output_tokens:1}}])process.stdout.write(JSON.stringify(event)+'\n');process.emit('close',0);
