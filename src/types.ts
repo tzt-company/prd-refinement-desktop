@@ -482,6 +482,7 @@ declare global {
       startMaterialAnalysis(bundleId:string, text:string, draftRevision:number, operationId:string): Promise<AnalysisTask>;
       cancelAnalysis(taskId: string): Promise<void>;
       retryAnalysis(taskId: string): Promise<void>;
+      restartAnalysis(taskId: string): Promise<AnalysisTask>;
       adjustAnalysis(request: RefinementAdjustmentRequest): Promise<AnalysisTask>;
       generateResolutionProposals(taskId: string): Promise<AnalysisTask>;
       onAnalysisTaskUpdate(callback: (task: AnalysisTask) => void): () => void;

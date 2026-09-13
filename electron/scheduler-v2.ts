@@ -401,6 +401,11 @@ export class AnalysisTaskScheduler {
     if (!this.queue.includes(id)) this.queue.push(id);
     await this.publish(task); void this.pump();
   }
+  async restart(id: string) {
+    const task = this.tasks.get(id);
+    if (!task || task.archivedAt || !['failed', 'needs-attention'].includes(task.status)) throw new Error('当前任务不可重新开始');
+    return this.create(structuredClone(task.project));
+  }
   private assert(task: AnalysisTask, attempt: number) {
     if (task.attempt !== attempt || task.status !== 'running') throw new Error('当前执行尝试已取消或失效');
   }

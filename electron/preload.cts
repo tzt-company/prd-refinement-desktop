@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('prdApp', {
   startMaterialAnalysis: (bundleId:string,text:string,draftRevision:number,operationId:string) => ipcRenderer.invoke('analysis:start-material',bundleId,text,draftRevision,operationId),
   cancelAnalysis: (taskId: string) => ipcRenderer.invoke('analysis:cancel', taskId),
   retryAnalysis: (taskId: string) => ipcRenderer.invoke('analysis:retry', taskId),
+  restartAnalysis: (taskId: string) => ipcRenderer.invoke('analysis:restart', taskId),
   adjustAnalysis: (request: import('../src/types.js').RefinementAdjustmentRequest) => ipcRenderer.invoke('analysis:adjust', request),
   generateResolutionProposals: (taskId: string) => ipcRenderer.invoke('analysis:generate-resolution-proposals', taskId),
   onAnalysisTaskUpdate: (callback: (task: import('../src/types.js').AnalysisTask) => void) => {

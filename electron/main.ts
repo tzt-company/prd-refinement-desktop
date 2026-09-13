@@ -172,6 +172,7 @@ if (ownsInstance) app.whenReady().then(async () => {
     const snapshot=path.join(taskRoot(),'input-snapshots',randomUUID());
     try{return await scheduler.create(await materials.project(bundle.id,snapshot))}catch(error){await rm(snapshot,{recursive:true,force:true});throw error}
   });
+  ipcMain.handle('analysis:restart', (_event, taskId: string) => scheduler.restart(taskId));
   ipcMain.handle('analysis:adjust', async (_event, request: RefinementAdjustmentRequest) => {
     return scheduler.enqueueAdjustment({...request,operationId:request.operationId?.trim()||randomUUID()});
   });
