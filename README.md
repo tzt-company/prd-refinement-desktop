@@ -35,6 +35,8 @@ npm run dist:mac
 npm run dist:win
 ```
 
+推送 `v*` 标签后，GitHub Actions 会分别在 Windows 与 macOS runner 上执行测试和原生打包，并在对应 GitHub Release 中发布 Windows 安装版、Windows 便携版、macOS DMG、macOS ZIP 及 `SHA256SUMS.txt`。发布前应确保标签版本与 `package.json`、`package-lock.json` 和 `CHANGELOG.md` 一致。
+
 构建过程与打包产物写入 `docs/tmp/desktop-build/current/`，安装包位于其中的 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，证据目录应放在对应验收轮次下；脚本会在该目录的独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `docs/tmp/desktop-build/current/dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
 
 平台使用统一的 `AnalysisRuntime` 契约，当前提供两种适配器：Codex CLI 直接调用官方 CLI 并复用其管理的认证（持久化标识仍为 `codex-oauth`）；`dsh` 使用官方 SDK profile 和换行分隔 JSON-RPC stdio。Runtime 配置可填写 `http`、`https` 或 `socks5` 代理地址，连接检测与新任务会将其显式注入模型子进程，不依赖桌面应用是否继承终端环境；代理地址暂不支持用户名和密码。每个任务创建时固化不含密钥的适配器、模型、推理深度和代理地址快照；运行时通过系统配置引用解析凭据。DeepSeek API Key 使用 Electron `safeStorage` 加密保存，仅注入 DSH 子进程环境，不进入任务 JSON 或任务事件。
