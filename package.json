@@ -1,6 +1,6 @@
 {
   "name": "prd-refinement-desktop",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "main": "docs/tmp/desktop-build/current/dist-electron/electron/main.js",
@@ -47,14 +47,14 @@
         "zip"
       ],
       "category": "public.app-category.productivity",
-      "artifactName": "需求细化平台-${version}-${arch}.${ext}"
+      "artifactName": "prd-refinement-desktop-${version}-${arch}.${ext}"
     },
     "win": {
       "target": [
         "nsis",
         "portable"
       ],
-      "artifactName": "需求细化平台-安装版-${version}-${arch}.${ext}"
+      "artifactName": "prd-refinement-desktop-setup-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -62,7 +62,7 @@
       "createDesktopShortcut": true
     },
     "portable": {
-      "artifactName": "需求细化平台-便携版-${version}-${arch}.${ext}"
+      "artifactName": "prd-refinement-desktop-portable-${version}-${arch}.${ext}"
     }
   },
   "devDependencies": {

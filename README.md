@@ -35,7 +35,7 @@ npm run dist:mac
 npm run dist:win
 ```
 
-推送 `v*` 标签后，GitHub Actions 会分别在 Windows 与 macOS runner 上执行测试和原生打包，并在对应 GitHub Release 中发布 Windows 安装版、Windows 便携版、macOS DMG、macOS ZIP 及 `SHA256SUMS.txt`。发布前应确保标签版本与 `package.json`、`package-lock.json` 和 `CHANGELOG.md` 一致。
+推送 `v*` 标签后，GitHub Actions 会分别在 Windows 与 macOS runner 上执行测试和原生打包，并在对应 GitHub Release 中发布 `prd-refinement-desktop-setup-<version>-<arch>.exe`、`prd-refinement-desktop-portable-<version>-<arch>.exe`、macOS DMG、macOS ZIP 及 `SHA256SUMS.txt`。发布前应确保标签版本与 `package.json`、`package-lock.json` 和 `CHANGELOG.md` 一致。
 
 构建过程与打包产物写入 `docs/tmp/desktop-build/current/`，安装包位于其中的 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，证据目录应放在对应验收轮次下；脚本会在该目录的独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `docs/tmp/desktop-build/current/dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
 
