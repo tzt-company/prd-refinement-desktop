@@ -1,0 +1,81 @@
+name: 发布桌面安装包
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.platform }} 安装包
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            os: windows-latest
+            command: npm run dist:win
+            artifact: windows-installers
+            files: |
+              docs/tmp/desktop-build/current/dist-release/*.exe
+          - platform: macOS
+            os: macos-latest
+            command: npm run dist:mac
+            artifact: macos-installers
+            files: |
+              docs/tmp/desktop-build/current/dist-release/*.dmg
+              docs/tmp/desktop-build/current/dist-release/*.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 签出源码
+        uses: actions/checkout@v4
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 校验标签与应用版本一致
+        run: node -e "const p = require('./package.json'); if (process.env.GITHUB_REF_NAME !== 'v' + p.version) throw new Error('标签与 package.json 版本不一致')"
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 运行单元测试
+        run: npm test
+
+      - name: 构建安装包
+        run: ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: 上传安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    name: 创建 GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载双平台安装包
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: 生成 SHA-256 校验清单
+        working-directory: release-assets
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: 发布安装包
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
+        env:
+          GH_TOKEN: ${{ github.token }}
