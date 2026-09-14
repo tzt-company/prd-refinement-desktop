@@ -44,7 +44,7 @@ async function createWindow() {
     webPreferences: { preload: path.join(import.meta.dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false },
   });
   if (isDev) await window.loadURL(process.env.VITE_DEV_SERVER_URL!);
-  else await window.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
+  else await window.loadFile(path.join(app.getAppPath(), 'docs', 'tmp', 'desktop-build', 'current', 'dist', 'index.html'));
 }
 
 if (ownsInstance) app.whenReady().then(async () => {

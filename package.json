@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist-electron/electron/main.js",
+  "main": "docs/tmp/desktop-build/current/dist-electron/electron/main.js",
   "scripts": {
+    "prestart": "tsc -p electron/tsconfig.json",
     "start": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "build": "tsc -b && vite build && tsc -p electron/tsconfig.json",
     "dist:mac": "npm run build && electron-builder --mac dmg zip",
@@ -30,11 +31,11 @@
     "appId": "com.hiq.prdrefinement",
     "productName": "需求细化平台",
     "directories": {
-      "output": "dist-release"
+      "output": "docs/tmp/desktop-build/current/dist-release"
     },
     "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
+      "docs/tmp/desktop-build/current/dist/**/*",
+      "docs/tmp/desktop-build/current/dist-electron/**/*",
       "package.json"
     ],
     "asarUnpack": [

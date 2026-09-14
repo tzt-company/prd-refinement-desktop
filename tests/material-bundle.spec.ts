@@ -1,12 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import * as fs from 'node:fs/promises';
-import os from 'node:os';import path from 'node:path';
+import path from 'node:path';
 import { MaterialBundleStore } from '../electron/material-bundle';
+import { createTestWorkspace } from './test-workspace';
 vi.mock('node:fs/promises',async()=>{const actual=await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');return {...actual,rename:vi.fn(actual.rename)}});
 const roots:string[]=[];
 afterEach(async()=>{vi.restoreAllMocks();for(const root of roots.splice(0))await rm(root,{recursive:true,force:true})});
-async function setup(){const root=await mkdtemp(path.join(os.tmpdir(),'prd-material-'));roots.push(root);const store=new MaterialBundleStore(path.join(root,'store'),{readImage:async()=>({readable:true,text:'图标：筛选按钮'})});await store.initialize();return {root,store,bundle:await store.create()}}
+async function setup(){const root=await createTestWorkspace('prd-material');roots.push(root);const store=new MaterialBundleStore(path.join(root,'store'),{readImage:async()=>({readable:true,text:'图标：筛选按钮'})});await store.initialize();return {root,store,bundle:await store.create()}}
 async function file(root:string,name:string,text:string){const p=path.join(root,name);await mkdir(path.dirname(p),{recursive:true});await writeFile(p,text);return p}
 const addPrimary=async(store:MaterialBundleStore,id:string,p:string)=>store.add(id,[p],{kind:'files',role:'primary'});
 const index=async(store:MaterialBundleStore,id:string)=>{await store.index(id);return store.wait(id)};

@@ -192,116 +192,6 @@ function stepRuntimeItems(task: AnalysisTask, stepId: string) {
 function stepDisplayNote(note: string) {
   return note.replaceAll("来源包", "候选内容");
 }
-const names = [
-  "订单查询",
-  "订单详情",
-  "批量导出",
-  "退款申请",
-  "退款审核",
-  "发票管理",
-  "优惠计算",
-  "支付状态",
-];
-function demoProject(id = "demo", name = "交易中心 3.0"): PrdProject {
-  const requirements: RequirementDetail[] = Array.from(
-    { length: 48 },
-    (_, i) => ({
-      id: `R-${String(i + 1).padStart(3, "0")}`,
-      title: ["按筛选条件返回结果", "限制单次处理数量", "校验字段完整性"][
-        i % 3
-      ],
-      behavior: `${names[i % 8]}场景下，系统根据状态与输入条件完成处理。`,
-      conditions: ["用户具备操作权限", "数据处于允许状态"],
-      constraints: i % 3 === 0 ? ["单次最多 1000 条"] : [],
-      explicitAcceptanceConditions: [],
-      sourceUnitIds: [`S-${String((i % 12) + 1).padStart(3, "0")}`],
-      ruleIds: [`RL-${String(i + 1).padStart(3, "0")}`],
-      state: (i + 1) % 9 === 0 ? "needs-clarification" : "reviewed",
-    }),
-  );
-  return {
-    id,
-    name,
-    sourceName: `${name}产品需求文档.docx`,
-    sourceHash: id,
-    revision: 1,
-    importedAt: new Date().toISOString(),
-    rawText: "",
-    stage: "review",
-    sourceUnits: Array.from({ length: 12 }, (_, i) => ({
-      id: `S-${String(i + 1).padStart(3, "0")}`,
-      label: `原文单元 ${i + 1}`,
-      kind: "paragraph",
-      excerpt: "原文中的行为、条件和边界说明。",
-      location: `第 ${i + 2} 页`,
-      status: "processed",
-    })),
-    rules: requirements.map((r, i) => ({
-      id: r.ruleIds[0],
-      statement: r.behavior,
-      sourceUnitIds: r.sourceUnitIds,
-      conditions: r.conditions,
-      kind: "behavior",
-      status: "explicit",
-    })),
-    features: names.map((n, i) => ({
-      id: `F-${String(i + 1).padStart(2, "0")}`,
-      name: n,
-      goal: `完成${n}相关业务能力`,
-      sourceUnitIds: [`S-${String(i + 1).padStart(3, "0")}`],
-      ruleIds: requirements
-        .filter((_, r) => r % 8 === i)
-        .flatMap((x) => x.ruleIds),
-      requirementIds: requirements
-        .filter((_, r) => r % 8 === i)
-        .map((x) => x.id),
-      state: "reviewed",
-    })),
-    requirements,
-    clarifications: Array.from({ length: 5 }, (_, i) => ({
-      id: `Q-${i + 1}`,
-      question: `${names[i]}的异常提示文案是什么？`,
-      reason: "原文没有唯一取值。",
-      affectedIds: [`R-${String((i + 1) * 9).padStart(3, "0")}`],
-      state: "open",
-    })),
-  };
-}
-function freshTask(project: PrdProject, index: number): AnalysisTask {
-  const now = Date.now();
-  return {
-    id: `T-${String(index).padStart(4, "0")}`,
-    project,
-    attempt: 1,
-    status: "running",
-    progress: 0,
-    createdAt: now,
-    startedAt: now,
-    steps: stepDefs.map(([id, name, note], i) => ({
-      id,
-      name,
-      note,
-      status: i === 0 ? "running" : "pending",
-      startedAt: i === 0 ? now : undefined,
-    })),
-  };
-}
-const completedProject = demoProject();
-const completedTask: AnalysisTask = {
-  ...freshTask(completedProject, 1),
-  status: "completed",
-  progress: 100,
-  startedAt: Date.now() - 188000,
-  completedAt: Date.now() - 30000,
-  steps: stepDefs.map(([id, name, note], i) => ({
-    id,
-    name,
-    note,
-    status: "completed",
-    startedAt: Date.now() - 188000 + i * 30000,
-    completedAt: Date.now() - 188000 + (i + 1) * 30000,
-  })),
-};
 type Page = "tasks" | "upload" | "task" | "settings";
 type ResultTab = "features" | "requirements" | "issues" | "execution";
 type AdjustmentRequest = RefinementAdjustmentRequest;
@@ -363,10 +253,10 @@ export function runtimeTiming(task: AnalysisTask) {
 }
 
 export function App() {
-  const [tasks, setTasks] = useState<AnalysisTask[]>([completedTask]);
+  const [tasks, setTasks] = useState<AnalysisTask[]>([]);
   const [archivedTasks, setArchivedTasks] = useState<AnalysisTask[]>([]);
   const [page, setPage] = useState<Page>("tasks");
-  const [activeId, setActiveId] = useState(completedTask.id);
+  const [activeId, setActiveId] = useState("");
   const [now, setNow] = useState(Date.now());
   const [harness, setHarness] = useState<RuntimeStatus>({
     available: false,

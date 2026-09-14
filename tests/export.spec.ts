@@ -5,7 +5,7 @@ import path from 'node:path';
 import { writeResultWorkbook } from '../electron/export-excel';
 import type { Clarification, PrdProject } from '../src/types';
 
-const outputRoot=path.resolve('.runtime-test');
+const outputRoot=path.resolve('docs/tmp/test-run/vitest/export');
 afterAll(()=>rm(outputRoot,{recursive:true,force:true}));
 const clarification=(level:NonNullable<Clarification['level']>,sourceUnitId='S-001'):Clarification=>({id:`Q-${level}`,question:'字段为空时系统应采用哪一种业务处理规则？',reason:'原文没有给出唯一处理口径',level,knownFacts:'原文明确字段参与业务判断',unresolvedPoint:'字段为空时的处理规则',impact:'不同答案会改变系统处理结果',levelReason:level==='blocking'?'不回答会迫使开发 Agent 猜测业务规则':'已有明确默认口径',...(level==='suggestion'?{defaultResolution:'暂不处理时保持现有字段校验规则'}:{}),sourceRefs:[{sourceUnitId}],affectedIds:[sourceUnitId],state:'open'});
 it('直接引用原文的待确认显示在相关功能和需求行，不扩散到同功能其他来源',async()=>{

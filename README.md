@@ -12,6 +12,10 @@
 
 待处理事项统一展示业务澄清和平台整理问题，但明确标出处理方。每条新业务澄清必须说明已知事实、唯一未决点、影响、分级依据和原文证据；建议项还要给出暂不处理时沿用的明确口径。事项只关联实际受影响的功能或需求，不扩散到同功能但来源无关的其他需求。
 
+## 文件与产物目录
+
+临时工作文件按主题和执行批次放入 `docs/tmp/`，过程证据按特性和轮次放入 `docs/acceptance/`；正式应用数据由用户数据目录管理。目录落点、Git 跟踪、留存条件和迁移步骤统一见 [文件目录与留存规范](docs/ops/artifact-directory-policy.md)，迁移前的分布见 [目录盘点](docs/acceptance/artifact-directory-governance/inventory.md)。本地历史任务和旧输出可先运行 `pwsh -File scripts/clean-local-history.ps1 -Check` 查看精确清单，确认无本项目运行进程后去掉 `-Check` 执行。
+
 ## 本地运行
 
 ```bash
@@ -31,7 +35,7 @@ npm run dist:mac
 npm run dist:win
 ```
 
-产物写入 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，它会在独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
+构建过程与打包产物写入 `docs/tmp/desktop-build/current/`，安装包位于其中的 `dist-release/`。打包验证使用 `node scripts/packaged-smoke.mjs <应用可执行文件> <证据目录>`，证据目录应放在对应验收轮次下；脚本会在该目录的独立用户数据目录启动应用、检查首页并截图。Mac 的可执行文件位于 `docs/tmp/desktop-build/current/dist-release/mac*/需求细化平台.app/Contents/MacOS/需求细化平台`。
 
 平台使用统一的 `AnalysisRuntime` 契约，当前提供两种适配器：Codex CLI 直接调用官方 CLI 并复用其管理的认证（持久化标识仍为 `codex-oauth`）；`dsh` 使用官方 SDK profile 和换行分隔 JSON-RPC stdio。Runtime 配置可填写 `http`、`https` 或 `socks5` 代理地址，连接检测与新任务会将其显式注入模型子进程，不依赖桌面应用是否继承终端环境；代理地址暂不支持用户名和密码。每个任务创建时固化不含密钥的适配器、模型、推理深度和代理地址快照；运行时通过系统配置引用解析凭据。DeepSeek API Key 使用 Electron `safeStorage` 加密保存，仅注入 DSH 子进程环境，不进入任务 JSON 或任务事件。
 

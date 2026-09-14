@@ -1,9 +1,9 @@
-import { mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { AnalysisTaskScheduler } from "../electron/scheduler-v2";
 import type { AnalysisTask, PrdProject, RuntimeConfig } from "../src/types";
+import { createTestWorkspace } from "./test-workspace";
 
 const config: RuntimeConfig = {
   adapter: "codex-oauth",
@@ -88,8 +88,10 @@ const task = (
   completedAt: version ?? 1,
   steps: [],
 });
+const roots: string[] = [];
+afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
 const setup = async (tasks: AnalysisTask[]) => {
-  const root = await mkdtemp(path.join(tmpdir(), "prd-lifecycle-"));
+  const root = await createTestWorkspace("prd-lifecycle"); roots.push(root);
   for (const value of tasks)
     await writeFile(
       path.join(root, `${value.id}.json`),
@@ -145,7 +147,8 @@ describe("任务生命周期、本期范围与产物记录", () => {
   });
 
   it("删除整族只清理托管任务和无人引用快照，迟到发布不能复活，也不删除资料包或用户原文件", async () => {
-    const root = await mkdtemp(path.join(tmpdir(), "prd-delete-")),
+    const root = await createTestWorkspace("prd-delete"); roots.push(root);
+    const
       snapshot = path.join(root, "input-snapshots", "S"),
       bundle = path.join(root, "material-bundles", "B"),
       original = path.join(root, "user-prd.md");
@@ -239,7 +242,7 @@ describe("任务生命周期、本期范围与产物记录", () => {
   });
   it("阻塞事项建议按统一预算记录提示词、运行状态和 Runtime 指标",async()=>{
     const base=task("T-P",1);base.status="needs-attention";base.project.clarifications=[{id:"Q1",question:"超时时间是多少？",reason:"原文未明确",level:"blocking",knownFacts:"存在超时",unresolvedPoint:"时长",impact:"影响状态流转",levelReason:"Agent 不能猜测",sourceRefs:[{sourceUnitId:"S1"}],affectedIds:["R1"],state:"open"}];
-    const directory=await mkdtemp(path.join(tmpdir(),"prd-proposal-"));await writeFile(path.join(directory,"T-P.json"),JSON.stringify(base),"utf8");
+    const directory=await createTestWorkspace("prd-proposal");roots.push(directory);await writeFile(path.join(directory,"T-P.json"),JSON.stringify(base),"utf8");
     const scheduler=new AnalysisTaskScheduler(directory,async()=>config,()=>{},()=>({start:async()=>{},stop:async()=>{},diagnostics:()=>"",metrics:()=>[{sessionId:"prd-T-P-proposal-1-try1",adapter:"codex-oauth",model:"test",reasoningEffort:"low",startedAt:1,completedAt:2,durationMs:1,inputTokens:20,outputTokens:5}],promptAndWait:async()=>JSON.stringify({proposals:[{clarificationId:"Q1",recommendation:"超时时长统一设为三十分钟。",rationale:"当前材料明确存在超时控制。",impact:"到期后进入超时状态。",confirmation:"确认采用三十分钟。",alternatives:[],evidenceIds:["S1"]}]})}));
     await scheduler.initialize();const result=await scheduler.generateResolutionProposals("T-P");
     expect(result.proposalGeneration).toMatchObject({status:"completed",calls:1});expect(result.checkpoint?.promptMetrics).toHaveLength(1);expect(result.runtimeMetrics).toHaveLength(1);expect(result.project.clarifications[0].resolutionProposal?.recommendation).toContain("三十分钟");

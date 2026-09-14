@@ -5,7 +5,7 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "../dist-electron",
+    "outDir": "../docs/tmp/desktop-build/current/dist-electron",
     "rootDir": "..",
     "types": ["node"]
   },

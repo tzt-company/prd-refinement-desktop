@@ -1,15 +1,15 @@
 import { afterEach, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import JSZip from 'jszip';
 import { extractDocument } from '../electron/document-assets';
 import { sourceCoverage } from '../electron/source-units';
+import { createTestWorkspace } from './test-workspace';
 
 const directories:string[]=[];
 afterEach(async()=>{for(const directory of directories.splice(0))await rm(directory,{recursive:true,force:true})});
-async function fixture(name:string,buffer:Buffer){const directory=await mkdtemp(path.join(os.tmpdir(),'prd-assets-'));directories.push(directory);const file=path.join(directory,name);await writeFile(file,buffer);return {file,directory}}
+async function fixture(name:string,buffer:Buffer){const directory=await createTestWorkspace('prd-assets');directories.push(directory);const file=path.join(directory,name);await writeFile(file,buffer);return {file,directory}}
 
 it('macOS 使用系统 textutil 导入旧版 DOC',async()=>{
   if(process.platform!=='darwin')return;

@@ -1,19 +1,13 @@
 node_modules/
-dist/
-dist-electron/
+# 旧版构建目录仅在清理过渡期保留忽略；新构建不再写入这里。
 dist-release/
-playwright-report/
-test-results/
-premium-audit.json
 data/
 *.log
 *.tsbuildinfo
-.codex-*/
-.e2e-*/
-.runtime-*/
-.unified-*/
 docs/tmp/
 docs/**/profile/
 docs/**/user-data/
 docs/**/drop-user-data/
 docs/**/ui-test-data/
+docs/acceptance/**/round-*/runtime/
+docs/acceptance/**/round-*/artifacts/
