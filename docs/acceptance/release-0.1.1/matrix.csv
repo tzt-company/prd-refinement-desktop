@@ -1,8 +1,9 @@
-case,round-1,round-2
-单元测试,PASS,PENDING
-TypeScript类型检查,PASS,PENDING
-Windows安装版打包,PASS,PENDING
-Windows便携版打包,PASS,PENDING
-macOS DMG打包,NA,PENDING
-macOS ZIP打包,NA,PENDING
-GitHub Release资产与哈希,NA,PENDING
+case,round-1,round-2,round-3
+单元测试,PASS,PASS,PENDING
+TypeScript类型检查,PASS,NA,PENDING
+Windows安装版打包,PASS,PASS,PENDING
+Windows便携版打包,PASS,PASS,PENDING
+macOS DMG打包,NA,PASS,PENDING
+macOS ZIP打包,NA,PASS,PENDING
+双平台资产上传,NA,PASS,PENDING
+GitHub Release资产与哈希,NA,FAIL,PENDING
