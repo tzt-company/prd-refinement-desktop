@@ -2,6 +2,12 @@
 
 本文件记录需求细化平台各版本的重要变更。
 
+## [0.1.3] - 2026-09-14
+
+### 修复
+
+- 使用固定版本的 Release Action 上传安装包，兼容 GitHub 当前 attachment 上传接口。
+
 ## [0.1.2] - 2026-09-14
 
 ### 修复
@@ -31,6 +37,7 @@
 - 完善来源证据绑定、输入预算、审计返工、并发调度和模型用量展示。
 - 统一本地临时产物、验收证据和正式应用数据的目录边界。
 
+[0.1.3]: https://github.com/tzt-company/prd-refinement-desktop/releases/tag/v0.1.3
 [0.1.2]: https://github.com/tzt-company/prd-refinement-desktop/releases/tag/v0.1.2
 [0.1.1]: https://github.com/tzt-company/prd-refinement-desktop/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tzt-company/prd-refinement-desktop/releases/tag/v0.1.0
