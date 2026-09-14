@@ -10,10 +10,11 @@
 | --- | --- | --- |
 | 发布说明 | 已完成 | `CHANGELOG.md` 记录 0.1.0 主要变更 |
 | Windows 构建 | 已完成 | 本地测试、打包与打包应用 smoke 通过 |
-| 双平台 CI | 待验证 | tag workflow 的 Windows、macOS 构建 job 均成功 |
-| Release 发布 | 待验证 | Release 与 5 类资产可下载，校验清单与下载文件一致 |
+| 双平台 CI | 失败 | run 34797497917 两个平台均在产物生成后触发 `electron-builder` 自动发布并因缺少 `GH_TOKEN` 失败 |
+| Release 发布 | 失败 | build job 失败，Release job 按依赖门禁跳过 |
 
 ## 重大决策
 
 - 版本沿用仓库当前 `package.json` 与 `package-lock.json` 中尚未发布的 `0.1.0`，首个标签为 `v0.1.0`。
 - Windows 与 macOS 必须在各自原生 GitHub runner 构建；本地 Windows 结果不替代 macOS 验证。
+- `v0.1.0` 已作为失败标签保留，不覆盖重打；修复进入新版本 `v0.1.1`。
