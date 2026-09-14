@@ -1,10 +1,10 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import os from 'node:os';
+import { readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { AnalysisTask, PrdProject } from '../src/types';
 import { writeAgentPackage } from '../electron/export-agent-package';
+import { createTestWorkspace } from './test-workspace';
 
 const roots:string[]=[];
 afterAll(async()=>{await Promise.all(roots.map(root=>rm(root,{recursive:true,force:true})))});
@@ -27,7 +27,7 @@ function fixture(){
 
 describe('Agent 交付包',()=>{
   it('本期存在待处理事项时仍交付需求，并在机器入口保留级别、依据和影响',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);const {project,task}=fixture();
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);const {project,task}=fixture();
     const base={question:'是否需要在本期明确订单备注长度？',reason:'原文未明确',knownFacts:'订单可以提交',unresolvedPoint:'备注长度',impact:'不改变本期核心流程',levelReason:'已有明确默认口径',sourceRefs:[{sourceUnitId:'S-1'}],affectedIds:['R-001'],state:'open' as const};
     project.clarifications=[{id:'Q-S',level:'suggestion',defaultResolution:'暂不处理时保持原文规则',...base},{id:'Q-I',level:'ignorable',...base}];
     expect((await writeAgentPackage(project,task,root,'advisory')).manifest.qualityState).toBe('ready');
@@ -43,7 +43,7 @@ describe('Agent 交付包',()=>{
     expect(requirements.audit.issues.map((item:{id:string})=>item.id)).toContain('A-1');
   });
   it('从同一快照生成、回读并原子发布完整需求包',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);
     const {project,task}=fixture();const assetPath=path.join(root,'原始图片.png'),asset=Buffer.from('fixture-image');await writeFile(assetPath,asset);project.sourceUnits[0].asset={path:assetPath,mimeType:'image/png',sha256:hash(asset),readStatus:'read'};const result=await writeAgentPackage(project,task,root,'delivery-1');
     expect(path.basename(result.directory)).toBe('delivery-1');expect(result.manifest.qualityState).toBe('ready');
     const names=(await readdir(result.directory)).sort();expect(names).toEqual(['README.md','features','manifest.json','pending.json','requirements.json','requirements.xlsx','sources']);
@@ -58,7 +58,7 @@ describe('Agent 交付包',()=>{
   });
 
   it('范围来自持久化需求字段，功能内可只排除部分需求',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);
     const {project,task}=fixture();
     project.sourceUnits.push({id:'S-3',label:'取消订单',kind:'paragraph',excerpt:'用户可以取消订单。',location:'第 3 段',status:'processed'});
     project.features.push({id:'F-002',name:'取消订单',goal:'',sourceUnitIds:['S-3'],ruleIds:[],requirementIds:['R-002','R-003'],state:'reviewed'});
@@ -82,7 +82,7 @@ describe('Agent 交付包',()=>{
   });
 
   it('本期需求依赖范围外需求时保留本期需求并记录未满足依赖',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);
     const {project,task}=fixture();
     project.sourceUnits.push({id:'S-3',label:'支付',kind:'paragraph',excerpt:'订单提交后发起支付。',location:'第 3 段',status:'processed'});
     project.features.push({id:'F-002',name:'支付',goal:'',sourceUnitIds:['S-3'],ruleIds:[],requirementIds:['R-002'],state:'reviewed'});
@@ -101,13 +101,13 @@ describe('Agent 交付包',()=>{
   });
 
   it('功能级排除覆盖需求默认范围，且零本期需求明确失败',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);
     const {project,task}=fixture();project.features[0].deliveryScope='excluded';
     await expect(writeAgentPackage(project,task,root,'empty-current')).rejects.toThrow('本期范围没有可交付需求');
   });
 
   it('目标目录已存在时不覆盖旧包，并清理临时目录',async()=>{
-    const root=await mkdtemp(path.join(os.tmpdir(),'prd-agent-package-'));roots.push(root);
+    const root=await createTestWorkspace('prd-agent-package');roots.push(root);
     const {project,task}=fixture();await writeAgentPackage(project,task,root,'stable');
     const original=await readFile(path.join(root,'stable','requirements.json'),'utf8');
     await expect(writeAgentPackage(project,task,root,'stable')).rejects.toThrow();

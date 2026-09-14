@@ -6,7 +6,7 @@ import {AnalysisTaskScheduler,attachInitialUserInput,compactPromptInput,schedule
 import type {AnalysisRuntime} from '../electron/runtime';
 import type {PrdProject,RuntimeConfig,SourceUnit} from '../src/types';
 
-const root=path.resolve('.runtime-test-scheduler-17',randomUUID());
+const root=path.resolve('docs/tmp/test-run/vitest/scheduler',randomUUID());
 afterAll(()=>rm(root,{recursive:true,force:true}));
 const config:RuntimeConfig={adapter:'dsh',provider:'fake',fastModel:'fast',fastReasoningEffort:'low',model:'model',reasoningEffort:'low',maxParallel:1,maxNodeParallel:3};
 const project=():PrdProject=>({id:'P',name:'测试',sourceName:'test.md',sourceHash:'H',revision:1,importedAt:'now',rawText:'字段 X 必填。',stage:'inventory',sourceUnits:[],features:[],requirements:[],clarifications:[]});

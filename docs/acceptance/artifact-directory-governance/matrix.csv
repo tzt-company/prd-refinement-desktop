@@ -1,0 +1,10 @@
+case_id,场景,round-1,证据
+H01,正式 userData 历史任务与资料清空,PASS,round-1.md
+H02,验收目录历史 profile 与 runtime 清空,PASS,round-1.md
+H03,Runtime 配置保留,PASS,round-1.md
+D01,构建输出统一进入 docs/tmp,PASS,round-1.md
+D02,单元测试和 E2E 默认目录收敛,PASS,round-1.md
+D03,空数据启动不显示演示任务,PASS,round-1.md
+V01,单元测试和类型检查,PASS,round-1.md
+V02,Windows 安装包与便携版生成,PASS,round-1.md
+V03,打包应用真实启动,PASS,round-1.md

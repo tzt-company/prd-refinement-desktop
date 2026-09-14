@@ -1,9 +1,9 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { AnalysisTaskScheduler } from "../electron/scheduler-v2";
 import type { AnalysisTask, PrdProject, RuntimeConfig } from "../src/types";
+import { createTestWorkspace } from "./test-workspace";
 
 const config: RuntimeConfig = {
   adapter: "codex-oauth",
@@ -89,7 +89,9 @@ const task = (
   completedAt: createdAt,
   steps: [],
 });
-const root = () => mkdtemp(path.join(tmpdir(), "prd-adjustment-queue-"));
+const roots: string[] = [];
+afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))); });
+const root = async () => { const directory = await createTestWorkspace("prd-adjustment-queue"); roots.push(directory); return directory; };
 const save = (directory: string, value: AnalysisTask) =>
   writeFile(
     path.join(directory, `${value.id}.json`),

@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { AnalysisTaskScheduler } from '../dist-electron/electron/scheduler-v2.js';
+import { AnalysisTaskScheduler } from '../docs/tmp/desktop-build/current/dist-electron/electron/scheduler-v2.js';
 
-const source=process.argv[2],root=process.argv[3]??path.resolve('.e2e-pipeline-v2'),retryId=process.argv[4];
+const source=process.argv[2],root=process.argv[3]??path.resolve('docs/tmp/e2e-pipeline/current'),retryId=process.argv[4];
 if(!source)throw new Error('用法：node scripts/run-pipeline-e2e.mjs <PRD路径> [任务目录]');
 const rawText=await readFile(source,'utf8');
 const config={adapter:'codex-oauth',provider:'openai-codex',fastModel:'gpt-5.6-luna',fastReasoningEffort:'low',model:'gpt-5.6-sol',reasoningEffort:'low',nodeProfiles:{imageReading:{model:'gpt-5.6-sol',reasoningEffort:'low'},featureCandidates:{model:'gpt-5.6-luna',reasoningEffort:'low'},featureCandidateRepair:{model:'gpt-5.6-sol',reasoningEffort:'low'},featureGlobal:{model:'gpt-5.6-sol',reasoningEffort:'low'},featureCoverage:{model:'gpt-5.6-sol',reasoningEffort:'low'},detailsFast:{model:'gpt-5.6-luna',reasoningEffort:'low'},details:{model:'gpt-5.6-sol',reasoningEffort:'low'},audit:{model:'gpt-5.6-sol',reasoningEffort:'low'},repair:{model:'gpt-5.6-sol',reasoningEffort:'low'}},maxParallel:1,maxNodeParallel:3};

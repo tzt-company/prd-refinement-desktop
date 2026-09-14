@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { artifactRefreshKey, clearFeedbackDraft, displayProgress, ExecutionRecord, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
+import { App, artifactRefreshKey, clearFeedbackDraft, displayProgress, ExecutionRecord, featureScope, loadFeedbackDraft, Progress, RuntimeCost, saveFeedbackDraft, shouldSubmitFeedback, TaskFeedback, TaskPage, runtimeTiming } from '../src/App.js';
 import { ResultIssues } from '../src/ResultIssues.js';
 import type { AnalysisTask } from '../src/types.js';
 
 describe('需求细化数据契约', () => {
+  it('持久化任务回读前显示空任务页，不注入演示任务',()=>{
+    const html=renderToStaticMarkup(React.createElement(App));
+    expect(html).toContain('当前任务 <b>0</b>');
+    expect(html).toContain('还没有需求分析任务');
+    expect(html).not.toContain('交易中心 3.0');
+    expect(html).not.toContain('T-0001');
+  });
   it('七阶段进度显示为整数百分比',()=>{
     expect(displayProgress(42.85714285714286)).toBe(43);
   });
